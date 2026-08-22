@@ -1,0 +1,221 @@
+diff a/function.php b/function.php	(rejected hunks)
+@@ -394,8 +394,8 @@ function update($table, $field, $newValue, $whereField = null, $whereValue = nul
+ function &getSelectCacheStore()
+ {
+     static $store = [
+-        'results' => [],
+-        'tableIndex' => [],
++    'results' => [],
++    'tableIndex' => [],
+     ];
+ 
+     return $store;
+@@ -521,14 +521,33 @@ function generateUUID()
+ 
+     return $uuid;
+ }
+-function rate_arze()
++function rate_arze($fields = [])
+ {
+     $arze_rate = [];
++
++    // قیمت دلار به تومان از bon-bast
++    $html_read = file_get_contents("https://www.bon-bast.com/");
++    preg_match('/<span>\s*([\d,]+)\s*<\/span>/', $html_read, $matches);
++    if (!empty($matches[1])) {
++        $requestsusd = str_replace(',', '', $matches[1]);
++    }
++    $arze_rate['USD'] = intval($requestsusd);
++
++    // قیمت TRX به دلار از diadata
+     $requests_tron = json_decode(file_get_contents('https://api.diadata.org/v1/assetQuotation/Tron/0x0000000000000000000000000000000000000000'), true);
+-    $requestsusd = json_decode(file_get_contents('https://api.wallex.ir/v1/markets'), true);
+-    $arze_rate['USD'] = intval($requestsusd['result']['symbols']['USDTTMN']['stats']['lastPrice']);
+     $arze_rate['TRX'] = intval($requests_tron['Price'] * $arze_rate['USD']);
+ 
++    // قیمت TON به دلار از diadata (همان سرویس TRX)
++    $requests_ton = json_decode(file_get_contents('https://api.diadata.org/v1/assetQuotation/Ton/0x0000000000000000000000000000000000000000'), true);
++    if ($requests_ton && isset($requests_ton['Price'])) {
++        $arze_rate['Ton'] = intval($requests_ton['Price'] * $arze_rate['USD']);
++    } else {
++        // fallback: از CoinGecko
++        $cg = json_decode(file_get_contents('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd'), true);
++        $ton_usd = $cg['the-open-network']['usd'] ?? 0;
++        $arze_rate['Ton'] = intval($ton_usd * $arze_rate['USD']);
++    }
++
+     return $arze_rate;
+ }
+ function updatePaymentMessageId($response, $orderId)
+@@ -832,20 +851,30 @@ function DirectPayment($order_id, $image = 'images.jpg')
+             }
+             return;
+         }
+-        $Shoppinginfo = json_encode([
+-            'inline_keyboard' => [
+-                [
+-                    ['text' => "📚 مشاهده آموزش استفاده ", 'callback_data' => "helpbtn"],
+-                ]
+-            ]
+-        ]);
+         $output_config_link = "";
+         $config = "";
++        $output_config_link = $marzban_list_get['sublink'] == "onsublink" ? $dataoutput['subscription_url'] : "";
+         if ($marzban_list_get['config'] == "onconfig" && is_array($dataoutput['configs'])) {
+             foreach ($dataoutput['configs'] as $link) {
+                 $config .= "\n" . $link;
+             }
+         }
++
++        $keyboard_buttons = [
++            [
++                ['text' => "📚 راهنمای اتصال", 'callback_data' => "helpbtn"],
++            ]
++        ];
++
++        if (!empty($output_config_link) && filter_var(trim($output_config_link), FILTER_VALIDATE_URL)) {
++            $keyboard_buttons[] = [
++                ['text' => "🔗 لینک اتصال", 'web_app' => ['url' => trim($output_config_link)]]
++            ];
++        }
++
++        $Shoppinginfo = json_encode([
++            'inline_keyboard' => $keyboard_buttons
++        ]);
+         $output_config_link = $marzban_list_get['sublink'] == "onsublink" ? $dataoutput['subscription_url'] : "";
+         $datatextbot['textafterpay'] = $marzban_list_get['type'] == "Manualsale" ? $datatextbot['textmanual'] : $datatextbot['textafterpay'];
+         $datatextbot['textafterpay'] = $marzban_list_get['type'] == "WGDashboard" ? $datatextbot['text_wgdashboard'] : $datatextbot['textafterpay'];
+@@ -1009,8 +1038,8 @@ $textonebuy
+             update("user", "score", $scorenew, "id", $Balance_id['id']);
+         }
+         update("invoice", "Status", "active", "username", $get_invoice['username']);
+-        if ($Payment_report['Payment_Method'] == "cart to cart" or $Payment_report['Payment_Method'] == "arze digital offline") {
+-            update("invoice", "Status", "active", "id_invoice", $get_invoice['id_invoice']);
++if ($Payment_report['Payment_Method'] == "cart to cart" or $Payment_report['Payment_Method'] == "arze digital offline" or $Payment_report['Payment_Method'] == "ton offline") {
++update("invoice", "Status", "active", "id_invoice", $get_invoice['id_invoice']);
+             $textconfrom = "✅ پرداخت تایید شده
+  🛍خرید سرویس 
+  ▫️نام کاربری کانفیگ :$username_ac
+@@ -1165,8 +1194,7 @@ $textonebuy
+             ]);
+         }
+         update("invoice", "Status", "active", "id_invoice", $nameloc['id_invoice']);
+-        if ($Payment_report['Payment_Method'] == "cart to cart" or $Payment_report['Payment_Method'] == "arze digital offline") {
+-
++if ($Payment_report['Payment_Method'] == "cart to cart" or $Payment_report['Payment_Method'] == "arze digital offline" or $Payment_report['Payment_Method'] == "ton offline") {
+             $textconfrom = "✅ پرداخت تایید شده
+ 🔋 تمدید سرویس
+ 🪪 نام کاربری کانفیگ : $usernamepanel
+@@ -1249,8 +1277,7 @@ $textonebuy
+ ▫️مبلغ افزایش حجم : $volumesformat تومان";
+         sendmessage($Balance_id['id'], $textvolume, $keyboardextrafnished, 'HTML');
+         $volumes = $volume;
+-        if ($Payment_report['Payment_Method'] == "cart to cart") {
+-            $textconfrom = "✅ پرداخت تایید شده
++if ($Payment_report['Payment_Method'] == "cart to cart" or $Payment_report['Payment_Method'] == "arze digital offline" or $Payment_report['Payment_Method'] == "ton offline") {            $textconfrom = "✅ پرداخت تایید شده
+ 🔋 خرید حجم اضافه
+ 🛍 حجم خریداری شده  : $volumes گیگ
+ 👤 نام کاربری کانفیگ {$steppay[0]}
+@@ -1348,8 +1375,7 @@ $textonebuy
+ 
+ ▫️مبلغ افزایش زمان : $volumesformat تومان";
+         sendmessage($Balance_id['id'], $textextratime, $keyboardextrafnished, 'HTML');
+-        if ($Payment_report['Payment_Method'] == "cart to cart") {
+-            $volumes = $tmieextra;
++if ($Payment_report['Payment_Method'] == "cart to cart" or $Payment_report['Payment_Method'] == "arze digital offline" or $Payment_report['Payment_Method'] == "ton offline") {            $volumes = $tmieextra;
+             $textconfrom = "✅ پرداخت تایید شده
+ 🔋 خرید زمان اضافه
+ 🛍 زمان خریداری شده  : $volumes روز
+@@ -1383,8 +1409,7 @@ $textonebuy
+         update("Payment_report", "payment_Status", "paid", "id_order", $Payment_report['id_order']);
+         $Payment_report['price'] = number_format($Payment_report['price'], 0);
+         $format_price_cart = $Payment_report['price'];
+-        if ($Payment_report['Payment_Method'] == "cart to cart" or $Payment_report['Payment_Method'] == "arze digital offline") {
+-            $textconfrom = "⭕️ یک پرداخت جدید انجام شده است
++if ($Payment_report['Payment_Method'] == "cart to cart" or $Payment_report['Payment_Method'] == "arze digital offline" or $Payment_report['Payment_Method'] == "ton offline") {            $textconfrom = "⭕️ یک پرداخت جدید انجام شده است
+         افزایش موجودی.
+ 👤 شناسه کاربر: <code>{$Balance_id['id']}</code>
+ 🛒 کد پیگیری پرداخت: {$Payment_report['id_order']}
+@@ -1405,8 +1430,10 @@ function plisio($order_id, $price)
+     $api_key = $apinowpayments;
+ 
+     $url = 'https://api.plisio.net/api/v1/invoices/new';
+-    $url .= '?currency=TRX';
+-    $url .= '&amount=' . urlencode($price);
++    // $url .= '?currency=TRX';
++    // $url .= '&amount=' . urlencode($price);
++	$url .= '?source_currency=USD';
++    $url .= '&source_amount=' . urlencode($price);
+     $url .= '&order_number=' . urlencode($order_id);
+     $url .= '&email=customer@plisio.net';
+     $url .= '&order_name=plisio';
+@@ -1681,7 +1708,7 @@ function createInvoice($amount)
+     $curl = curl_init();
+ 
+     curl_setopt_array($curl, array(
+-        CURLOPT_URL => 'https://pay.melorinabeauty.ir/api/factor/create',
++        CURLOPT_URL => 'https://pay.melorinabeauty.com/api/factor/create',
+         CURLOPT_RETURNTRANSFER => true,
+         CURLOPT_ENCODING => '',
+         CURLOPT_MAXREDIRS => 10,
+@@ -1741,7 +1768,7 @@ function createInvoiceiranpay1($amount, $id_invoice)
+         "CallbackURL" => "https://$domainhosts/payment/iranpay1.php"
+     ];
+     curl_setopt_array($curl, array(
+-        CURLOPT_URL => "https://tetra98.ir/api/create_order",
++        CURLOPT_URL => "https://tetra98.com/api/create_order",
+         CURLOPT_RETURNTRANSFER => true,
+         CURLOPT_ENCODING => '',
+         CURLOPT_MAXREDIRS => 10,
+@@ -1760,6 +1787,29 @@ function createInvoiceiranpay1($amount, $id_invoice)
+     curl_close($curl);
+     return json_decode($response, true);
+ }
++function parseConfigs($input)
++{
++    $lines = explode("\n", $input);
++    $configs = [];
++
++    foreach ($lines as $line) {
++        $line = trim($line);
++        
++        if ($line === '') {
++            continue;
++        }
++
++        $randomChars = substr(str_shuffle("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"), 0, 6);
++        $autoName = 'Sub_' . $randomChars;
++
++        $configs[] = [
++            'name' => $autoName,
++            'config' => $line
++        ];
++    }
++
++    return $configs;
++}
+ function verifyxvoocher($code)
+ {
+     $PaySetting = select("PaySetting", "*", "NamePay", "apiiranpay", "select")['ValuePay'];
+@@ -2066,3 +2116,21 @@ function createPayaqayepardakht($price, $order_id)
+     curl_close($curl);
+     return json_decode($response, true);
+ }
++
++// حذف /sub/ از لینک اشتراک مرزبان
++function stripSubPath($url) {
++    if (empty($url) || !is_string($url)) return $url;
++    return preg_replace('#^(https?://[^/]+)/sub/#i', '$1/', $url);
++}
++
++// اعمال strip_sub روی subscription_url بر اساس تنظیم پنل
++function applyStripSub($panel, $subscription_url) {
++    if (empty($subscription_url) || !is_string($subscription_url)) return $subscription_url;
++    if (
++        isset($panel['type']) && $panel['type'] === 'marzban' &&
++        isset($panel['strip_sub']) && $panel['strip_sub'] === 'onstripsub'
++    ) {
++        return stripSubPath($subscription_url);
++    }
++    return $subscription_url;
++}

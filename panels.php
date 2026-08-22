@@ -104,7 +104,7 @@ class ManagePanel
                 }
                 $Output['status'] = 'successful';
                 $Output['username'] = $data_Output['username'];
-                $Output['subscription_url'] = $data_Output['subscription_url'];
+                $Output['subscription_url'] = applyStripSub($Get_Data_Panel, $data_Output['subscription_url']);
                 $Output['configs'] = $data_Output['links'];
             }
         } elseif ($Get_Data_Panel['type'] == "marzneshin") {
@@ -273,7 +273,7 @@ class ManagePanel
             $configman = $statement->fetch(PDO::FETCH_ASSOC);
             $Output['status'] = 'successful';
             $Output['username'] = $usernameC;
-            $Output['subscription_url'] = $configman['contentrecord'];
+            $Output['subscription_url'] = is_array($configman) ? $configman['contentrecord'] : null;
             $Output['configs'] = "";
             update("manualsell", "status", "selled", "id", $configman['id']);
             update("manualsell", "username", $usernameC, "id", $configman['id']);
@@ -602,7 +602,7 @@ class ManagePanel
                         'online_at' => $UsernameData['online_at'],
                         'used_traffic' => $UsernameData['used_traffic'],
                         'links' => $links_user,
-                        'subscription_url' => $UsernameData['subscription_url'],
+                        'subscription_url' => applyStripSub($Get_Data_Panel, $UsernameData['subscription_url']),
                         'sub_updated_at' => $UsernameData['sub_updated_at'],
                         'sub_last_user_agent' => $UsernameData['sub_last_user_agent'],
                         'uuid' => null
@@ -721,7 +721,7 @@ class ManagePanel
                 $usageLimit = isset($UsernameData['usage_limit_GB']) ? $UsernameData['usage_limit_GB'] * pow(1024, 3) : 0;
                 $currentUsage = isset($UsernameData['current_usage_GB']) ? $UsernameData['current_usage_GB'] * pow(1024, 3) : 0;
                 $uuid = $UsernameData['uuid'] ?? null;
-                $linksuburl = $uuid ? "{$Get_Data_Panel['linksubx']}/{$uuid}/" : $Get_Data_Panel['linksubx'];
+                $linksuburl = applyStripSub($Get_Data_Panel, $uuid ? "{$Get_Data_Panel['linksubx']}/{$uuid}/" : $Get_Data_Panel['linksubx']);
                 $lastOnline = $UsernameData['last_online'] ?? null;
                 if ($lastOnline == "1-01-01 00:00:00") {
                     $lastOnline = null;
@@ -759,14 +759,14 @@ class ManagePanel
             $configman = $stmt->fetch(PDO::FETCH_ASSOC);
             $service = select("invoice", "*", "username", $username, "select");
             $Output = array(
-                'status' => $service['Status'],
-                'username' => $service['username'],
+                'status' => is_array($service) ? $service['Status'] : null,
+                'username' => is_array($service) ? $service['username'] : $username,
                 'data_limit' => null,
-                'expire' => $service['time_sell'],
+                'expire' => is_array($service) ? $service['time_sell'] : null,
                 'online_at' => null,
                 'used_traffic' => null,
                 'links' => [],
-                'subscription_url' => $configman['contentrecord'],
+                'subscription_url' => is_array($configman) ? $configman['contentrecord'] : null,
                 'sub_updated_at' => null,
                 'sub_last_user_agent' => null,
                 'uuid' => null
@@ -813,7 +813,7 @@ class ManagePanel
                     'online_at' => $status_user,
                     'used_traffic' => $UsernameData['up'] + $UsernameData['down'],
                     'links' => [outputlink($Get_Data_Panel['linksubx'] . "/{$UsernameData2['subId']}")],
-                    'subscription_url' => $Get_Data_Panel['linksubx'] . "/{$UsernameData2['subId']}",
+                    'subscription_url' => applyStripSub($Get_Data_Panel, $Get_Data_Panel['linksubx'] . "/{$UsernameData2['subId']}"),
                     'sub_updated_at' => null,
                     'sub_last_user_agent' => null,
                 );
@@ -1133,7 +1133,7 @@ class ManagePanel
                 $Output = array(
                     'status' => 'successful',
                     'configs' => [outputlink($Get_Data_Panel['linksubx'] . "/{$subId}")],
-                    'subscription_url' => $Get_Data_Panel['linksubx'] . "/{$subId}",
+                    'subscription_url' => applyStripSub($Get_Data_Panel, $Get_Data_Panel['linksubx'] . "/{$subId}"),
                 );
             }
         } elseif ($Get_Data_Panel['type'] == "alireza_single") {
@@ -1161,7 +1161,7 @@ class ManagePanel
                 $Output = array(
                     'status' => 'successful',
                     'configs' => [outputlink($Get_Data_Panel['linksubx'] . "/{$subId}")],
-                    'subscription_url' => $Get_Data_Panel['linksubx'] . "/{$subId}",
+                    'subscription_url' => applyStripSub($Get_Data_Panel, $Get_Data_Panel['linksubx'] . "/{$subId}"),
                 );
             }
         } elseif ($Get_Data_Panel['type'] == "hiddify") {

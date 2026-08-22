@@ -709,7 +709,6 @@ if (in_array($text, $textadmin) || $datain == "admin") {
                 'path' => '/',
                 'host' => '',
                 'headers' => array()
-
             ),
         ));
     }
@@ -1178,11 +1177,114 @@ elseif ($datain == "systemsms") {
             "id_message" => $message_id['result']['message_id'],
             "message" => $userdata['message'],
             "pingmessage" => $userdata['typepinmessage'],
-            "btnmessage" => $userdata['btntypemessage']
+            "btnmessage" => $userdata['btntypemessage'],
+            "btnurl" => $btn_url
         ));
         file_put_contents("cronbot/users.json", $userslist);
         file_put_contents('cronbot/info', $data);
+
+    // -----------------------------------------------------------
+    // بخش اصلاح شده فوروارد پیام (Forward Message)
+    // -----------------------------------------------------------
     } elseif ($typeservice == "forwardmessage") {
+        if ($agent == "all") {
+            if ($typeusermessage == "all") {
+                $userslist = json_encode(select("user", "id", "User_Status", "Active", "fetchAll"));
+            } elseif ($typeusermessage == "customer") {
+                if ($userdata['selectpanel'] == "all") {
+                    $stmt = $pdo->prepare("SELECT u.id FROM user u WHERE EXISTS ( SELECT 1 FROM invoice i WHERE i.id_user = u.id AND i.Status != 'Unpaid') AND u.User_Status = 'Active'");
+                } else {
+                    $panel = select("marzban_panel", "*", "code_panel", $userdata['selectpanel'], "select");
+                    $stmt = $pdo->prepare("SELECT u.id FROM user u WHERE EXISTS ( SELECT 1 FROM invoice i WHERE i.id_user = u.id AND i.Service_location = '{$panel['name_panel']}' AND i.Status != 'Unpaid') AND u.User_Status = 'Active'");
+                }
+                $stmt->execute();
+                $userslist = json_encode($stmt->fetchAll());
+            } elseif ($typeusermessage == "nonecustomer") {
+                $stmt = $pdo->prepare("SELECT u.id FROM user u WHERE NOT EXISTS ( SELECT 1 FROM invoice i WHERE i.id_user = u.id AND i.Status != 'Unpaid') AND u.User_Status = 'Active'");
+                $stmt->execute();
+                $userslist = json_encode($stmt->fetchAll());
+            }
+        } else {
+            if ($typeusermessage == "all") {
+                $userslist = json_encode(select("user", "id", "agent", $agent, "fetchAll"));
+            } elseif ($typeusermessage == "customer") {
+                if ($userdata['selectpanel'] == "all") {
+                    $stmt = $pdo->prepare("SELECT u.id FROM user u WHERE u.agent = :agent AND EXISTS ( SELECT 1 FROM invoice i WHERE i.id_user = u.id AND i.Status != 'Unpaid') AND u.User_Status = 'Active'");
+                } else {
+                    $panel = select("marzban_panel", "*", "code_panel", $userdata['selectpanel'], "select");
+                    $stmt = $pdo->prepare("SELECT u.id FROM user u WHERE u.agent = :agent AND EXISTS ( SELECT 1 FROM invoice i WHERE i.id_user = u.id AND i.Service_location = '{$panel['name_panel']}' AND i.Status != 'Unpaid') AND u.User_Status = 'Active'");
+                }
+                $stmt->bindParam(':agent', $agent, PDO::PARAM_STR);
+                $stmt->execute();
+                $userslist = json_encode($stmt->fetchAll());
+            } elseif ($typeusermessage == "nonecustomer") {
+                $stmt = $pdo->prepare("SELECT u.id FROM user u WHERE u.agent = :agent AND NOT EXISTS ( SELECT 1 FROM invoice i WHERE i.id_user = u.id AND i.Status != 'Unpaid') AND u.User_Status = 'Active'");
+                $stmt->bindParam(':agent', $agent, PDO::PARAM_STR);
+                $stmt->execute();
+                $userslist = json_encode($stmt->fetchAll());
+            }
+        }
+        $message_id = Editmessagetext($from_id, $message_id, "✅ عملیات آغاز گردید پس از پایان اطلاع رسانی خواهد شد.", $cancelmessage);
+        $data = json_encode(array(
+            "id_admin" => $from_id,
+            'type' => "forwardmessage",
+            "id_message" => $message_id['result']['message_id'],
+            "message" => $userdata['message'],
+            "pingmessage" => $userdata['typepinmessage'],
+        ));
+        file_put_contents("cronbot/users.json", $userslist);
+        file_put_contents('cronbot/info', $data);
+
+    // -----------------------------------------------------------
+    // بخش اصلاح شده عدم فعالیت (X Day Not Message)
+    // -----------------------------------------------------------
+    } elseif ($typeservice == "xdaynotmessage") {
+        $timedaystamp = intval($userdata['daynoyuse']) * 86400;
+        $timenouser = time() - $timedaystamp;
+        if ($agent == "all") {
+            $stmt = $pdo->prepare("SELECT id FROM user WHERE last_message_time < $timenouser");
+            $stmt->execute();
+            $userslist = json_encode($stmt->fetchAll());
+        } else {
+            if ($typeusermessage == "all") {
+                $stmt = $pdo->prepare("SELECT u.id FROM user u WHERE u.last_message_time < :time");
+                $stmt->bindParam(':time', $timenouser, PDO::PARAM_STR);
+                $stmt->execute();
+                $userslist = json_encode($stmt->fetchAll());
+            } elseif ($typeusermessage == "customer") {
+                if ($userdata['selectpanel'] == "all") {
+                    $stmt = $pdo->prepare("SELECT u.id FROM user u WHERE u.last_message_time < :time AND EXISTS ( SELECT 1 FROM invoice i WHERE i.id_user = u.id AND i.Status != 'Unpaid');");
+                } else {
+                    $panel = select("marzban_panel", "*", "code_panel", $userdata['selectpanel'], "select");
+                    $stmt = $pdo->prepare("SELECT u.id FROM user u WHERE u.last_message_time < :time AND EXISTS ( SELECT 1 FROM invoice i WHERE i.id_user = u.id AND i.Service_location = '{$panel['name_panel']}' AND i.Status != 'Unpaid');");
+                }
+                $stmt->bindParam(':time', $timenouser, PDO::PARAM_STR);
+                $stmt->execute();
+                $userslist = json_encode($stmt->fetchAll());
+            } elseif ($typeusermessage == "nonecustomer") {
+                $stmt = $pdo->prepare("SELECT u.id FROM user u WHERE u.last_message_time < :time AND NOT EXISTS ( SELECT 1 FROM invoice i WHERE i.id_user = u.id AND i.Status != 'Unpaid');");
+                $stmt->bindParam(':time', $timenouser, PDO::PARAM_STR);
+                $stmt->execute();
+                $userslist = json_encode($stmt->fetchAll());
+            }
+        }
+        $message_id = Editmessagetext($from_id, $message_id, "✅ عملیات آغاز گردید پس از پایان اطلاع رسانی خواهد شد.", $cancelmessage);
+        $data = json_encode(array(
+            "id_admin" => $from_id,
+            'type' => "xdaynotmessage",
+            "id_message" => $message_id['result']['message_id'],
+            "message" => $userdata['message'],
+            "pingmessage" => $userdata['typepinmessage'],
+            "btnmessage" => $userdata['btntypemessage'],
+            "btnurl" => $btn_url
+        ));
+        file_put_contents("cronbot/users.json", $userslist);
+        file_put_contents('cronbot/info', $data);
+
+}
+
+
+ elseif ($typeservice == "forwardmessage") {
         if ($agent == "all") {
             if ($typeusermessage == "all") {
                 $userslist = json_encode(select("user", "id", "User_Status", "Active", "fetchAll"));
@@ -1300,7 +1402,9 @@ elseif ($datain == "systemsms") {
             "id_message" => $message_id['result']['message_id'],
             "message" => $userdata['message'],
             "pingmessage" => $userdata['typepinmessage'],
-            "btnmessage" => $userdata['btntypemessage']
+            "btnmessage" => $userdata['btntypemessage'],
+            "btnurl" => $btn_url // <--- این خط را اضافه کنید
+
         ));
         file_put_contents("cronbot/users.json", $userslist);
         file_put_contents('cronbot/info', $data);
@@ -2877,6 +2981,11 @@ elseif ($datain == "systemsms") {
         $json_list_product_list_admin = json_encode($list_product);
     }
     Editmessagetext($from_id, $message_id, $textbotlang['Admin']['Product']['selectEditProduct'], $json_list_product_list_admin);
+
+
+
+
+// ...
 } elseif (preg_match('/^productedit_(\w+)/', $datain, $dataget)) {
     $id_product = $dataget[1];
     deletemessage($from_id, $message_id);
@@ -6229,7 +6338,7 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
     $stmt->bindParam(':Status', $Status, PDO::PARAM_STR);
     $stmt->bindParam(':notifctions', $notifctions, PDO::PARAM_STR);
     $stmt->execute();
-    $output_config_link = $marzban_list_get['sublink'] == "onsublink" ? $DataUserOut['subscription_url'] : "";
+    $output_config_link = $marzban_list_get['sublink'] == "onsublink" ? applyStripSub($marzban_list_get, $DataUserOut['subscription_url']) : "";
     $config = "";
     if ($marzban_list_get['config'] == "onconfig" && is_array($DataUserOut['configs'])) {
         foreach ($DataUserOut['configs'] as $link) {
@@ -6592,7 +6701,7 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
             return;
         }
         $randomString = bin2hex(random_bytes(5));
-        $output_config_link = $panel['sublink'] == "onsublink" ? $dataoutput['subscription_url'] : "";
+        $output_config_link = $panel['sublink'] == "onsublink" ? applyStripSub($panel, $dataoutput['subscription_url']) : "";
         $config = "";
         if ($marzban_list_get['config'] == "onconfig" && is_array($dataoutput['configs'])) {
             foreach ($dataoutput['configs'] as $link) {
@@ -6614,7 +6723,7 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
         $textcreatuser = str_replace('{links2}', $output_config_link, $textcreatuser);
         if ($panel['type'] == "Manualsale" || $panel['type'] == "ibsng" || $panel['type'] == "mikrotik") {
             $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
-            update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $randomString);
+            update("invoice", "user_info", applyStripSub($panel, $dataoutput['subscription_url']), "id_invoice", $randomString);
         }
         sendMessageService($panel, $dataoutput['configs'], $output_config_link, $dataoutput['username'], null, $textcreatuser, $randomString);
     }
@@ -6850,6 +6959,11 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
         $arzireyali1 = getPaySettingValue('statusSwapWallet', 'offSwapinoBot');
     }
     $arzireyali2 = getPaySettingValue('statustarnado', 'offternado');
+	$tonoffline_status = getPaySettingValue('statustonoffline', 'offtonoffline');
+    $tonofflinestatus  = [
+        'ontonoffline'  => $textbotlang['Admin']['Status']['statuson'],
+        'offtonoffline' => $textbotlang['Admin']['Status']['statusoff']
+    ][$tonoffline_status];
     $arzireyali3 = getPaySettingValue('statusiranpay3', 'offiranpay3');
     $aqayepardakht = getPaySettingValue('statusaqayepardakht', 'offaqayepardakht');
     $zarinpal = getPaySettingValue('zarinpalstatus', 'offzarinpal');
@@ -7063,6 +7177,9 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
             $valuenew = "1";
         }
         update("PaySetting", "ValuePay", $valuenew, "NamePay", "statusnowpayment");
+    } elseif ($type == "tonoffline") {
+        $valuenew = ($value == "ontonoffline") ? "offtonoffline" : "ontonoffline";
+        update("PaySetting", "ValuePay", $valuenew, "NamePay", "statustonoffline");
     }
     $zarinpal = getPaySettingValue('zarinpalstatus', 'offzarinpal');
     $cartotcart = getPaySettingValue('Cartstatus', 'offcard');
@@ -9584,6 +9701,10 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
         'oninbounddisable' => $textbotlang['Admin']['Status']['statuson'],
         'offinbounddisable' => $textbotlang['Admin']['Status']['statusoff']
     ][$panel['inboundstatus']];
+    $strip_sub_status = [
+        'onstripsub' => $textbotlang['Admin']['Status']['statuson'],
+        'offstripsub' => $textbotlang['Admin']['Status']['statusoff']
+    ][$panel['strip_sub'] ?? 'offstripsub'];
     $subvip = [
         'onsubvip' => $textbotlang['Admin']['Status']['statuson'],
         'offsubvip' => $textbotlang['Admin']['Status']['statusoff']
@@ -9750,6 +9871,13 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
             $valuenew = "onsubvip";
         }
         update("marzban_panel", "subvip", $valuenew, "code_panel", $code_panel);
+    } elseif ($type == "stripsub") {
+        if ($value == "onstripsub") {
+            $valuenew = "offstripsub";
+        } else {
+            $valuenew = "onstripsub";
+        }
+        update("marzban_panel", "strip_sub", $valuenew, "code_panel", $code_panel);
     } elseif ($type == "customstatusf") {
         $panel = select("marzban_panel", "*", "code_panel", $code_panel, "select");
         $customvlume = json_decode($panel['customvolume'], true);
@@ -9822,6 +9950,10 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
         'oninbounddisable' => $textbotlang['Admin']['Status']['statuson'],
         'offinbounddisable' => $textbotlang['Admin']['Status']['statusoff']
     ][$panel['inboundstatus']];
+    $strip_sub_status = [
+        'onstripsub' => $textbotlang['Admin']['Status']['statuson'],
+        'offstripsub' => $textbotlang['Admin']['Status']['statusoff']
+    ][$panel['strip_sub'] ?? 'offstripsub'];
     $subvip = [
         'onsubvip' => $textbotlang['Admin']['Status']['statuson'],
         'offsubvip' => $textbotlang['Admin']['Status']['statusoff']

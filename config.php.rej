@@ -1,0 +1,36 @@
+diff a/config.php b/config.php	(rejected hunks)
+@@ -1,20 +1,19 @@
+ <?php
+-// This variable added for high load panels which their response time is long and bot can't communicate with online panel!
+-// null for default settings
+-$request_exec_timeout = null;
+-$dbhost = '{database_url}';
+-$dbname = '{database_name}';
+-$usernamedb = '{username_db}';
+-$passworddb = '{password_db}';
+-$connect = mysqli_connect($dbhost, $usernamedb, $passworddb, $dbname);
++$dbname = 'satiahostiranxyz_VentoVpn';
++$usernamedb = 'satiahostiranxyz_VentoVpn';
++$passworddb = 'AfYFbcB9Hvs639xJ5gyw';
++$connect = mysqli_connect("localhost", $usernamedb, $passworddb, $dbname);
+ if ($connect->connect_error) { die("error" . $connect->connect_error); }
+ mysqli_set_charset($connect, "utf8mb4");
+ $options = [ PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_EMULATE_PREPARES => false, ];
+-$dsn = "mysql:host=$dbhost;dbname=$dbname;charset=utf8mb4";
++$dsn = "mysql:host=localhost;dbname=$dbname;charset=utf8mb4";
+ try { $pdo = new PDO($dsn, $usernamedb, $passworddb, $options); } catch (\PDOException $e) { error_log("Database connection failed: " . $e->getMessage()); }
+-$APIKEY = '{API_KEY}';
+-$adminnumber = '{admin_number}';
+-$domainhosts = '{domain_name}';
+-$usernamebot = '{username_bot}';
++$APIKEY = '8003606306:AAG8zfiG0xL8v5FNJodj_c66xY78qtrcJrk';
++$adminnumber = '1237083181';
++$domainhosts = 'bot.psnco.sbs/VentoVpn'; 
++$usernamebot = 'ConfigApiBot';
++$groupID = '-1003854662958';
++$topicID = 3;
++$topicID_panel= 9;
+ 
+-?>
+\ No newline at end of file
++?>

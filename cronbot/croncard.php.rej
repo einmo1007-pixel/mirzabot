@@ -1,0 +1,11 @@
+diff a/cronbot/croncard.php b/cronbot/croncard.php	(rejected hunks)
+@@ -10,7 +10,8 @@ require __DIR__ . '/../vendor/autoload.php';
+ require_once __DIR__ . '/../jdf.php';
+ $ManagePanel = new ManagePanel();
+ $setting = select("setting", "*");
+-$paymentreports = select("topicid","idreport","report","paymentreport","select")['idreport'];
++$paymentreports_row = select("topicid","idreport","report","paymentreport","select");
++$paymentreports = is_array($paymentreports_row) ? ($paymentreports_row['idreport'] ?? null) : null;
+ $datatextbotget = select("textbot", "*",null ,null ,"fetchAll");
+ $PaySetting = select("PaySetting","ValuePay","NamePay",'statuscardautoconfirm',"select")['ValuePay'];
+ $paymentverify = select("PaySetting","ValuePay","NamePay","autoconfirmcart","select")['ValuePay'];

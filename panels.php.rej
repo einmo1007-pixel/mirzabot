@@ -1,0 +1,46 @@
+diff a/panels.php b/panels.php	(rejected hunks)
+@@ -173,7 +173,7 @@ class ManagePanel
+                     $links_user = explode("\n", trim($links_user));
+                     $Output['status'] = 'successful';
+                     $Output['username'] = $usernameC;
+-                    $Output['subscription_url'] = $Get_Data_Panel['linksubx'] . "/{$subId}";
++                    $Output['subscription_url'] = applyStripSub($Get_Data_Panel, $Get_Data_Panel['linksubx'] . "/{$subId}");
+                     $Output['configs'] = $links_user;
+                     if ($inoice != false) {
+                         $Output['subscription_url'] = "https://$domainhosts/sub/" . $inoice['id_invoice'];
+@@ -207,7 +207,7 @@ class ManagePanel
+                 } else {
+                     $Output['status'] = 'successful';
+                     $Output['username'] = $usernameC;
+-                    $Output['subscription_url'] = $Get_Data_Panel['linksubx'] . "/{$subId}";
++                    $Output['subscription_url'] = applyStripSub($Get_Data_Panel, $Get_Data_Panel['linksubx'] . "/{$subId}");
+                     $Output['configs'] = [outputlink($Output['subscription_url'])];
+                     if ($inoice != false) {
+                         $Output['subscription_url'] = "https://$domainhosts/sub/" . $inoice['id_invoice'];
+@@ -251,7 +251,7 @@ class ManagePanel
+             } else {
+                 $Output['status'] = 'successful';
+                 $Output['username'] = $usernameC;
+-                $Output['subscription_url'] = "{$Get_Data_Panel['linksubx']}/{$data_Output['uuid']}/";
++                $Output['subscription_url'] = applyStripSub($Get_Data_Panel, "{$Get_Data_Panel['linksubx']}/{$data_Output['uuid']}/");
+                 $Output['configs'] = [];
+                 if ($inoice != false) {
+                     $Output['subscription_url'] = "https://$domainhosts/sub/" . $inoice['id_invoice'];
+@@ -454,7 +454,7 @@ class ManagePanel
+                     'online_at' => $UsernameData['online_at'],
+                     'used_traffic' => $UsernameData['used_traffic'],
+                     'links' => $UsernameData['links'],
+-                    'subscription_url' => $UsernameData['subscription_url'],
++                    'subscription_url' => applyStripSub($Get_Data_Panel, $UsernameData['subscription_url']),
+                     'sub_updated_at' => $UsernameData['sub_updated_at'],
+                     'sub_last_user_agent' => $UsernameData['sub_last_user_agent'],
+                     'uuid' => $UsernameData['proxies'],
+@@ -579,7 +579,7 @@ class ManagePanel
+                 $user_data['enable'] = "on_hold";
+                 $expire = 0;
+             }
+-            $linksub = $Get_Data_Panel['linksubx'] . "/{$user_data['subId']}";
++            $linksub = applyStripSub($Get_Data_Panel, $Get_Data_Panel['linksubx'] . "/{$user_data['subId']}");
+             $links_user = outputlink($Get_Data_Panel['linksubx'] . "/{$user_data['subId']}");
+             if (isBase64($links_user))
+                 $links_user = base64_decode($links_user);

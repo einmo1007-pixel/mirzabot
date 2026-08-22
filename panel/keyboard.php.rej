@@ -1,0 +1,10 @@
+diff a/panel/keyboard.php b/panel/keyboard.php	(rejected hunks)
+@@ -46,7 +46,7 @@ if($method == "POST" && is_array($keyboard)){
+   <head>
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+-    <title>پنل مدیریت ربات میرزا</title>
++    <title>پنل مدیریت</title>
+     <script>
+       window.__MIRZA_API_ORIGIN = window.location.origin + <?php echo json_encode($applicationBasePath); ?>;
+     </script>

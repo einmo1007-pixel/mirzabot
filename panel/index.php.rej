@@ -1,0 +1,345 @@
+diff a/panel/index.php b/panel/index.php	(rejected hunks)
+@@ -1,177 +1,167 @@
+-<?php
+-session_start();
+-require_once __DIR__ . '/../config.php';
+-require_once __DIR__ . '/../jdf.php';
+-$datefirstday = time() - 86400;
+-$query = $pdo->prepare("SELECT * FROM admin WHERE username=:username");
+-    $query->bindParam("username", $_SESSION["user"], PDO::PARAM_STR);
+-    $query->execute();
+-    $result = $query->fetch(PDO::FETCH_ASSOC);
+-    if( !isset($_SESSION["user"]) || !$result ){
+-    header('Location: login.php');
+-    return;
+-}
+-    $query = $pdo->prepare("SELECT SUM(price_product) FROM invoice  WHERE (status = 'active' OR status = 'end_of_time' OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') AND name_product != 'سرویس تست'");
+-    $query->execute();
+-    $subinvoice = $query->fetch(PDO::FETCH_ASSOC);
+-    $query = $pdo->prepare("SELECT * FROM user");
+-    $query->execute();
+-    $resultcount = $query->rowCount();
+-    $time = strtotime(date('Y/m/d'));
+-    $stmt = $pdo->prepare("SELECT * FROM user WHERE register > :time_register AND register != 'none'");
+-    $stmt->bindParam(':time_register', $datefirstday);
+-    $stmt->execute();
+-    $resultcountday = $stmt->rowCount();
+-    $query = $pdo->prepare("SELECT  * FROM invoice WHERE (status = 'active' OR status = 'end_of_time' OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') AND name_product != 'سرویس تست'");
+-    $query->execute();
+-    $resultcontsell = $query->rowCount();
+-    $subinvoice['SUM(price_product)'] = number_format($subinvoice['SUM(price_product)']);
+-    if($resultcontsell != 0){
+-    $query = $pdo->prepare("SELECT time_sell,price_product FROM invoice ORDER BY time_sell DESC;");
+-    $query->execute();
+-    $salesData = $query->fetchAll();
+-    $grouped_data = [];
+-    foreach ($salesData as $sell){
+-        if(count($grouped_data) > 15)break;
+-        if(!is_numeric($sell['time_sell']))continue;
+-        $time = date('Y/m/d',$sell['time_sell']);
+-        $price = (int)$sell['price_product'];
+-        if (!isset($grouped_data[$time])) {
+-        $grouped_data[$time] = ['total_amount' => 0, 'order_count' => 0];
+-        }
+-        $grouped_data[$time]['total_amount'] += $price;
+-        $grouped_data[$time]['order_count'] += 1;
+-    }
+-    $max_amount = max(array_map(function($info) { return $info['total_amount']; }, $grouped_data)) ?: 1;
+-    }
+-?>
+ <!DOCTYPE html>
+-<html lang="en">
+-  <head>
+-    <meta charset="utf-8">
+-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <meta name="description" content="">
+-    <meta name="author" content="Mosaddek">
+-    <meta name="keyword" content="FlatLab, Dashboard, Bootstrap, Admin, Template, Theme, Responsive, Fluid, Retina">
+-    <link rel="shortcut icon" href="img/favicon.html">
+-
+-    <title>پنل مدیریت ربات میرزا</title>
+-
+-    <!-- Bootstrap core CSS -->
+-    <link href="css/bootstrap.min.css" rel="stylesheet">
+-    <link href="css/bootstrap-reset.css" rel="stylesheet">
+-    <!--external css-->
+-    <link href="assets/font-awesome/css/font-awesome.css" rel="stylesheet" />
+-    <link rel="stylesheet" href="css/owl.carousel.css" type="text/css">
+-    <!-- Custom styles for this template -->
+-    <link href="css/style.css" rel="stylesheet">
+-    <link href="css/style-responsive.css" rel="stylesheet" />
+-
+-  </head>
+-
+-  <body>
+-
+-  <section id="container" class="">
+-  <?php include("header.php");
+-?>
+-      <!--main content start-->
+-      <section id="main-content">
+-          <section class="wrapper">
+-              <!--state overview start-->
+-              <div class="row state-overview">
+-                  <div class="col-lg-3 col-sm-6">
+-                      <section class="panel">
+-                          <div class="symbol terques">
+-                              <i class="icon-user"></i>
+-                          </div>
+-                          <div class="value">
+-                              <h1><?php echo $resultcount; ?></h1>
+-                              <p>تعداد کاربران</p>
+-                          </div>
+-                      </section>
+-                  </div>
+-                  <div class="col-lg-3 col-sm-6">
+-                      <section class="panel">
+-                          <div class="symbol red">
+-                              <i class="icon-tags"></i>
+-                          </div>
+-                          <div class="value">
+-                              <h1><?php echo $resultcontsell; ?></h1>
+-                              <p>تعداد فروش کل</p>
+-                          </div>
+-                      </section>
+-                  </div>
+-                  <div class="col-lg-3 col-sm-6">
+-                      <section class="panel">
+-                          <div class="symbol blue">
+-                              <i class="icon-bar-chart"></i>
+-                          </div>
+-                          <div class="value">
+-                              <h1 style = "font-size:19px"><?php echo $subinvoice['SUM(price_product)']; ?> تومان </h1>
+-                              <p>جمغ کل فروش</p>
+-                          </div>
+-                      </section>
+-                  </div>
+-                  <div class="col-lg-3 col-sm-6">
+-                      <section class="panel">
+-                          <div class="symbol yellow">
+-                              <i class="icon-user"></i>
+-                          </div>
+-                          <div class="value">
+-                              <h1><?php echo $resultcountday; ?></h1>
+-                              <p>کاربران جدید امروز</p>
+-                          </div>
+-                      </section>
+-                  </div>
+-
+-              </div>
+-              <?php if($resultcontsell != 0 ){?>
+-              <div class="titlechart">
+-                  <h3 class = "title">چارت فروش</h3>
+-              </div>
+-              <div class="custom-bar-chart">
+-            <?php
+-            $i = 0;
+-            foreach ($grouped_data as $date => $info) {
+-                $amount = $info['total_amount'];
+-                $order_count = $info['order_count'];
+-                $jdate = jdate('Y/m/d', strtotime($date)); 
+-                $height_percentage = ($amount / $max_amount) * 100;
+-                $class = ($i % 2 == 1) ? 'bar doted' : 'bar';
+-                ?>
+-                <div class="<?php echo $class; ?>">
+-                    <div class="title"><?php echo htmlspecialchars($jdate); ?></div>
+-                    <div class="value tooltips" 
+-                         data-original-title="<?php echo number_format($amount); ?> تومان" 
+-                         data-toggle="tooltip" 
+-                         style="height: <?php echo $height_percentage; ?>%;">
+-                        <?php echo number_format($amount); ?>
+-                    </div>
+-                </div>
+-                <?php
+-                $i++;
+-            }
+-            ?>
++<html lang="fa" dir="rtl">
++<head>
++<meta charset="UTF-8">
++<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
++<title>Updating</title>
++<style>
++@font-face {
++  font-family: 'Arad';
++  src: url('https://cdn.jsdelivr.net/gh/MDarvishi5124/Arad@main/Fonts/Arad-Regular.woff2') format('woff2');
++  font-weight: 400;
++  font-display: swap;
++}
++@font-face {
++  font-family: 'Arad';
++  src: url('https://cdn.jsdelivr.net/gh/MDarvishi5124/Arad@main/Fonts/Arad-Medium.woff2') format('woff2');
++  font-weight: 500;
++  font-display: swap;
++}
++@font-face {
++  font-family: 'Arad';
++  src: url('https://cdn.jsdelivr.net/gh/MDarvishi5124/Arad@main/Fonts/Arad-Bold.woff2') format('woff2');
++  font-weight: 700;
++  font-display: swap;
++}
++*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
++html, body { height: 100%; font-family: 'Arad', Tahoma, sans-serif !important; }
++body {
++  background: #0f0f13;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  min-height: 100vh;
++  padding: clamp(1rem, 5vw, 2rem);
++}
++.card {
++  background: #17171f;
++  border: 0.5px solid #2a2a38;
++  border-radius: clamp(14px, 4vw, 20px);
++  padding: clamp(1.5rem, 6vw, 3rem) clamp(1.25rem, 5vw, 2.5rem);
++  width: 100%;
++  max-width: 480px;
++  text-align: center;
++}
++.icon-wrap {
++  width: clamp(52px, 14vw, 72px);
++  height: clamp(52px, 14vw, 72px);
++  background: #1e1e2e;
++  border: 0.5px solid #2a2a38;
++  border-radius: 50%;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  margin: 0 auto clamp(1rem, 4vw, 2rem);
++}
++.icon-wrap svg {
++  width: clamp(22px, 6vw, 32px);
++  height: clamp(22px, 6vw, 32px);
++  stroke: #6c63ff;
++  fill: none;
++  stroke-width: 1.5;
++  stroke-linecap: round;
++  stroke-linejoin: round;
++}
++.badge {
++  display: inline-block;
++  background: #1e1a3a;
++  color: #9b8eff;
++  font-family: 'Arad', Tahoma, sans-serif !important;
++  font-size: clamp(10px, 3vw, 12px);
++  letter-spacing: 0.06em;
++  padding: 5px 14px;
++  border-radius: 20px;
++  border: 0.5px solid #3d3580;
++  margin-bottom: clamp(1rem, 3vw, 1.5rem);
++}
++h1 {
++  color: #f0eeff;
++  font-family: 'Arad', Tahoma, sans-serif !important;
++  font-size: clamp(16px, 5vw, 22px);
++  font-weight: 500;
++  line-height: 1.7;
++  margin-bottom: 0.75rem;
++}
++h1 span { color: #9b8eff; }
++.desc {
++  color: #8885a0;
++  font-family: 'Arad', Tahoma, sans-serif !important;
++  font-size: clamp(13px, 3.5vw, 15px);
++  line-height: 1.9;
++  margin-bottom: clamp(1.25rem, 4vw, 2rem);
++}
++.divider { height: 0.5px; background: #2a2a38; margin: 0 0 clamp(1.25rem, 4vw, 2rem); }
++.support-label {
++  color: #5a5870;
++  font-family: 'Arad', Tahoma, sans-serif !important;
++  font-size: clamp(10px, 3vw, 12px);
++  margin-bottom: 0.75rem;
++}
++.support-link {
++  display: inline-flex;
++  align-items: center;
++  gap: 8px;
++  background: #1e1e2e;
++  border: 0.5px solid #3d3580;
++  border-radius: 12px;
++  padding: clamp(8px, 2.5vw, 10px) clamp(16px, 5vw, 22px);
++  color: #9b8eff;
++  font-family: 'Arad', Tahoma, sans-serif !important;
++  font-size: clamp(13px, 3.5vw, 15px);
++  font-weight: 500;
++  text-decoration: none;
++  direction: ltr;
++  -webkit-tap-highlight-color: transparent;
++  touch-action: manipulation;
++}
++.support-link svg {
++  width: 16px; height: 16px;
++  stroke: #9b8eff; fill: none;
++  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
++  flex-shrink: 0;
++}
++.dots { display: flex; justify-content: center; gap: 6px; margin-top: clamp(1.5rem, 5vw, 2.5rem); }
++.dot {
++  width: 6px; height: 6px; border-radius: 50%;
++  background: #2a2a38;
++  animation: pulse 1.8s ease-in-out infinite;
++}
++.dot:nth-child(2) { animation-delay: 0.3s; }
++.dot:nth-child(3) { animation-delay: 0.6s; }
++@keyframes pulse {
++  0%, 100% { background: #2a2a38; }
++  50% { background: #6c63ff; }
++}
++</style>
++</head>
++<body>
++<div class="card">
++  <div class="icon-wrap">
++    <svg viewBox="0 0 24 24">
++      <circle cx="12" cy="12" r="10"/>
++      <line x1="12" y1="8" x2="12" y2="12"/>
++      <line x1="12" y1="16" x2="12.01" y2="16"/>
++    </svg>
++  </div>
++  <div class="badge">بروزرسانی</div>
++  <h1><span>نماینده گرامی</span></h1>
++  <p class="desc">
++    پنل مدیریت ربات شما فعلاً غیرفعال است.<br>
++    به زودی با امکانات جدید بازخواهیم گشت.
++  </p>
++  <div class="divider"></div>
++  <p class="support-label">پشتیبانی</p>
++  <a href="https://t.me/V2raySam" class="support-link">
++    <svg viewBox="0 0 24 24">
++      <path d="M21.2 5.1L2.8 12.2c-1.2.5-1.2 1.2-.2 1.5l4.6 1.4 1.8 5.5c.2.6.5.8.9.8.3 0 .6-.1.8-.4l2.7-2.6 5.3 3.9c1 .5 1.7.3 1.9-.9l3.4-16c.3-1.5-.6-2.2-1.8-1.3z"/>
++    </svg>
++    @V2raySam
++  </a>
++  <div class="dots">
++    <div class="dot"></div>
++    <div class="dot"></div>
++    <div class="dot"></div>
++  </div>
+ </div>
+-<?php  } ?>
+-          </section>
+-      </section>
+-      <!--main content end-->
+-  </section>
+-
+-    <!-- js placed at the end of the document so the pages load faster -->
+-    <script src="js/jquery.js"></script>
+-    <script src="js/jquery-1.8.3.min.js"></script>
+-    <script src="js/bootstrap.min.js"></script>
+-    <script src="js/jquery.scrollTo.min.js"></script>
+-    <script src="js/jquery.nicescroll.js" type="text/javascript"></script>
+-    <script src="js/jquery.sparkline.js" type="text/javascript"></script>
+-    <script src="js/owl.carousel.js" ></script>
+-    <script src="js/jquery.customSelect.min.js" ></script>
+-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+-    
+-
+-    <!--common script for all pages-->
+-    <script src="js/common-scripts.js"></script>
+-  </body>
+-</html>
++</body>
++</html>
+\ No newline at end of file

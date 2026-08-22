@@ -1,0 +1,11 @@
+diff a/cronbot/iranpay1.php b/cronbot/iranpay1.php	(rejected hunks)
+@@ -8,7 +8,8 @@ require_once __DIR__ . '/../function.php';
+ require __DIR__ . '/../vendor/autoload.php';
+ $ManagePanel = new ManagePanel();
+ $setting = mysqli_fetch_assoc(mysqli_query($connect, "SELECT * FROM setting"));
+-$paymentreports = select("topicid","idreport","report","paymentreport","select")['idreport'];
++$paymentreports_row = select("topicid","idreport","report","paymentreport","select");
++$paymentreports = is_array($paymentreports_row) ? ($paymentreports_row['idreport'] ?? null) : null;
+ $datatextbotget = select("textbot", "*",null ,null ,"fetchAll");
+     $datatxtbot = array();
+ foreach ($datatextbotget as $row) {
