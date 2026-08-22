@@ -40,7 +40,7 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     step("getpricvolumeadmin", $from_id);
 } elseif ($user['step'] == "getpricvolumeadmin") {
     if (!ctype_digit($text)) {
-        sendmessage($from_id, $textbotlang['common']['invalidInput'], $backadmin, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['agent']['invalidvlue'], $backadmin, 'HTML');
         return;
     }
     if (intval($text) < intval($setting['minpricevolume'])) {
@@ -59,7 +59,7 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     step("getpricvtimeadmin", $from_id);
 } elseif ($user['step'] == "getpricvtimeadmin") {
     if (!ctype_digit($text)) {
-        sendmessage($from_id, $textbotlang['common']['invalidInput'], $backadmin, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['agent']['invalidvlue'], $backadmin, 'HTML');
         return;
     }
     if (intval($text) < intval($setting['minpricetime'])) {
@@ -95,7 +95,7 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     if ($Payment_report['payment_Status'] == "paid" || $Payment_report['payment_Status'] == "reject") {
         telegram('answerCallbackQuery', array(
             'callback_query_id' => $callback_query_id,
-            'text' => $textbotlang['Admin']['Payment']['reviewedPayment'],
+            'text' => $textbotlang['Admin']['Payment']['reviewedpayment'],
             'show_alert' => true,
             'cache_time' => 5,
         ));
@@ -147,7 +147,7 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     if ($Payment_report['payment_Status'] == "reject" || $Payment_report['payment_Status'] == "paid") {
         telegram('answerCallbackQuery', array(
             'callback_query_id' => $callback_query_id,
-            'text' => $textbotlang['Admin']['Payment']['reviewedPayment'],
+            'text' => $textbotlang['Admin']['Payment']['reviewedpayment'],
             'show_alert' => true,
             'cache_time' => 5,
         ));
@@ -155,7 +155,7 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     }
     update("Payment_report", "payment_Status", "reject", "id_order", $id_order);
 
-    sendmessage($from_id, $textbotlang['Admin']['Payment']['reasonRejecting'], $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['Payment']['Reasonrejecting'], $backadmin, 'HTML');
     step('reject-dec', $from_id);
     Editmessagetext($from_id, $message_id, $text_inline, null);
 } elseif ($user['step'] == "reject-dec") {
@@ -165,7 +165,7 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
 ✍️ $text
 🛒 کد پیگیری پرداخت: {$user['Processing_value_one']}
                 ";
-    sendmessage($from_id, $textbotlang['Admin']['Payment']['rejected'], $keyboardadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['Payment']['Rejected'], $keyboardadmin, 'HTML');
     sendmessage($user['Processing_value'], $text_reject, null, 'HTML');
     step('home', $from_id);
     $text_report = "❌ یک ادمین رسید پرداخت کارت به کارت را رد کرد.
@@ -198,15 +198,15 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     $keyboardadmin = json_encode($keyboardadmin);
     sendmessage($from_id, "📌 در بخش زیر می توانید لیست ادمین ها را مشاهده کنید همچنین با زدن دکمه ضربدر می توانید یک ادمین را حذف کنید", $keyboardadmin, 'HTML');
 } elseif ($datain == "addnewadmin") {
-    sendmessage($from_id, $textbotlang['Admin']['manageadmin']['getId'], $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['manageadmin']['getid'], $backadmin, 'HTML');
     step('addadmin', $from_id);
 } elseif ($user['step'] == "addadmin") {
     if (!ctype_digit($text)) {
-        sendmessage($from_id, $textbotlang['common']['invalidInput'], $backadmin, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['agent']['invalidvlue'], $backadmin, 'HTML');
         return;
     }
-    sendmessage($from_id, $textbotlang['Admin']['manageadmin']['addAdminSet'], $keyboardadmin, 'HTML');
-    sendmessage($user['Processing_value'], $textbotlang['Admin']['manageadmin']['adminAddedSendUser'], null, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['manageadmin']['addadminset'], $keyboardadmin, 'HTML');
+    sendmessage($user['Processing_value'], $textbotlang['Admin']['manageadmin']['adminedsenduser'], null, 'HTML');
     step('home', $from_id);
     $admin_ids[] = $text;
     update("botsaz", "admin_ids", json_encode($admin_ids), "bot_token", $ApiToken);
@@ -225,7 +225,7 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     update("botsaz", "admin_ids", json_encode($admin_ids), "bot_token", $ApiToken);
     sendmessage($from_id, "✅ ادمین با موفقیت حذف گردید", null, 'HTML');
 } elseif ($text == "🔍 جستجو کاربر") {
-    sendmessage($from_id, $textbotlang['Admin']['manageUser']['getIdUserUnblock'], $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['ManageUser']['GetIdUserunblock'], $backadmin, 'HTML');
     step('show_info', $from_id);
 } elseif ($user['step'] == "show_info" || strpos($text, "/user ") !== false) {
     if (explode(" ", $text)[0] == "/user") {
@@ -234,42 +234,23 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
         $id_user = $text;
     }
     if (!in_array($id_user, $users_ids)) {
-        sendmessage($from_id, $textbotlang['Admin']['notUser'], null, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['not-user'], null, 'HTML');
         return;
     }
     $date = date("Y-m-d");
-    $__q20 = $pdo->prepare("SELECT COUNT(*) FROM invoice WHERE (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND id_user = ? AND bottype = ?");
-    $__q20->bindValue(1, $id_user, PDO::PARAM_STR);
-    $__q20->bindValue(2, $ApiToken, PDO::PARAM_STR);
-    $__q20->execute();
-    $dayListSell = $__q20->fetch(PDO::FETCH_ASSOC);
-    $__q21 = $pdo->prepare("SELECT SUM(price) FROM Payment_report WHERE payment_Status = 'paid' AND id_user = ? AND Payment_Method != 'low balance by admin' AND bottype = ?");
-    $__q21->bindValue(1, $id_user, PDO::PARAM_STR);
-    $__q21->bindValue(2, $ApiToken, PDO::PARAM_STR);
-    $__q21->execute();
-    $balanceall = $__q21->fetch(PDO::FETCH_ASSOC);
-    $__q22 = $pdo->prepare("SELECT SUM(price_product) FROM invoice WHERE (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND id_user = ? AND bottype = ?");
-    $__q22->bindValue(1, $id_user, PDO::PARAM_STR);
-    $__q22->bindValue(2, $ApiToken, PDO::PARAM_STR);
-    $__q22->execute();
-    $subbuyuser = $__q22->fetch(PDO::FETCH_ASSOC);
-    $__q23 = $pdo->prepare("SELECT count(*) FROM invoice WHERE (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND id_user = ? AND bottype = ?");
-    $__q23->bindValue(1, $id_user, PDO::PARAM_STR);
-    $__q23->bindValue(2, $ApiToken, PDO::PARAM_STR);
-    $__q23->execute();
-    $invoicecount = $__q23->fetch(PDO::FETCH_ASSOC)['count(*)'];
+    $dayListSell = mysqli_fetch_assoc(mysqli_query($connect, "SELECT COUNT(*) FROM invoice WHERE (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND id_user = '$id_user' AND bottype = '$ApiToken'"));
+    $balanceall = mysqli_fetch_assoc(mysqli_query($connect, "SELECT SUM(price) FROM Payment_report WHERE payment_Status = 'paid' AND id_user = '$id_user' AND Payment_Method != 'low balance by admin' AND bottype = '$ApiToken'"));
+    $subbuyuser = mysqli_fetch_assoc(mysqli_query($connect, "SELECT SUM(price_product) FROM invoice WHERE (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND id_user = '$id_user' AND bottype = '$ApiToken'"));
+    $invoicecount = mysqli_fetch_assoc(mysqli_query($connect, "SELECT count(*) FROM invoice WHERE (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND id_user = '$id_user' AND bottype = '$ApiToken'"))['count(*)'];
     if ($invoicecount == 0) {
         $sumvolume['SUM(Volume)'] = 0;
     } else {
-        $__q24 = $pdo->prepare("SELECT SUM(Volume) FROM invoice WHERE (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND id_user = ? AND name_product != 'سرویس تست'");
-        $__q24->bindValue(1, $id_user, PDO::PARAM_STR);
-        $__q24->execute();
-        $sumvolume = $__q24->fetch(PDO::FETCH_ASSOC);
+        $sumvolume = mysqli_fetch_assoc(mysqli_query($connect, "SELECT SUM(Volume) FROM invoice WHERE (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND id_user = '$id_user' AND name_product != 'سرویس تست'"));
     }
     $user = select("user", "*", "id", $id_user, "select");
     $roll_Status = [
-        '1' => $textbotlang['Admin']['manageUser']['acceptedPhone'],
-        '0' => $textbotlang['Admin']['manageUser']['failedPhone'],
+        '1' => $textbotlang['Admin']['ManageUser']['Acceptedphone'],
+        '0' => $textbotlang['Admin']['ManageUser']['Failedphone'],
     ][$user['roll_Status']];
     if ($subbuyuser['SUM(price_product)'] == null)
         $subbuyuser['SUM(price_product)'] = 0;
@@ -357,11 +338,11 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
 } elseif (preg_match('/addbalanceuser_(\w+)/', $datain, $dataget)) {
     $iduser = $dataget[1];
     update("user", "Processing_value", $iduser, "id", $from_id);
-    sendmessage($from_id, $textbotlang['Admin']['manageUser']['addBalanceUserDesc'], $backadmin, 'html');
+    sendmessage($from_id, $textbotlang['Admin']['ManageUser']['addbalanceuserdec'], $backadmin, 'html');
     step('addbalanceusercurrent', $from_id);
 } elseif ($user['step'] == "addbalanceusercurrent") {
     if (!ctype_digit($text)) {
-        sendmessage($from_id, $textbotlang['Admin']['Balance']['invalidPrice'], $backadmin, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['Balance']['Invalidprice'], $backadmin, 'HTML');
         return;
     }
     if ($text > 100000000) {
@@ -370,12 +351,13 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     }
     $dateacc = date('Y/m/d H:i:s');
     $randomString = bin2hex(random_bytes(5));
-    $stmt = $pdo->prepare("INSERT INTO Payment_report (id_user,id_order,time,price,payment_Status,Payment_Method,id_invoice,bottype) VALUES (?,?,?,?,?,?,?,?)");
+    $stmt = $connect->prepare("INSERT INTO Payment_report (id_user,id_order,time,price,payment_Status,Payment_Method,id_invoice,bottype) VALUES (?,?,?,?,?,?,?,?)");
     $payment_Status = "paid";
     $Payment_Method = "add balance by admin";
     $invoice = null;
-    $stmt->execute([$user['Processing_value'], $randomString, $dateacc, $text, $payment_Status, $Payment_Method, $invoice, $ApiToken]);
-    sendmessage($from_id, $textbotlang['Admin']['manageUser']['addBalanced'], $keyboardadmin, 'html');
+    $stmt->bind_param("ssssssss", $user['Processing_value'], $randomString, $dateacc, $text, $payment_Status, $Payment_Method, $invoice, $ApiToken);
+    $stmt->execute();
+    sendmessage($from_id, $textbotlang['Admin']['ManageUser']['addbalanced'], $keyboardadmin, 'html');
     $userbalance = json_decode(file_get_contents("data/{$user['Processing_value']}/{$user['Processing_value']}.json"), true);
     $Balance_add_user = $userbalance['Balance'] + $text;
     $userbalance['Balance'] = $Balance_add_user;
@@ -387,11 +369,11 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
 } elseif (preg_match('/lowbalanceuser_(\w+)/', $datain, $dataget)) {
     $iduser = $dataget[1];
     update("user", "Processing_value", $iduser, "id", $from_id);
-    sendmessage($from_id, $textbotlang['Admin']['manageUser']['lowBalanceUserDesc'], $backadmin, 'html');
+    sendmessage($from_id, $textbotlang['Admin']['ManageUser']['lowbalanceuserdec'], $backadmin, 'html');
     step('addbalanceuser', $from_id);
 } elseif ($user['step'] == "addbalanceuser") {
     if (!ctype_digit($text)) {
-        sendmessage($from_id, $textbotlang['Admin']['Balance']['invalidPrice'], $backadmin, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['Balance']['Invalidprice'], $backadmin, 'HTML');
         return;
     }
     if ($text > 100000000) {
@@ -400,12 +382,13 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     }
     $dateacc = date('Y/m/d H:i:s');
     $randomString = bin2hex(random_bytes(5));
-    $stmt = $pdo->prepare("INSERT INTO Payment_report (id_user,id_order,time,price,payment_Status,Payment_Method,id_invoice,bottype) VALUES (?,?,?,?,?,?,?,?)");
+    $stmt = $connect->prepare("INSERT INTO Payment_report (id_user,id_order,time,price,payment_Status,Payment_Method,id_invoice,bottype) VALUES (?,?,?,?,?,?,?,?)");
     $payment_Status = "paid";
     $Payment_Method = "low balance by admin";
     $invoice = null;
-    $stmt->execute([$user['Processing_value'], $randomString, $dateacc, $text, $payment_Status, $Payment_Method, $invoice, $ApiToken]);
-    sendmessage($from_id, $textbotlang['Admin']['manageUser']['lowBalanced'], $keyboardadmin, 'html');
+    $stmt->bind_param("ssssssss", $user['Processing_value'], $randomString, $dateacc, $text, $payment_Status, $Payment_Method, $invoice, $ApiToken);
+    $stmt->execute();
+    sendmessage($from_id, $textbotlang['Admin']['ManageUser']['lowbalanced'], $keyboardadmin, 'html');
     $userbalance = json_decode(file_get_contents("data/{$user['Processing_value']}/{$user['Processing_value']}.json"), true);
     $Balance_add_user = intval($userbalance['Balance']) - intval($text);
     $userbalance['Balance'] = $Balance_add_user;
@@ -418,11 +401,11 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     $Balance_user_afters = number_format(select("user", "*", "id", $user['Processing_value'], "select")['Balance']);
 } elseif ($text == "📊 آمار ربات") {
     $statistics = select("user", "*", "bottype", $ApiToken, "count");
-    $stmt2 = $pdo->prepare("SELECT COUNT( DISTINCT id_user) as count FROM `invoice` WHERE name_product = 'سرویس تست' AND  bottype = :mp1");
-    $stmt2->execute([':mp1' => $ApiToken]);
+    $stmt2 = $pdo->prepare("SELECT COUNT( DISTINCT id_user) as count FROM `invoice` WHERE name_product = 'سرویس تست' AND  bottype = '$ApiToken'");
+    $stmt2->execute();
     $statisticsorder = $stmt2->fetch(PDO::FETCH_ASSOC)['count'];
-    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE name_product = 'سرویس تست' AND bottype = :mp2");
-    $stmt->execute([':mp2' => $ApiToken]);
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE name_product = 'سرویس تست' AND bottype = '$ApiToken'");
+    $stmt->execute();
     $count_usertest = $stmt->rowCount();
     $sql1 = "SELECT COUNT(*) AS invoice_count FROM invoice WHERE (status = 'active' OR status = 'end_of_time' OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') AND name_product != 'سرویس تست' AND bottype = '$ApiToken'";
     $stmt1 = $pdo->query($sql1);
@@ -445,10 +428,8 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
         file_put_contents('product.json', "{}");
     }
     $product = [];
-    $getdataproduct = $pdo->prepare("SELECT * FROM product WHERE agent = ?");
-    $getdataproduct->bindValue(1, $userbot['agent'], PDO::PARAM_STR);
-    $getdataproduct->execute();
-    while ($row = ($getdataproduct)->fetch(PDO::FETCH_ASSOC)) {
+    $getdataproduct = mysqli_query($connect, "SELECT * FROM product WHERE agent = '{$userbot['agent']}'");
+    while ($row = mysqli_fetch_assoc($getdataproduct)) {
         $panel = select("marzban_panel", "*", "name_panel", $row['Location'], "select");
         if (in_array($panel['name_panel'], $hide_panel))
             continue;
@@ -487,7 +468,7 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     $userdata = json_decode($user['Processing_value'], true);
     $product = select("product", "*", "code_product", $userdata['code_product'], "select");
     if (!ctype_digit($text)) {
-        sendmessage($from_id, $textbotlang['common']['invalidInput'], null, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['agent']['invalidvlue'], null, 'HTML');
         return;
     }
     if (intval($text) < intval($product['price_product'])) {
@@ -513,7 +494,7 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     $Bot_Status = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $textbotlang['Admin']['Status']['statusSubject'], 'callback_data' => "subjectde"],
+                ['text' => $textbotlang['Admin']['Status']['statussubject'], 'callback_data' => "subjectde"],
                 ['text' => $textbotlang['Admin']['Status']['subject'], 'callback_data' => "subject"],
             ],
             [
@@ -560,7 +541,7 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     $Bot_Status = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $textbotlang['Admin']['Status']['statusSubject'], 'callback_data' => "subjectde"],
+                ['text' => $textbotlang['Admin']['Status']['statussubject'], 'callback_data' => "subjectde"],
                 ['text' => $textbotlang['Admin']['Status']['subject'], 'callback_data' => "subject"],
             ],
             [
@@ -654,10 +635,8 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
         file_put_contents('product_name.json', "{}");
     }
     $product = [];
-    $getdataproduct = $pdo->prepare("SELECT * FROM product WHERE agent = ?");
-    $getdataproduct->bindValue(1, $userbot['agent'], PDO::PARAM_STR);
-    $getdataproduct->execute();
-    while ($row = ($getdataproduct)->fetch(PDO::FETCH_ASSOC)) {
+    $getdataproduct = mysqli_query($connect, "SELECT * FROM product WHERE agent = '{$userbot['agent']}'");
+    while ($row = mysqli_fetch_assoc($getdataproduct)) {
         $panel = select("marzban_panel", "*", "name_panel", $row['Location'], "select");
         if (in_array($panel['name_panel'], $hide_panel))
             continue;
@@ -695,41 +674,4 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     file_put_contents('product_name.json', json_encode($productlist));
     step("home", $from_id);
     sendmessage($from_id, "✅ نام با موفقیت تنظیم گردید.", $keyboardprice, 'HTML');
-} elseif ($text == "🆕 آپدیت ربات") {
-    $Response = json_encode([
-        'inline_keyboard' => [
-            [
-                ['text' => "نسخه پایدار", 'callback_data' => 'update'],
-            ],
-        ]
-    ]);
-    $textupdate = "📍 مدیر عزیز  برای آپدیت گزینه زیر را انتخاب نمایید";
-    sendmessage($from_id, $textupdate, $Response, 'HTML');
-} elseif ($datain == "update") {
-    $source = dirname(__DIR__) . "/update";
-    $getversionnow = file_get_contents($source . '/version');
-
-    if ($getversionnow == $version) {
-        sendmessage($from_id, "کاربر عزیز نسخه جدیدی منتشر نشده است", null, 'HTML');
-        return;
-    }
-
-    sendmessage($from_id, "✅ ربات شما با موفقیت از نسخه  $version به نسخه $getversionnow آپدیت گردید.", null, 'HTML');
-
-    $old_text = null;
-    $has_old_text = false;
-
-    if (is_file('text.json')) {
-        $old_text = json_decode(file_get_contents('text.json'), true);
-        $has_old_text = true;
-    }
-
-    $destination = getcwd();
-    $command = "cp -r $source/* $destination 2>&1";
-    $output = shell_exec($command);
-    if ($has_old_text) {
-        $new_text = json_decode(file_get_contents('text.json'), true);
-        $merged = array_replace_recursive($new_text, $old_text);
-        file_put_contents('text.json', json_encode($merged, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-    }
 }

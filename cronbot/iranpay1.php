@@ -7,46 +7,63 @@ require_once __DIR__ . '/../jdf.php';
 require_once __DIR__ . '/../function.php';
 require __DIR__ . '/../vendor/autoload.php';
 $ManagePanel = new ManagePanel();
-$setting = select("setting", "*", null, null, "select");
-$paymentreports = select("topicid", "idreport", "report", "paymentreport", "select")['idreport'];
-$textbotlang = languagechange();
-$list_service = $pdo->prepare("SELECT * FROM Payment_report WHERE payment_Status = 'Unpaid' AND Payment_Method = 'Currency Rial 3' ORDER BY RAND() LIMIT 10");
-$list_service->execute();
-while ($Payment_report = ($list_service)->fetch(PDO::FETCH_ASSOC)) {
-    if ($Payment_report['payment_Status'] == "paid")
-        return;
+$setting = mysqli_fetch_assoc(mysqli_query($connect, "SELECT * FROM setting"));
+$paymentreports_row = select("topicid","idreport","report","paymentreport","select");
+$paymentreports = is_array($paymentreports_row) ? ($paymentreports_row['idreport'] ?? null) : null;
+$datatextbotget = select("textbot", "*",null ,null ,"fetchAll");
+    $datatxtbot = array();
+foreach ($datatextbotget as $row) {
+    $datatxtbot[] = array(
+        'id_text' => $row['id_text'],
+        'text' => $row['text']
+    );
+}
+$datatextbot = array(
+    'textafterpay' => '',
+    'textaftertext' => '',
+    'textmanual' => '',
+    'textselectlocation' => ''
+);
+foreach ($datatxtbot as $item) {
+    if (isset($datatextbot[$item['id_text']])) {
+        $datatextbot[$item['id_text']] = $item['text'];
+    }
+}
+$textbotlang = languagechange('../text.json');
+$list_service = mysqli_query($connect, "SELECT * FROM Payment_report WHERE payment_Status = 'Unpaid' AND Payment_Method = 'Currency Rial 3' ORDER BY RAND() LIMIT 10");
+while ($Payment_report = mysqli_fetch_assoc($list_service)) {
+    if ($Payment_report['payment_Status'] == "paid")return;
     $StatusPayment = verifpay($Payment_report['dec_not_confirmed']);
-    if (!is_string($StatusPayment))
-        continue;
-    $StatusPayment = json_decode($StatusPayment, true);
-    if (!is_array($StatusPayment))
-        continue;
-    if (!$StatusPayment['success'])
-        continue;
-    if ($StatusPayment['data']['status'] != "approved")
-        continue;
-    update("Payment_report", "dec_not_confirmed", json_encode($StatusPayment['data']), "id_order", $Payment_report['id_order']);
+    if(!is_string($StatusPayment))continue;
+    $StatusPayment = json_decode($StatusPayment,true);
+    if(!is_array($StatusPayment))continue;
+    if(!$StatusPayment['success'])continue;
+    if($StatusPayment['data']['status'] != "approved")continue;
+    update("Payment_report","dec_not_confirmed",json_encode($StatusPayment['data']),"id_order",$Payment_report['id_order']);
     DirectPayment($Payment_report['id_order']);
-    $pricecashback = select("PaySetting", "ValuePay", "NamePay", "chashbackiranpay1", "select")['ValuePay'];
-    $Balance_id = select("user", "*", "id", $Payment_report['id_user'], "select");
-    if ($pricecashback != "0") {
+    $pricecashback = select("PaySetting", "ValuePay", "NamePay", "chashbackiranpay1","select")['ValuePay'];
+    $Balance_id = select("user","*","id",$Payment_report['id_user'],"select");
+    if($pricecashback != "0"){
         $result = ($Payment_report['price'] * $pricecashback) / 100;
-        $Balance_confrim = intval($Balance_id['Balance']) + $result;
-        update("user", "Balance", $Balance_confrim, "id", $Balance_id['id']);
-        $text_report = sprintf($textbotlang['users']['Balance']['giftDepositIranpay'], $result);
+        $Balance_confrim = intval($Balance_id['Balance']) +$result ;
+        update("user","Balance",$Balance_confrim, "id",$Balance_id['id']); 
+        $text_report = "🎁 کاربر عزیز مبلغ $result تومان به عنوان هدیه واریز به حساب شما واریز گردید.";
         sendmessage($Balance_id['id'], $text_report, null, 'HTML');
     }
-    $text_reportpayment = sprintf($textbotlang['Admin']['reportgroup']['newPaymentIranpay'], $Balance_id['username'], $Balance_id['id'], $Payment_report['price']);
-    if (strlen($setting['Channel_Report']) > 0) {
-        telegram('sendmessage', [
-            'chat_id' => $setting['Channel_Report'],
-            'message_thread_id' => $paymentreports,
-            'text' => $text_reportpayment,
-            'parse_mode' => "HTML"
+        $text_reportpayment = "💵 پرداخت جدید
+- 👤 نام کاربری کاربر : @{$Balance_id['username']}
+- ‏🆔آیدی عددی کاربر : {$Balance_id['id']}
+- 💸 مبلغ تراکنش {$Payment_report['price']}
+- 💳 روش پرداخت :  ارزی ریالی سوم";
+         if (strlen($setting['Channel_Report']) > 0) {
+        telegram('sendmessage',[
+        'chat_id' => $setting['Channel_Report'],
+        'message_thread_id' => $paymentreports,
+        'text' => $text_reportpayment,
+        'parse_mode' => "HTML"
         ]);
     }
-    $stmtPaid = $pdo->prepare("UPDATE Payment_report SET dec_not_confirmed = ?, payment_Status = 'paid' WHERE id_order = ?");
-    $stmtPaid->execute([json_encode($StatusPayment), $Payment_report['id_order']]);
-    clearSelectCache('Payment_report');
+        update("Payment_report","dec_not_confirmed",json_encode($StatusPayment),"id_order",$Payment_report['id_order']);
+        update("Payment_report","payment_Status","paid","id_order",$Payment_report['id_order']);
 
 }

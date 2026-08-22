@@ -26,6 +26,26 @@ $PaySetting = select("PaySetting", "*", "NamePay", "marchent_floypay", "select")
 $Payment_reports = select("Payment_report", "*", "id_order", $hashid, "select");
 $invoice_id = $Payment_reports['id_order'];
 $price = $Payment_reports['price'];
+$datatextbotget = select("textbot", "*", null, null, "fetchAll");
+$datatxtbot = array();
+foreach ($datatextbotget as $row) {
+    $datatxtbot[] = array(
+        'id_text' => $row['id_text'],
+        'text' => $row['text']
+    );
+}
+$datatextbot = array(
+    'textafterpay' => '',
+    'textaftertext' => '',
+    'textmanual' => '',
+    'textselectlocation' => '',
+    'textafterpayibsng' => ''
+);
+foreach ($datatxtbot as $item) {
+    if (isset($datatextbot[$item['id_text']])) {
+        $datatextbot[$item['id_text']] = $item['text'];
+    }
+}
 // verify Transaction
 $dec_payment_status = "";
 $payment_status = "";
@@ -55,17 +75,12 @@ if ($StatusPayment == 100) {
     curl_close($curl);
     $response = json_decode($response, true);
     if (!empty($response['status']) && $response['status'] == 100) {
-        $payment_status = $textbotlang['paymentGateway']['statusSuccess'];
-        $dec_payment_status = $textbotlang['paymentGateway']['descThanks'];
+        $payment_status = "پرداخت موفق";
+        $dec_payment_status = "از انجام تراکنش متشکریم!";
         $Payment_report = select("Payment_report", "*", "id_order", $invoice_id, "select");
-        if (claimPaymentPaid($invoice_id)) {
-            $textbotlang = languagechange();
-            try {
-                DirectPayment($invoice_id, "../images.jpg");
-            } catch (Throwable $directPaymentError) {
-                error_log("DirectPayment failed for order {$invoice_id}: " . $directPaymentError->getMessage());
-                return;
-            }
+        if ($Payment_report['payment_Status'] != "paid") {
+            $textbotlang = languagechange('../text.json');
+            DirectPayment($invoice_id, "../images.jpg");
             $pricecashback = select("PaySetting", "ValuePay", "NamePay", "chashbackiranpay1", "select")['ValuePay'];
             $Balance_id = select("user", "*", "id", $Payment_report['id_user'], "select");
             if ($pricecashback != "0") {
@@ -73,12 +88,18 @@ if ($StatusPayment == 100) {
                 $Balance_confrim = intval($Balance_id['Balance']) + $result;
                 update("user", "Balance", $Balance_confrim, "id", $Balance_id['id']);
                 $pricecashback = number_format($pricecashback);
-                $text_report = sprintf($textbotlang['paymentGateway']['giftReport'], $result);
+                $text_report = "🎁 کاربر عزیز مبلغ $result تومان به عنوان هدیه واریز به حساب شما واریز گردید.";
                 sendmessage($Balance_id['id'], $text_report, null, 'HTML');
             }
+            update("Payment_report", "payment_Status", "paid", "id_order", $Payment_report['id_order']);
             $paymentreports = select("topicid", "idreport", "report", "paymentreport", "select")['idreport'];
             $price = number_format($price);
-            $text_report = sprintf($textbotlang['paymentGateway']['reportIranpay'], $Payment_report['id_user'], $Balance_id['username'], $price);
+            $text_report = "💵 پرداخت جدید
+        
+آیدی عددی کاربر : {$Payment_report['id_user']}
+نام کاربری کاربر : {$Balance_id['username']}
+مبلغ تراکنش $price
+روش پرداخت : ارزی ریالی اول";
             if (strlen($setting['Channel_Report']) > 0) {
                 telegram('sendmessage', [
                     'chat_id' => $setting['Channel_Report'],
@@ -89,7 +110,7 @@ if ($StatusPayment == 100) {
             }
         }
     } else {
-        $payment_status = $textbotlang['paymentGateway']['statusFailed'];
+        $payment_status = "ناموفق";
         $dec_payment_status = "";
     }
 }
@@ -97,7 +118,7 @@ if ($StatusPayment == 100) {
 <html>
 
 <head>
-    <title><?php echo $textbotlang['paymentGateway']['invoiceTitle'] ?></title>
+    <title>فاکتور پرداخت</title>
     <style>
         @font-face {
             font-family: 'vazir';
@@ -140,9 +161,9 @@ if ($StatusPayment == 100) {
 <body>
     <div class="confirmation-box">
         <h1><?php echo $payment_status ?></h1>
-        <p><?php echo $textbotlang['paymentGateway']['invoiceTransactionNo'] ?><span><?php echo $invoice_id ?></span></p>
-        <p><?php echo $textbotlang['paymentGateway']['invoiceAmount'] ?> <span><?php echo $price ?></span><?php echo $textbotlang['paymentGateway']['invoiceAmountUnit'] ?></p>
-        <p><?php echo $textbotlang['paymentGateway']['invoiceDate'] ?> <span> <?php echo jdate('Y/m/d') ?> </span></p>
+        <p>شماره تراکنش:<span><?php echo $invoice_id ?></span></p>
+        <p>مبلغ پرداختی: <span><?php echo $price ?></span>تومان</p>
+        <p>تاریخ: <span> <?php echo jdate('Y/m/d') ?> </span></p>
         <p><?php echo $dec_payment_status ?></p>
     </div>
 </body>

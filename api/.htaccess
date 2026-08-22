@@ -1,7 +1,3 @@
-<Files "utils.php">
-    Require all denied
-</Files>
-
 RewriteEngine On
 
 

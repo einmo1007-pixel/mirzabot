@@ -41,15 +41,21 @@ if (intval($setting['scorestatus']) == 1) {
         $stmt->execute();
 
         $count = 0;
+        $textlotterygroup = "📌 ادمین عزیز کاربران زیر برنده قرعه کشی و حسابشان شارژ گردید.\n";
 
-        $textJson = languagechange();
+        $textJson = json_decode(file_get_contents('../text.json'), true);
         if (!is_array($textJson)) {
-            error_log("Language file (lang/fa.php) could not be loaded.");
+            error_log("text.json is not a valid JSON file.");
             exit;
         }
-        $textlotterygroup = $textJson['Admin']['report']['lotteryTitle'];
 
         while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $userLang = isset($result['language']) && !empty($result['language']) ? $result['language'] : 'fa';
+            if (!isset($textJson[$userLang])) {
+                $userLang = 'fa'; // fallback to Persian
+            }
+            $textbotlang = $textJson[$userLang];
+
             if (!isset($Lottery_prize[$count])) {
                 error_log("No prize defined for rank " . ($count + 1));
                 break;
@@ -62,22 +68,20 @@ if (intval($setting['scorestatus']) == 1) {
             $balanceFormatted = number_format($prizeAmount);
             $rank = $count + 1;
 
-            $textlottery = sprintf($textJson['users']['lottery']['winnerNotice'], $rank, $balanceFormatted);
+            $textlottery = "🎁 نتیجه قرعه کشی \n\n😎 کاربر عزیز تبریک! شما نفر $rank برنده $balanceFormatted تومان موجودی شدید و حساب شما شارژ گردید.";
             sendmessage($result['id'], $textlottery, null, 'html');
 
-            $textlotterygroup .= sprintf($textJson['Admin']['report']['lotteryWinnerRow'], $result['username'], $result['id'], $balanceFormatted, $rank);
+            $textlotterygroup .= "\nنام کاربری : @{$result['username']}\nآیدی عددی : {$result['id']}\nمبلغ : $balanceFormatted\nنفر : $rank\n--------------";
 
             $count++;
         }
 
-        if ($count > 0 && !isTelegramChatIdEmpty($setting['Channel_Report'] ?? '')) {
-            telegram('sendmessage', [
-                'chat_id' => $setting['Channel_Report'],
-                'message_thread_id' => $otherreport,
-                'text' => $textlotterygroup,
-                'parse_mode' => "HTML"
-            ]);
-        }
+        telegram('sendmessage', [
+            'chat_id' => $setting['Channel_Report'],
+            'message_thread_id' => $otherreport,
+            'text' => $textlotterygroup,
+            'parse_mode' => "HTML"
+        ]);
 
         update("user", "score", "0", null, null);
     }

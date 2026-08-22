@@ -52,8 +52,8 @@ $backuser = json_encode([
 
 // keyboard list panel for test 
 
-$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE TestAccount = 'ONTestAccount' AND (agent = :mp1 OR agent = 'all')");
-$stmt->execute([':mp1' => $userbot['agent']]);
+$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE TestAccount = 'ONTestAccount' AND (agent = '{$userbot['agent']}' OR agent = 'all')");
+$stmt->execute();
 $list_marzban_panel_usertest = ['inline_keyboard' => []];
 while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
     if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true))) continue;
@@ -82,8 +82,7 @@ $keyboardadmin = json_encode([
             ['text' => "👨‍🔧  مدیریت ادمین ها"]
         ],
         [
-            ['text' => "📝 تنظیم متون"],
-            ['text' => "🆕 آپدیت ربات"]
+            ['text' => "📝 تنظیم متون"]
         ],
         [
             ['text' => "📞 تنظیم نام کاربری پشتیبانی"],
@@ -150,8 +149,8 @@ $backadmin = json_encode([
 ]);
 
 //------------------  [ listpanelusers ]----------------//
-$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = :mp2 OR agent = 'all')");
-$stmt->execute([':mp2' => $userbot['agent']]);
+$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = '{$userbot['agent']}' OR agent = 'all')");
+$stmt->execute();
 $list_marzban_panel_users = ['inline_keyboard' => []];
 while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
     if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true))) continue;
@@ -203,9 +202,9 @@ function KeyboardProduct($location, $query, $pricediscount, $datakeyboard, $stat
             ['text' =>  $result['name_product'], 'callback_data' => "{$datakeyboard}{$result['code_product']}{$valuetow}"]
         ];
     }
-    if ($statuscustom) $product['inline_keyboard'][] = [['text' => $textbotlang['users']['customSellVolume']['title'], 'callback_data' => $customvolume]];
+    if ($statuscustom) $product['inline_keyboard'][] = [['text' => $textbotlang['users']['customsellvolume']['title'], 'callback_data' => $customvolume]];
     $product['inline_keyboard'][] = [
-        ['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => $backuser],
+        ['text' => $textbotlang['users']['stateus']['backinfo'], 'callback_data' => $backuser],
     ];
     return json_encode($product);
 }

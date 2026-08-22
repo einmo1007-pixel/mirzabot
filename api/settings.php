@@ -2,101 +2,176 @@
 
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../function.php';
-require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/../botapi.php';
 
+// Set headers and configuration
 header('Content-Type: application/json; charset=UTF-8');
 date_default_timezone_set('Asia/Tehran');
 ini_set('default_charset', 'UTF-8');
 ini_set('error_log', 'error_log');
 
-list($headers, $data, $action) = apiRequestContext();
-$method = $_SERVER['REQUEST_METHOD'];
-
-const DEFAULT_MAIN_KEYBOARD = '{"keyboard":[[{"text":"text_sell"},{"text":"text_extend"}],[{"text":"text_usertest"},{"text":"text_wheel_luck"}],[{"text":"text_Purchased_services"},{"text":"accountwallet"}],[{"text":"text_affiliates"},{"text":"text_Tariff_list"}],[{"text":"text_support"},{"text":"text_help"}]]}';
-
-function setting_keyboard_set(array $data, string $method): void
+/**
+ * Utility Functions
+ */
+function sendJsonResponse($status, $message, $data = [], $httpCode = 200)
 {
-    validateMethod('POST', $method);
+    http_response_code($httpCode);
+    echo json_encode([
+        'status' => $status,
+        'msg' => $message,
+        'obj' => $data
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
-    try {
-        if (!empty($data['keyboard_reset'])) {
-            update("setting", "keyboardmain", DEFAULT_MAIN_KEYBOARD, null, null);
-            sendJsonResponse(true, "Successful", [], 200);
-        }
 
-        if (!isset($data['keyboard']) || !is_array($data['keyboard'])) {
-            sendJsonResponse(false, 'keyboard invalid', [], 200);
-        }
 
-        update("setting", "keyboardmain", json_encode(['keyboard' => $data['keyboard']]), null, null);
-        sendJsonResponse(true, "Successful", [], 200);
-    } catch (Exception $e) {
-        error_log("Database error in keyboard: " . $e->getMessage());
-        sendJsonResponse(false, "Database error occurred", [], 200);
+function validateToken($headers)
+{
+    global $APIKEY;
+    if (!isset($headers['Token'])) {
+        return false;
+    }
+    if (is_file('hash.txt')) {
+        $token = file_get_contents('hash.txt');
+    } else {
+        $token = "";
+    }
+    $validTokens = [$token, $APIKEY];
+    return in_array($headers['Token'], $validTokens, true);
+}
+
+function sanitizeRecursive($data)
+{
+    if (is_array($data)) {
+        return array_map('sanitizeRecursive', $data);
+    }
+    return is_string($data) ? htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8') : $data;
+}
+
+function validateMethod($expected, $actual)
+{
+    if (strtoupper($expected) !== strtoupper($actual)) {
+        sendJsonResponse(false, "method invalid; method must be {$expected}");
     }
 }
 
-function setting_setting_info(array $data, string $method): void
+function logApiRequest($headers, $data, $action)
 {
-    validateMethod('GET', $method);
+    global $pdo;
 
     try {
-        $shopsetting = select("shopSetting", "*", null, null, "fetchAll");
-        $shop_setting = [];
-        foreach (is_array($shopsetting) ? $shopsetting : [] as $row) {
-            $shop_setting[$row['Namevalue']] = $row['value'];
-        }
-
-        sendJsonResponse(true, "Successful", [
-            'setting_shop' => $shop_setting,
-            'setting_General' => select("setting", "*", null, null, "select")
+        $stmt = $pdo->prepare(
+            "INSERT IGNORE INTO logs_api (header, data, time, ip, actions) VALUES (?, ?, ?, ?, ?)"
+        );
+        $stmt->execute([
+            json_encode($headers),
+            json_encode($data),
+            date('Y/m/d H:i:s'),
+            $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            $action
         ]);
     } catch (Exception $e) {
-        error_log("Database error in setting: " . $e->getMessage());
-        sendJsonResponse(false, "Database error ", [], 500);
+        error_log("API logging error: " . $e->getMessage());
     }
 }
 
-function setting_save_setting_shop(array $data, string $method): void
-{
-    validateMethod('POST', $method);
+/**
+ * Main API Logic
+ */
 
-    if (empty($data['data']) || !is_array($data['data'])) {
-        sendJsonResponse(false, "data empty ", [], 200);
-    }
+// Get and validate headers
+$headers = getallheaders();
+if (!validateToken($headers)) {
+    sendJsonResponse(false, "token invalid", [], 403);
+}
 
-    try {
-        foreach ($data['data'] as $row) {
-            if (!is_array($row) || !isset($row['name_value'])) {
-                sendJsonResponse(false, "invalid setting entry", [], 200);
+// Get request method and data
+$method = $_SERVER['REQUEST_METHOD'];
+$rawData = file_get_contents("php://input");
+$data = json_decode($rawData, true);
+
+// Validate JSON data
+if (!is_array($data)) {
+    sendJsonResponse(false, "data invalid", []);
+}
+
+// Sanitize input data
+$data = sanitizeRecursive($data);
+
+// Log API request
+logApiRequest($headers, $data, $data['actions'] ?? 'unknown');
+
+// Get settings
+$setting = select("setting", "*");
+
+// Route based on action
+switch ($data['actions'] ?? '') {
+
+    case 'keyboard_set':
+        validateMethod('POST', $method);
+
+        try {
+            $keyboard = $data['keyboard'];
+            if ($data['keyboard_reset']) {
+                $keyboardmain = '{"keyboard":[[{"text":"text_sell"},{"text":"text_extend"}],[{"text":"text_usertest"},{"text":"text_wheel_luck"}],[{"text":"text_Purchased_services"},{"text":"accountwallet"}],[{"text":"text_affiliates"},{"text":"text_Tariff_list"}],[{"text":"text_support"},{"text":"text_help"}]]}';
+                update("setting", "keyboardmain", $keyboardmain, null, null);
+                sendJsonResponse(true, "Successful", [], 200);
             }
-
-            $value = $row['value'] ?? null;
-            if (!empty($row['json'])) {
-                $value = json_encode($value);
+            if (!is_array($keyboard)) {
+                sendJsonResponse(false, 'keyboard invalid', [], 200);
             }
-
-            if (($row['type'] ?? '') === "shop") {
-                update("shopSetting", "value", $value, "Namevalue", $row['name_value']);
-            } else {
-                update("setting", $row['name_value'], $value, null, null);
-            }
+            $keyboardmain = ['keyboard' => []];
+            $keyboardmain['keyboard'] = $keyboard;
+            update("setting", "keyboardmain", json_encode($keyboardmain), null, null);
+            sendJsonResponse(true, "Successful", [], 200);
+            break;
+        } catch (Exception $e) {
+            error_log("Database error in keyboard: " . $e->getMessage());
+            sendJsonResponse(false, "Database error occurred", [], 200);
         }
+    case 'setting_info':
+        validateMethod('GET', $method);
+        try {
+            $shopsetting = select("shopSetting", "*", null, null, "fetchAll");
+            $shop_setting = [];
+            foreach ($shopsetting as $setting) {
+                $shop_setting[$setting['Namevalue']] = $setting['value'];
+            }
+            $setting = select("setting", "*", null, null, "select");
+            sendJsonResponse(true, "Successful", [
+                'setting_shop' => $shop_setting,
+                'setting_General' => $setting
+            ]);
 
-        sendJsonResponse(true, "setting updated successfully", [], 200);
-    } catch (InvalidArgumentException $e) {
-        error_log("Rejected setting name: " . $e->getMessage());
-        sendJsonResponse(false, "invalid setting name", [], 200);
-    } catch (Exception $e) {
-        error_log("Database error in setting: " . $e->getMessage());
-        sendJsonResponse(false, "Database error ", [], 500);
-    }
+        } catch (Exception $e) {
+            error_log("Database error in setting: " . $e->getMessage());
+            sendJsonResponse(false, "Database error ", [], 500);
+        }
+        break;
+    case 'save_setting_shop':
+        validateMethod('POST', $method);
+        try {
+            $shopsetting = select("shopSetting", "*", null, null, "fetchAll");
+            if (empty($data['data']))
+                sendJsonResponse(false, "data empty ", [], 200);
+            foreach ($data['data'] as $setting) {
+                if (!empty(($setting['json'])) && $setting['json'])
+                    $setting['value'] = json_encode($setting['value']);
+                if ($setting['type'] == "shop") {
+                    update("shopSetting", "value", $setting['value'], "Namevalue", $setting['name_value']);
+                } else {
+                    update("setting", $setting['name_value'], $setting['value'], null, null);
+                }
+            }
+            $setting = select("setting", "*", null, null, "select");
+            sendJsonResponse(true, "setting updated successfully", [], 200);
+            break;
+        } catch (Exception $e) {
+            error_log("Database error in setting: " . $e->getMessage());
+            sendJsonResponse(false, "Database error ", [], 500);
+        }
+    default:
+        sendJsonResponse(false, "Action Invalid");
+        break;
 }
-
-match ($action) {
-    'keyboard_set' => setting_keyboard_set($data, $method),
-    'setting_info' => setting_setting_info($data, $method),
-    'save_setting_shop' => setting_save_setting_shop($data, $method),
-    default => sendJsonResponse(false, "Action Invalid"),
-};

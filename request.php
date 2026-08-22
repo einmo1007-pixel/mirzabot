@@ -6,11 +6,16 @@ class CurlRequest {
     private $headers = [];
     private $timeout = null;
     private $authToken = null;
+    private $api_key = null;
     private $cookie = null;
     public function __construct($url) {
         global $request_exec_timeout;
         $this->url = $url;
         $this->timeout = $request_exec_timeout;
+    }
+
+    public function setTimeout($seconds) {
+        $this->timeout = $seconds;
     }
 
     public function setHeaders(array $headers) {
@@ -21,6 +26,10 @@ class CurlRequest {
         $this->authToken = $token;
     }
     
+    public function api_key($token) {
+        $this->api_key = $token;
+    }
+
     public function setCookie($cookieStr) {
         $this->cookie = $cookieStr;
     }
@@ -31,6 +40,10 @@ class CurlRequest {
         if ($this->authToken) {
             $headers[] = "Authorization: Bearer {$this->authToken}";
         }
+        if ($this->api_key) {
+            $headers[] = $this->authToken;
+        }
+
         return $headers;
     }
 
@@ -60,6 +73,7 @@ class CurlRequest {
         $response = curl_exec($ch);
         if (curl_errno($ch)) {
             $error = curl_error($ch);
+            curl_close($ch);
             return [
                 'status' => null,
                 'body' => null,
@@ -67,6 +81,7 @@ class CurlRequest {
             ];
         }
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
 
         return [
             'status' => $httpCode,

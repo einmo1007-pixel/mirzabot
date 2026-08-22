@@ -23,7 +23,7 @@ $text_bot_var = json_decode(file_get_contents('text.json'), true);
 if (!checktelegramip())
     die("Unauthorized access");
 
-$textbotlang = languagechange();
+$textbotlang = json_decode(file_get_contents($Pathfiles . 'text.json'), true)['fa'];
 $dataBase = select("botsaz", "*", "bot_token", $ApiToken, "select");
 $admin_ids = json_decode($dataBase['admin_ids']);
 $setting = json_decode($dataBase['setting'], true);
@@ -66,7 +66,7 @@ if (!is_dir('data')) {
 }
 if (!in_array($from_id, $users_ids) && $settingmain['statusnewuser'] == "onnewuser" && $from_id != 0) {
 
-    $newuser = sprintf($textbotlang['Admin']['reportgroup']['newUser'], $first_name, $username, "<a href = \"tg://user?id=$from_id\">$from_id</a>");
+    $newuser = sprintf($textbotlang['Admin']['ManageUser']['newuser'], $first_name, $username, "<a href = \"tg://user?id=$from_id\">$from_id</a>");
     foreach ($admin_ids as $admin) {
         sendmessage($admin, $newuser, null, 'HTML');
     }
@@ -194,8 +194,8 @@ if ($text == "/start") {
     $keyboardlists = [
         'inline_keyboard' => [],
     ];
-    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = :mp1 AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') AND bottype = :mp2 ORDER BY time_sell DESC LIMIT :mp3, :mp4");
-    $stmt->execute([':mp1' => $from_id, ':mp2' => $ApiToken, ':mp3' => $start_index, ':mp4' => $items_per_page]);
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = '$from_id' AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') AND bottype = '$ApiToken' ORDER BY time_sell DESC LIMIT $start_index, $items_per_page");
+    $stmt->execute();
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $data = "";
         if ($row != null)
@@ -245,8 +245,8 @@ if ($text == "/start") {
     $keyboardlists = [
         'inline_keyboard' => [],
     ];
-    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = :mp5 AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') AND bottype = :mp6 ORDER BY time_sell DESC LIMIT :mp7, :mp8");
-    $stmt->execute([':mp5' => $from_id, ':mp6' => $ApiToken, ':mp7' => $start_index, ':mp8' => $items_per_page]);
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = '$from_id' AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') AND bottype = '$ApiToken' ORDER BY time_sell DESC LIMIT $start_index, $items_per_page");
+    $stmt->execute();
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $keyboardlists['inline_keyboard'][] = [
             [
@@ -294,8 +294,8 @@ if ($text == "/start") {
     $keyboardlists = [
         'inline_keyboard' => [],
     ];
-    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = :mp9 AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') AND bottype = :mp10 ORDER BY time_sell DESC LIMIT :mp11, :mp12");
-    $stmt->execute([':mp9' => $from_id, ':mp10' => $ApiToken, ':mp11' => $start_index, ':mp12' => $items_per_page]);
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = '$from_id' AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') AND bottype = '$ApiToken' ORDER BY time_sell DESC LIMIT $start_index, $items_per_page");
+    $stmt->execute();
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $keyboardlists['inline_keyboard'][] = [
             [
@@ -434,12 +434,14 @@ if ($user['step'] == "createusertest" || preg_match('/locationtest_(.*)/', $data
         'volume' => false,
         'time' => false,
     ));
-    $stmt = $pdo->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username,time_sell, Service_location, name_product, price_product, Volume, Service_time,Status,bottype,notifctions) VALUES (?, ?, ?, ?, ?, ?, ?,?,?,?,?,?)");
+    $stmt = $connect->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username,time_sell, Service_location, name_product, price_product, Volume, Service_time,Status,bottype,notifctions) VALUES (?, ?, ?, ?, ?, ?, ?,?,?,?,?,?)");
     $Status = "active";
     $info_product['name_product'] = "سرویس تست";
     $info_product['price_product'] = "0";
     $Status = "active";
-    $stmt->execute([$from_id, $randomString, $username_ac, $date, $marzban_list_get['name_panel'], $info_product['name_product'], $info_product['price_product'], $marzban_list_get['val_usertest'], $marzban_list_get['time_usertest'], $Status, $ApiToken, $notifctions]);
+    $stmt->bind_param("ssssssssssss", $from_id, $randomString, $username_ac, $date, $marzban_list_get['name_panel'], $info_product['name_product'], $info_product['price_product'], $marzban_list_get['val_usertest'], $marzban_list_get['time_usertest'], $Status, $ApiToken, $notifctions);
+    $stmt->execute();
+    $stmt->close();
     $dataoutput = $ManagePanel->createUser($marzban_list_get['name_panel'], "usertest", $username_ac, $datac);
     if ($dataoutput['username'] == null) {
         $dataoutput['msg'] = json_encode($dataoutput['msg']);
@@ -507,44 +509,44 @@ if ($user['step'] == "createusertest" || preg_match('/locationtest_(.*)/', $data
         $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
         update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $randomString);
     }
-    if ($marzban_list_get['sublink'] == "onsublink") {
-        if ($marzban_list_get['type'] == "WGDashboard") {
-            $urlimage = "{$marzban_list_get['inboundid']}_{$dataoutput['username']}.conf";
-            file_put_contents($urlimage, $output_config_link);
-            telegram('senddocument', [
-                'chat_id' => $from_id,
-                'document' => new CURLFile($urlimage),
-                'caption' => $textcreatuser,
-                'parse_mode' => "HTML",
-            ]);
-            unlink($urlimage);
-        } else {
-            $urlimage = "$from_id$randomString.png";
-            $qrCode = createqrcode($output_config_link);
-            file_put_contents($urlimage, $qrCode->getString());
-            addBackgroundImage($urlimage, $qrCode, $Pathfiles . 'images.jpg');
-            telegram('sendphoto', [
-                'chat_id' => $from_id,
-                'photo' => new CURLFile($urlimage),
-                'caption' => $textcreatuser,
-                'parse_mode' => "HTML",
-            ]);
-            unlink($urlimage);
-        }
-    } elseif ($marzban_list_get['config'] == "onconfig") {
-        if (count($dataoutput['configs']) == 1) {
-            $urlimage = "$from_id$randomString.png";
-            $qrCode = createqrcode($config);
-            file_put_contents($urlimage, $qrCode->getString());
-            addBackgroundImage($urlimage, $qrCode, $Pathfiles . 'images.jpg');
-            telegram('sendphoto', [
-                'chat_id' => $from_id,
-                'photo' => new CURLFile($urlimage),
-                'caption' => $textcreatuser,
-                'parse_mode' => "HTML",
-            ]);
-            unlink($urlimage);
-        } else {
+if ($marzban_list_get['sublink'] == "onsublink") {
+    if ($marzban_list_get['type'] == "WGDashboard") {
+        $urlimage = "{$marzban_list_get['inboundid']}_{$dataoutput['username']}.conf";
+        file_put_contents($urlimage, $output_config_link);
+        telegram('senddocument', [
+            'chat_id' => $from_id,
+            'document' => new CURLFile($urlimage),
+            'caption' => $textcreatuser,
+            'parse_mode' => "HTML",
+        ]);
+        unlink($urlimage);
+    } else {
+        $urlimage = "$from_id$randomString.png";
+        $qrCode = createqrcode($output_config_link);
+        file_put_contents($urlimage, $qrCode->getString());
+        addBackgroundImage($urlimage, $qrCode, $Pathfiles . 'images.jpg');
+        telegram('sendphoto', [
+            'chat_id' => $from_id,
+            'photo' => new CURLFile($urlimage),
+            'caption' => $textcreatuser,
+            'parse_mode' => "HTML",
+        ]);
+        unlink($urlimage);
+    }
+} elseif ($marzban_list_get['config'] == "onconfig") {
+    if (count($dataoutput['configs']) == 1) {
+        $urlimage = "$from_id$randomString.png";
+        $qrCode = createqrcode($config);
+        file_put_contents($urlimage, $qrCode->getString());
+        addBackgroundImage($urlimage, $qrCode, $Pathfiles . 'images.jpg');
+        telegram('sendphoto', [
+            'chat_id' => $from_id,
+            'photo' => new CURLFile($urlimage),
+            'caption' => $textcreatuser,
+            'parse_mode' => "HTML",
+        ]);
+        unlink($urlimage);
+    } else {
             sendmessage($from_id, $textcreatuser, $usertestinfo, 'HTML');
         }
     } else {
@@ -587,15 +589,13 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     step("statusnamecustom", $from_id);
     return;
 } elseif ($text == $text_bot_var['btn_keyboard']['buy'] || $user['step'] == "statusnamecustom") {
-    $locationproduct = $pdo->prepare("SELECT * FROM marzban_panel  WHERE status = 'active' AND (agent = ? OR agent = 'all')");
-    $locationproduct->bindValue(1, $userbot['agent'], PDO::PARAM_STR);
-    $locationproduct->execute();
-    if (($locationproduct)->rowCount() == 0) {
-        sendmessage($from_id, $textbotlang['users']['sell']['nullPanel'], null, 'HTML');
+    $locationproduct = mysqli_query($connect, "SELECT * FROM marzban_panel  WHERE status = 'active' AND (agent = '{$userbot['agent']}' OR agent = 'all')");
+    if (mysqli_num_rows($locationproduct) == 0) {
+        sendmessage($from_id, $textbotlang['Admin']['managepanel']['nullpanel'], null, 'HTML');
         return;
     }
-    if (($locationproduct)->rowCount() == 1) {
-        $location = ($locationproduct)->fetch(PDO::FETCH_ASSOC)['name_panel'];
+    if (mysqli_num_rows($locationproduct) == 1) {
+        $location = mysqli_fetch_assoc($locationproduct)['name_panel'];
         $locationproduct = select("marzban_panel", "*", "name_panel", $location, "select");
         $query = "SELECT * FROM product WHERE (Location = '{$locationproduct['name_panel']}' OR Location = '/all')AND agent= '{$userbot['agent']}'";
         $stmt = $pdo->prepare($query);
@@ -604,7 +604,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
         if ($locationproduct['hide_user'] != null) {
             $list_user = json_decode($locationproduct['hide_user'], true);
             if (in_array($from_id, $list_user)) {
-                sendmessage($from_id, $textbotlang['users']['sell']['nullPanel'], null, 'HTML');
+                sendmessage($from_id, $textbotlang['Admin']['managepanel']['nullpanel'], null, 'HTML');
                 return;
             }
         }
@@ -613,7 +613,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
         $countinovoice = $stmt->rowCount();
         if ($locationproduct['limit_panel'] != "unlimited") {
             if ($countinovoice >= $locationproduct['limit_panel']) {
-                sendmessage($from_id, $textbotlang['users']['sell']['capacityFull'], null, 'HTML');
+                sendmessage($from_id, $textbotlang['Admin']['managepanel']['limitedpanelfirst'], null, 'HTML');
                 return;
             }
         }
@@ -644,7 +644,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
             } else {
                 $nullproduct = select("product", "*", "agent", $userbot['agent'], "count");
                 if ($nullproduct == 0) {
-                    sendmessage($from_id, $textbotlang['users']['sell']['nullProduct'], null, 'HTML');
+                    sendmessage($from_id, $textbotlang['Admin']['Product']['nullpProduct'], null, 'HTML');
                     return;
                 }
                 sendmessage($from_id, "📌 دسته بندی خود را انتخاب نمایید!", KeyboardCategory($marzban_list_get['name_panel'], $userbot['agent'], "backuser"), 'HTML');
@@ -691,12 +691,12 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     } else {
         savedata("clear", "name_panel", $locationproduct['name_panel']);
     }
-    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE (status = 'active' OR status = 'end_of_time' OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND  Service_location = :mp13");
-    $stmt->execute([':mp13' => $locationproduct['name_panel']]);
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE (status = 'active' OR status = 'end_of_time' OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND  Service_location = '{$locationproduct['name_panel']}'");
+    $stmt->execute();
     $countinovoice = $stmt->rowCount();
     if ($locationproduct['limit_panel'] != "unlimited") {
         if ($countinovoice >= $locationproduct['limit_panel']) {
-            sendmessage($from_id, $textbotlang['users']['sell']['panelCapacityFull'], null, 'HTML');
+            sendmessage($from_id, $textbotlang['Admin']['managepanel']['limitedpanel'], null, 'HTML');
             return;
         }
     }
@@ -722,7 +722,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
         } else {
             $nullproduct = select("product", "*", "agent", $userbot['agent'], "count");
             if ($nullproduct == 0) {
-                sendmessage($from_id, $textbotlang['users']['sell']['nullProduct'], null, 'HTML');
+                sendmessage($from_id, $textbotlang['Admin']['Product']['nullpProduct'], null, 'HTML');
                 return;
             }
             Editmessagetext($from_id, $message_id, "📌 دسته بندی خود را انتخاب نمایید!", KeyboardCategory($locationproduct['name_panel'], $userbot['agent'], "backuser"));
@@ -778,7 +778,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
         return;
     }
     if (!ctype_digit($text)) {
-        sendmessage($from_id, $textbotlang['common']['invalidVolume'], $backuser, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['Product']['Invalidvolume'], $backuser, 'HTML');
         return;
     }
     $customtimevalueprice = $setting['pricetime'];
@@ -797,7 +797,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $userdate['name_panel'], "select");
     if ($user['step'] == "getvolumecustomusername") {
         if (!ctype_digit($text)) {
-            sendmessage($from_id, $textbotlang['common']['invalidTime'], $backuser, 'HTML');
+            sendmessage($from_id, $textbotlang['Admin']['Product']['Invalidtime'], $backuser, 'HTML');
             return;
         }
         $maintime = json_decode($marzban_list_get['maintime'], true);
@@ -878,7 +878,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
         $customtimevalueprice = $setting['pricetime'];
         $datapish = array(
             "Volume_constraint" => $userdate['volume'],
-            "name_product" => $textbotlang['users']['customSellVolume']['title'],
+            "name_product" => $textbotlang['users']['customsellvolume']['title'],
             "code_product" => "customvolume",
             "Service_time" => $userdate['time'],
             "price_product" => ($userdate['volume'] * $custompricevalue) + ($userdate['time'] * $customtimevalueprice)
@@ -894,9 +894,9 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
         $username_ac = $random_number . "_" . $username_ac;
     }
     if (intval($datapish['Volume_constraint']) == 0)
-        $datapish['Volume_constraint'] = $textbotlang['users']['status']['unlimited'];
+        $datapish['Volume_constraint'] = $textbotlang['users']['stateus']['Unlimited'];
     if (intval($datapish['Service_time']) == 0)
-        $datapish['Service_time'] = $textbotlang['users']['status']['unlimited'];
+        $datapish['Service_time'] = $textbotlang['users']['stateus']['Unlimited'];
     $info_product_price_product = number_format($datapish['price_product']);
     $userBalance = number_format($user['Balance']);
     $replacements = [
@@ -946,11 +946,6 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     if (isset($userdate['code_product'])) {
         $product = $userdate['code_product'];
         $product = select("product", "*", "code_product", $product);
-        if ($product == false) {
-            sendmessage($from_id, "❌ خطایی رخ داده است مراحل خرید را از اول انجام دهید", $keyboard, 'html');
-            step("home", $from_id);
-            return;
-        }
         $priceBot = $product['price_product'];
         $productlist = json_decode(file_get_contents('product.json'), true);
         if (isset($productlist[$product['code_product']])) {
@@ -973,18 +968,13 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
         $customtimevaluepriceBot = $setting['minpricetime'];
         $datafactor = array(
             "Volume_constraint" => $userdate['volume'],
-            "name_product" => $textbotlang['users']['customSellVolume']['title'],
+            "name_product" => $textbotlang['users']['customsellvolume']['title'],
             "Service_time" => $userdate['time'],
             "code_product" => "customvolume",
             "price_product" => ($userdate['volume'] * $custompricevalue) + ($userdate['time'] * $customtimevalueprice),
             "price_productMain" => intval(($userdate['volume'] * $custompricevalueBot) + ($userdate['time'] * $customtimevaluepriceBot)),
             "data_limit_reset" => "no_reset"
         );
-    }
-    if (!ctype_digit($datafactor['Volume_constraint']) || !ctype_digit($datafactor['Service_time'])) {
-        sendmessage($from_id, "❌ خطایی رخ داده است مراحل خرید را از اول انجام دهید", $keyboard, 'html');
-        step("home", $from_id);
-        return;
     }
     $botbalance = select("botsaz", "*", "bot_token", $ApiToken, "select");
     $userbotbalance = select("user", "*", "id", $botbalance['id_user'], "select");
@@ -995,20 +985,6 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
             sendmessage($admin, "❌ ادمین عزیز موجودی شما به پایان رسید برای فعالسازی به ربات اصلی مراجعه و ربات خود را شارژ نمایید.", null, 'HTML');
         }
         return;
-    }
-    if (intval($userbotbalance['maxbuyagent']) != 0 and $userbotbalance['agent'] == "n2") {
-        $pricecapcheck = $datafactor['price_productMain'];
-        if (intval($userbotbalance['pricediscount']) != 0) {
-            $pricecapcheck = $pricecapcheck - (($pricecapcheck * $userbotbalance['pricediscount']) / 100);
-        }
-        if (($userbotbalance['Balance'] - $pricecapcheck) < -intval($userbotbalance['maxbuyagent'])) {
-            sendmessage($from_id, "❌ خطایی در خرید رخ داده است برای رفع مشکل با پشتیبانی در ارتباط باشید", $keyboard, 'HTML');
-            step("home", $from_id);
-            foreach ($admin_ids as $admin) {
-                sendmessage($admin, "❌ ادمین عزیز شما به حداکثر سقف خرید خود رسیده اید برای ادامه فروش ابتدا حساب خود را در ربات اصلی شارژ نمایید.", null, 'HTML');
-            }
-            return;
-        }
     }
     $username_ac = strtolower($userdate['username']);
     $DataUserOut = $ManagePanel->DataUser($marzban_list_get['name_panel'], $username_ac);
@@ -1038,9 +1014,11 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
         'volume' => false,
         'time' => false,
     ));
-    $stmt = $pdo->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username,time_sell, Service_location, name_product, price_product, Volume, Service_time,Status,bottype,note,notifctions) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?)");
+    $stmt = $connect->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username,time_sell, Service_location, name_product, price_product, Volume, Service_time,Status,bottype,note,notifctions) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?)");
     $Status = "unpaid";
-    $stmt->execute([$from_id, $randomString, $username_ac, $date, $marzban_list_get['name_panel'], $datafactor['name_product'], $datafactor['price_product'], $datafactor['Volume_constraint'], $datafactor['Service_time'], $Status, $ApiToken, $userdate['note'], $notifctions]);
+    $stmt->bind_param("sssssssssssss", $from_id, $randomString, $username_ac, $date, $marzban_list_get['name_panel'], $datafactor['name_product'], $datafactor['price_product'], $datafactor['Volume_constraint'], $datafactor['Service_time'], $Status, $ApiToken, $userdate['note'], $notifctions);
+    $stmt->execute();
+    $stmt->close();
     if ($datafactor['price_product'] > $user['Balance'] && intval($datafactor['price_product']) != 0) {
         $marzbandirectpay = select("shopSetting", "*", "Namevalue", "statusdirectpabuy", "select")['value'];
         $Balance_prim = $datafactor['price_product'] - $user['Balance'];
@@ -1051,7 +1029,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
         $bakinfos = json_encode([
             'inline_keyboard' => [
                 [
-                    ['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => "account"],
+                    ['text' => $textbotlang['users']['stateus']['backinfo'], 'callback_data' => "account"],
                 ]
             ]
         ]);
@@ -1078,7 +1056,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     $dataoutput = $ManagePanel->createUser($marzban_list_get['name_panel'], $datafactor['code_product'], $username_ac, $datac);
     if ($dataoutput['username'] == null) {
         $dataoutput['msg'] = json_encode($dataoutput['msg']);
-        sendmessage($from_id, $textbotlang['users']['sell']['errorConfig'], $keyboard, 'HTML');
+        sendmessage($from_id, $textbotlang['users']['sell']['ErrorConfig'], $keyboard, 'HTML');
         $texterros = "⭕️ خطای ساخت اشتراک  در ربات نماینده
 ✍️ دلیل خطا : 
 {$dataoutput['msg']}
@@ -1153,9 +1131,9 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
 🧑‍🦯 شما میتوانید شیوه اتصال را  با فشردن دکمه زیر و انتخاب سیستم عامل خود را دریافت کنید";
     }
     if (intval($datafactor['Service_time']) == 0)
-        $datafactor['Service_time'] = $textbotlang['users']['status']['unlimited'];
+        $datafactor['Service_time'] = $textbotlang['users']['stateus']['Unlimited'];
     if (intval($datafactor['Volume_constraint']) == 0)
-        $datafactor['Volume_constraint'] = $textbotlang['users']['status']['unlimited'];
+        $datafactor['Volume_constraint'] = $textbotlang['users']['stateus']['Unlimited'];
     $textcreatuser = str_replace('{username}', "<code>{$dataoutput['username']}</code>", $textafterpay);
     $textcreatuser = str_replace('{name_service}', $datafactor['name_product'], $textcreatuser);
     $textcreatuser = str_replace('{location}', $marzban_list_get['name_panel'], $textcreatuser);
@@ -1173,36 +1151,36 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     if ($marzban_list_get['type'] == "Manualsale" | $marzban_list_get['type'] == "ibsng") {
         sendmessage($from_id, $textcreatuser, null, 'HTML');
     } else {
-        if (count($dataoutput['configs']) != 1 and $marzban_list_get['config'] == "onconfig") {
-            sendmessage($from_id, $textcreatuser, null, 'HTML');
-        } else {
-            if ($marzban_list_get['sublink'] == "offsublink") {
-                $output_config_link = $configqr;
-            }
-            if ($marzban_list_get['type'] == "WGDashboard") {
-                $urlimage = "{$marzban_list_get['inboundid']}_{$dataoutput['username']}.conf";
-                file_put_contents($urlimage, $output_config_link);
-                telegram('senddocument', [
-                    'chat_id' => $from_id,
-                    'document' => new CURLFile($urlimage),
-                    'caption' => $textcreatuser,
-                    'parse_mode' => "HTML",
-                ]);
-                unlink($urlimage);
-            } else {
-                $urlimage = "$from_id$randomString.png";
-                $qrCode = createqrcode($output_config_link);
-                file_put_contents($urlimage, $qrCode->getString());
-                addBackgroundImage($urlimage, $qrCode, $Pathfiles . 'images.jpg');
-                telegram('sendphoto', [
-                    'chat_id' => $from_id,
-                    'photo' => new CURLFile($urlimage),
-                    'caption' => $textcreatuser,
-                    'parse_mode' => "HTML",
-                ]);
-                unlink($urlimage);
-            }
+    if (count($dataoutput['configs']) != 1 and $marzban_list_get['config'] == "onconfig") {
+        sendmessage($from_id, $textcreatuser, null, 'HTML');
+    } else {
+        if ($marzban_list_get['sublink'] == "offsublink") {
+            $output_config_link = $configqr;
         }
+        if ($marzban_list_get['type'] == "WGDashboard") {
+            $urlimage = "{$marzban_list_get['inboundid']}_{$dataoutput['username']}.conf";
+            file_put_contents($urlimage, $output_config_link);
+            telegram('senddocument', [
+                'chat_id' => $from_id,
+                'document' => new CURLFile($urlimage),
+                'caption' => $textcreatuser,
+                'parse_mode' => "HTML",
+            ]);
+            unlink($urlimage);
+        } else {
+            $urlimage = "$from_id$randomString.png";
+            $qrCode = createqrcode($output_config_link);
+            file_put_contents($urlimage, $qrCode->getString());
+            addBackgroundImage($urlimage, $qrCode, $Pathfiles . 'images.jpg');
+            telegram('sendphoto', [
+                'chat_id' => $from_id,
+                'photo' => new CURLFile($urlimage),
+                'caption' => $textcreatuser,
+                'parse_mode' => "HTML",
+            ]);
+            unlink($urlimage);
+        }
+      }
     }
     sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
     if (intval($userbotbalance['pricediscount']) != 0) {
@@ -1216,8 +1194,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
         file_put_contents("data/$from_id/$from_id.json", json_encode($userbalance));
     }
     $Balancebot = $userbotbalance['Balance'] - $datafactor['price_productMain'];
-    $stmt = $pdo->prepare("UPDATE user SET Balance = Balance - :price WHERE id = :id");
-    $stmt->execute([':price' => $datafactor['price_productMain'], ':id' => $userbotbalance['id']]);
+    update("user", "Balance", $Balancebot, "id", $userbotbalance['id']);
     if ($marzban_list_get['MethodUsername'] == "متن دلخواه + عدد ترتیبی" || $marzban_list_get['MethodUsername'] == "نام کاربری + عدد به ترتیب" || $marzban_list_get['MethodUsername'] == "آیدی عددی+عدد ترتیبی" || $marzban_list_get['MethodUsername'] == "متن دلخواه نماینده + عدد ترتیبی") {
         $value = intval($user['number_username']) + 1;
         update("user", "number_username", $value, "id", $from_id);
@@ -1273,7 +1250,7 @@ $textonebuy
     $bakinfos = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => "account"],
+                ['text' => $textbotlang['users']['stateus']['backinfo'], 'callback_data' => "account"],
             ]
         ]
     ]);
@@ -1281,16 +1258,17 @@ $textonebuy
     step("get_price", $from_id);
 } elseif ($user['step'] == "get_price") {
     if (!ctype_digit($text)) {
-        sendmessage($from_id, $textbotlang['common']['invalidInput'], $backuser, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['agent']['invalidvlue'], $backuser, 'HTML');
         return;
     }
     $dateacc = date('Y/m/d H:i:s');
     $randomString = bin2hex(random_bytes(5));
-    $stmt = $pdo->prepare("INSERT INTO Payment_report (id_user,id_order,time,price,payment_Status,Payment_Method,id_invoice,bottype) VALUES (?,?,?,?,?,?,?,?)");
+    $stmt = $connect->prepare("INSERT INTO Payment_report (id_user,id_order,time,price,payment_Status,Payment_Method,id_invoice,bottype) VALUES (?,?,?,?,?,?,?,?)");
     $payment_Status = "Unpaid";
     $Payment_Method = "cart to cart";
     $invoice = "0 | 0";
-    $stmt->execute([$from_id, $randomString, $dateacc, $text, $payment_Status, $Payment_Method, $invoice, $ApiToken]);
+    $stmt->bind_param("ssssssss", $from_id, $randomString, $dateacc, $text, $payment_Status, $Payment_Method, $invoice, $ApiToken);
+    $stmt->execute();
     sendmessage($from_id, $setting['cart_info'], $backuser, 'HTML');
     step("getresidcart", $from_id);
     savedata("clear", "id_order", $randomString);
@@ -1300,8 +1278,8 @@ $textonebuy
     $Confirm_pay = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $textbotlang['users']['Balance']['confirmPaying'], 'callback_data' => "Confirm_pay_{$userdate['id_order']}"],
-                ['text' => $textbotlang['users']['Balance']['rejectPay'], 'callback_data' => "reject_pay_{$userdate['id_order']}"],
+                ['text' => $textbotlang['users']['Balance']['Confirmpaying'], 'callback_data' => "Confirm_pay_{$userdate['id_order']}"],
+                ['text' => $textbotlang['users']['Balance']['reject_pay'], 'callback_data' => "reject_pay_{$userdate['id_order']}"],
             ]
         ]
     ]);
@@ -1352,12 +1330,12 @@ $textonebuy
     update("invoice", "user_info", json_encode($DataUserOut), "id_invoice", $nameloc['id_invoice']);
     if (isset($DataUserOut['msg']) && $DataUserOut['msg'] == "User not found") {
         update("invoice", "Status", "disabledn", "id_invoice", $nameloc['id_invoice']);
-        sendmessage($from_id, $textbotlang['users']['status']['userNotFound'], $keyboard, 'html');
+        sendmessage($from_id, $textbotlang['users']['stateus']['UserNotFound'], $keyboard, 'html');
         step('home', $from_id);
         return;
     }
     if ($DataUserOut['status'] == "Unsuccessful") {
-        sendmessage($from_id, $textbotlang['users']['status']['panelNotConnected'], $keyboard, 'html');
+        sendmessage($from_id, $textbotlang['users']['stateus']['panelNotConnected'], $keyboard, 'html');
         step('home', $from_id);
         return;
     }
@@ -1377,23 +1355,23 @@ $textonebuy
     #-------------status----------------#
     $status = $DataUserOut['status'];
     $status_var = [
-        'active' => $textbotlang['users']['status']['active'],
-        'limited' => $textbotlang['users']['status']['limited'],
-        'disabled' => $textbotlang['users']['status']['disabled'],
-        'expired' => $textbotlang['users']['status']['expired'],
-        'on_hold' => $textbotlang['users']['status']['on_hold'],
-        'Unknown' => $textbotlang['users']['status']['unknown'],
-        'deactivev' => $textbotlang['users']['status']['disabled'],
+        'active' => $textbotlang['users']['stateus']['active'],
+        'limited' => $textbotlang['users']['stateus']['limited'],
+        'disabled' => $textbotlang['users']['stateus']['disabled'],
+        'expired' => $textbotlang['users']['stateus']['expired'],
+        'on_hold' => $textbotlang['users']['stateus']['on_hold'],
+        'Unknown' => $textbotlang['users']['stateus']['Unknown'],
+        'deactivev' => $textbotlang['users']['stateus']['disabled'],
     ][$status];
     #--------------[ expire ]---------------#
-    $expirationDate = $DataUserOut['expire'] ? jdate('Y/m/d', $DataUserOut['expire']) : $textbotlang['users']['status']['unlimited'];
+    $expirationDate = $DataUserOut['expire'] ? jdate('Y/m/d', $DataUserOut['expire']) : $textbotlang['users']['stateus']['Unlimited'];
     #-------------[ data_limit ]----------------#
-    $LastTraffic = $DataUserOut['data_limit'] ? formatBytes($DataUserOut['data_limit']) : $textbotlang['users']['status']['unlimited'];
+    $LastTraffic = $DataUserOut['data_limit'] ? formatBytes($DataUserOut['data_limit']) : $textbotlang['users']['stateus']['Unlimited'];
     #---------------[ RemainingVolume ]--------------#
     $output = $DataUserOut['data_limit'] - $DataUserOut['used_traffic'];
     $RemainingVolume = $DataUserOut['data_limit'] ? formatBytes($output) : "نامحدود";
     #---------------[ used_traffic ]--------------#
-    $usedTrafficGb = $DataUserOut['used_traffic'] ? formatBytes($DataUserOut['used_traffic']) : $textbotlang['users']['status']['notConsumed'];
+    $usedTrafficGb = $DataUserOut['used_traffic'] ? formatBytes($DataUserOut['used_traffic']) : $textbotlang['users']['stateus']['Notconsumed'];
     #--------------[ day ]---------------#
     $timeDiff = $DataUserOut['expire'] - time();
     if ($timeDiff < 0) {
@@ -1402,24 +1380,24 @@ $textonebuy
         $day = "";
         $timemonth = floor($timeDiff / 2592000);
         if ($timemonth > 0) {
-            $day .= $timemonth . $textbotlang['users']['status']['month'];
+            $day .= $timemonth . $textbotlang['users']['stateus']['month'];
             $timeDiffday = $timeDiff - (2592000 * $timemonth);
         } else {
             $timeDiffday = $timeDiff;
         }
         $timereminday = floor($timeDiffday / 86400);
         if ($timereminday > 0) {
-            $day .= $timereminday . $textbotlang['users']['status']['day'];
+            $day .= $timereminday . $textbotlang['users']['stateus']['day'];
         }
         $timehoures = intval(($timeDiffday - ($timereminday * 86400)) / 3600);
         if ($timehoures > 0) {
-            $day .= $timehoures . $textbotlang['users']['status']['hour'];
+            $day .= $timehoures . $textbotlang['users']['stateus']['hour'];
         }
         $timehoursall = $timeDiffday - ($timereminday * 86400);
         $timehoursall = $timehoursall - ($timehoures * 3600);
         $timeminuts = intval($timehoursall / 60);
         if ($timeminuts > 0) {
-            $day .= $timeminuts . $textbotlang['users']['status']['min'];
+            $day .= $timeminuts . $textbotlang['users']['stateus']['min'];
         }
         $day .= " دیگر";
     }
@@ -1446,7 +1424,7 @@ $textonebuy
             'callback_data' => "extend_"
         ),
         'changelink' => array(
-            'text' => $textbotlang['users']['changeLink']['btnTitle'],
+            'text' => $textbotlang['users']['changelink']['btntitle'],
             'callback_data' => "changelink_"
         ),
     );
@@ -1466,7 +1444,7 @@ $textonebuy
             $keyboardsetting['inline_keyboard'][] = $tempArrayservices;
         }
     }
-    $keyboardsetting['inline_keyboard'][] = [['text' => $textbotlang['users']['status']['backlist'], 'callback_data' => 'backorder']];
+    $keyboardsetting['inline_keyboard'][] = [['text' => $textbotlang['users']['stateus']['backlist'], 'callback_data' => 'backorder']];
     if ($marzban['type'] == "Manualsale") {
         $userinfo = select("manualsell", "*", "username", $nameloc['username'], "select");
         $textinfo = "وضعیت سرویس : <b>$status_var</b>
@@ -1572,7 +1550,7 @@ $output
     }
     $DataUserOut = $ManagePanel->DataUser($nameloc['Service_location'], $nameloc['username']);
     if ($DataUserOut['status'] == "Unsuccessful") {
-        sendmessage($from_id, $textbotlang['users']['status']['error'], null, 'html');
+        sendmessage($from_id, $textbotlang['users']['stateus']['error'], null, 'html');
         return;
     }
     if ($DataUserOut['status'] == "on_hold") {
@@ -1640,7 +1618,7 @@ $output
         return;
     }
     if (!ctype_digit($text)) {
-        sendmessage($from_id, $textbotlang['common']['invalidVolume'], $backuser, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['Product']['Invalidvolume'], $backuser, 'HTML');
         return;
     }
     $customtimevalueprice = $setting['pricetime'];
@@ -1652,7 +1630,7 @@ $output
 } elseif ($user['step'] == "gettimecustomextend" || preg_match('/^selectproductextends_(.*)/', $datain, $dataget)) {
     if ($user['step'] == "gettimecustomextend") {
         if (!ctype_digit($text)) {
-            sendmessage($from_id, $textbotlang['users']['customSellVolume']['invalidTime'], $backuser, 'HTML');
+            sendmessage($from_id, $textbotlang['Admin']['customvolume']['invalidtime'], $backuser, 'HTML');
             return;
         }
     }
@@ -1673,7 +1651,7 @@ $output
         $customtimevalueprice = $setting['pricetime'];
         $datapish = array(
             "Volume_constraint" => $userdate['volume'],
-            "name_product" => $textbotlang['users']['customSellVolume']['title'],
+            "name_product" => $textbotlang['users']['customsellvolume']['title'],
             "code_product" => "customvolume",
             "Service_time" => $text,
             "price_product" => ($userdate['volume'] * $custompricevalue) + ($text * $customtimevalueprice)
@@ -1751,7 +1729,7 @@ $output
         $customtimevaluepriceBot = $setting['minpricetime'];
         $datafactor = array(
             "Volume_constraint" => $userdate['volume'],
-            "name_product" => $textbotlang['users']['customSellVolume']['title'],
+            "name_product" => $textbotlang['users']['customsellvolume']['title'],
             "Service_time" => $userdate['time'],
             "code_product" => "custom_volume",
             "price_product" => ($userdate['volume'] * $custompricevalue) + ($userdate['time'] * $customtimevalueprice),
@@ -1771,20 +1749,6 @@ $output
         }
         return;
     }
-    if (intval($userbotbalance['maxbuyagent']) != 0 and $userbotbalance['agent'] == "n2") {
-        $pricecapcheck = $datafactor['price_productMain'];
-        if (intval($userbotbalance['pricediscount']) != 0) {
-            $pricecapcheck = $pricecapcheck - (($pricecapcheck * $userbotbalance['pricediscount']) / 100);
-        }
-        if (($userbotbalance['Balance'] - $pricecapcheck) < -intval($userbotbalance['maxbuyagent'])) {
-            sendmessage($from_id, "❌ خطایی در خرید رخ داده است برای رفع مشکل با پشتیبانی در ارتباط باشید", $keyboard, 'HTML');
-            step("home", $from_id);
-            foreach ($admin_ids as $admin) {
-                sendmessage($admin, "❌ ادمین عزیز شما به حداکثر سقف خرید خود رسیده اید برای ادامه فروش ابتدا حساب خود را در ربات اصلی شارژ نمایید.", null, 'HTML');
-            }
-            return;
-        }
-    }
     if ($datafactor['price_product'] > $user['Balance'] && intval($datafactor['price_product']) != 0) {
         $marzbandirectpay = select("shopSetting", "*", "Namevalue", "statusdirectpabuy", "select")['value'];
         $Balance_prim = $datafactor['price_product'] - $user['Balance'];
@@ -1795,7 +1759,7 @@ $output
         $bakinfos = json_encode([
             'inline_keyboard' => [
                 [
-                    ['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => "account"],
+                    ['text' => $textbotlang['users']['stateus']['backinfo'], 'callback_data' => "account"],
                 ]
             ]
         ]);
@@ -1825,7 +1789,7 @@ $output
         }
         return;
     }
-    $stmt = $pdo->prepare("INSERT IGNORE INTO service_other (id_user, username,value,type,time,price,output) VALUES (?, ?, ?, ?,?,?,?)");
+    $stmt = $connect->prepare("INSERT IGNORE INTO service_other (id_user, username,value,type,time,price,output) VALUES (?, ?, ?, ?,?,?,?)");
     $dateacc = date('Y/m/d H:i:s');
     $value = $datafactor['Volume_constraint'] . "_" . $datafactor['Service_time'];
     $value = json_encode(array(
@@ -1837,7 +1801,9 @@ $output
         'id_order' => $nameloc['id_invoice']
     ));
     $type = "extend_user";
-    $stmt->execute([$from_id, $nameloc['username'], $value, $type, $dateacc, $datafactor['price_product'], json_encode($extend)]);
+    $stmt->bind_param("sssssss", $from_id, $nameloc['username'], $value, $type, $dateacc, $datafactor['price_product'], json_encode($extend));
+    $stmt->execute();
+    $stmt->close();
     update("invoice", "Status", "active", "id_invoice", $id_invoice);
     if (intval($datafactor['price_product']) != 0) {
         $Balance_prim = $user['Balance'] - $datafactor['price_product'];
@@ -1850,15 +1816,14 @@ $output
         $datafactor['price_productMain'] = $datafactor['price_productMain'] - $resultper;
     }
     $Balancebot = $userbotbalance['Balance'] - $datafactor['price_productMain'];
-    $stmt = $pdo->prepare("UPDATE user SET Balance = Balance - :price WHERE id = :id");
-    $stmt->execute([':price' => $datafactor['price_productMain'], ':id' => $userbotbalance['id']]);
+    update("user", "Balance", $Balancebot, "id", $userbotbalance['id']);
     $keyboardextendfnished = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $textbotlang['users']['status']['backlist'], 'callback_data' => "backorder"],
+                ['text' => $textbotlang['users']['stateus']['backlist'], 'callback_data' => "backorder"],
             ],
             [
-                ['text' => $textbotlang['users']['status']['backservice'], 'callback_data' => "product_" . $nameloc['id_invoice']],
+                ['text' => $textbotlang['users']['stateus']['backservice'], 'callback_data' => "product_" . $nameloc['id_invoice']],
             ]
         ]
     ]);
@@ -1904,7 +1869,7 @@ $output
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
     $DataUserOut = $ManagePanel->DataUser($nameloc['Service_location'], $nameloc['username']);
     if ($DataUserOut['status'] == "Unsuccessful") {
-        sendmessage($from_id, $textbotlang['users']['status']['error'], null, 'html');
+        sendmessage($from_id, $textbotlang['users']['stateus']['error'], null, 'html');
         return;
     }
     if ($DataUserOut['status'] == "disabled" || $DataUserOut['status'] == "on_hold") {
@@ -1914,14 +1879,14 @@ $output
     $keyboardextend = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $textbotlang['users']['changeLink']['confirm'], 'callback_data' => "confirmchange_" . $nameloc['id_invoice']],
+                ['text' => $textbotlang['users']['changelink']['confirm'], 'callback_data' => "confirmchange_" . $nameloc['id_invoice']],
             ],
             [
-                ['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => "product_" . $nameloc['id_invoice']],
+                ['text' => $textbotlang['users']['stateus']['backinfo'], 'callback_data' => "product_" . $nameloc['id_invoice']],
             ]
         ]
     ]);
-    Editmessagetext($from_id, $message_id, $textbotlang['users']['changeLink']['warnchange'], $keyboardextend);
+    Editmessagetext($from_id, $message_id, $textbotlang['users']['changelink']['warnchange'], $keyboardextend);
 } elseif (preg_match('/confirmchange_(\w+)/', $datain, $dataget)) {
     $id_invoice = $dataget[1];
     $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
@@ -1952,7 +1917,7 @@ $output
     $bakinfos = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => "product_" . $nameloc['id_invoice']],
+                ['text' => $textbotlang['users']['stateus']['backinfo'], 'callback_data' => "product_" . $nameloc['id_invoice']],
             ]
         ]
     ]);

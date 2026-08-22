@@ -12,7 +12,27 @@ $ManagePanel = new ManagePanel();
 $setting = select("setting", "*");
 $errorreport = select("topicid","idreport","report","errorreport","select")['idreport'];
 
-$textbotlang = languagechange();
+$datatextbotget = select("textbot", "*",null ,null ,"fetchAll");
+$datatxtbot = array();
+foreach ($datatextbotget as $row) {
+    $datatxtbot[] = array(
+        'id_text' => $row['id_text'],
+        'text' => $row['text']
+    );
+}
+$datatextbot = array(
+    'text_usertest' => '',
+    'text_support' => '',
+    'text_help' => '',
+    'text_sell' => '',
+    'text_affiliates' => '',
+    'text_Add_Balance' => ''
+);
+foreach ($datatxtbot as $item) {
+    if (isset($datatextbot[$item['id_text']])) {
+        $datatextbot[$item['id_text']] = $item['text'];
+    }
+}
 if(!is_file('gift'))return;
 if(!is_file('username.json'))return;
 
@@ -25,7 +45,7 @@ $count = 0;
 if(count($userid) == 0){
     if(isset($info['id_admin'])){
     deletemessage($info['id_admin'], $info['id_message']);
-    sendmessage($info['id_admin'], $textbotlang['Admin']['gift']['done'], null, 'HTML');
+    sendmessage($info['id_admin'], "📌 عملیات برای تمامی سرویس های درخواستی انجام شد.", null, 'HTML');
     unlink('gift');
     unlink('username.json');
     }
@@ -51,7 +71,10 @@ foreach ($userid as $iduser){
     $extra_volume = $ManagePanel->extra_volume($invoce['username'],$marzban_list_get['code_panel'],$info['value']);
      if($extra_volume['status'] == false){
             $extra_volume['msg'] = json_encode($extra_volume['msg']);
-            $textreports = sprintf($textbotlang['Admin']['gift']['volumeAddError'], $marzban_list_get['name_panel'], $nameloc['username'], $extra_volume['msg']);
+            $textreports = "خطای اضافه شدن هدیه حجم
+نام پنل : {$marzban_list_get['name_panel']}
+نام کاربری سرویس : {$nameloc['username']}
+دلیل خطا : {$extra_volume['msg']}";
             if (strlen($setting['Channel_Report']) > 0) {
                 telegram('sendmessage',[
                     'chat_id' => $setting['Channel_Report'],
@@ -100,7 +123,10 @@ foreach ($userid as $iduser){
     $extra_time = $ManagePanel->extra_time($get_username_info['username'],$marzban_list_get['code_panel'],intval($info['value']));
      if($extra_time['status'] == false){
             $extra_time['msg'] = json_encode($extra_time['msg']);
-            $textreports = sprintf($textbotlang['Admin']['gift']['volumeAddError2'], $marzban_list_get['name_panel'], $nameloc['username'], $extra_time['msg']);
+            $textreports = "خطای اضافه شدن هدیه حجم
+نام پنل : {$marzban_list_get['name_panel']}
+نام کاربری سرویس : {$nameloc['username']}
+دلیل خطا : {$extra_time['msg']}";
             if (strlen($setting['Channel_Report']) > 0) {
                 telegram('sendmessage',[
                     'chat_id' => $setting['Channel_Report'],

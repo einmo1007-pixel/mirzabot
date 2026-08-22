@@ -1,16 +1,14 @@
 <?php
 require_once '../config.php';
 require_once '../function.php';
-$textbotlang = languagechange();
 require_once '../botapi.php';
 
 $reportbackup = select("topicid", "idreport", "report", "backupfile", "select")['idreport'];
 $destination = getcwd();
 $setting = select("setting", "*");
-$canSendReport = !isTelegramChatIdEmpty($setting['Channel_Report'] ?? '');
 $sourcefir = dirname($destination);
 $botlist = select("botsaz", "*", null, null, "fetchAll");
-if ($botlist && $canSendReport) {
+if ($botlist) {
     foreach ($botlist as $bot) {
         $folderName = $bot['id_user'] . $bot['username'];
         shell_exec("zip -r $destination/file.zip $sourcefir/vpnbot/$folderName/data $sourcefir/vpnbot/$folderName/product.json $sourcefir/vpnbot/$folderName/product_name.json");
@@ -27,27 +25,32 @@ if ($botlist && $canSendReport) {
 $backup_file_name = 'backup_' . date("Y-m-d") . '.sql';
 $zip_file_name = 'backup_' . date("Y-m-d") . '.zip';
 $dbhost = empty($dbhost) ? "localhost" : $dbhost;
-$command = "mysqldump -h $dbhost -u $usernamedb -p'$passworddb' --no-tablespaces --ssl-mode=DISABLED $dbname > $backup_file_name";
+$command = "mysqldump -h $dbhost -u $usernamedb -p'$passworddb' --no-tablespaces $dbname > $backup_file_name";
 
 $output = [];
 $return_var = 0;
 exec($command, $output, $return_var);
 if ($return_var !== 0) {
-    if ($canSendReport) {
-        telegram('sendmessage', [
-            'chat_id' => $setting['Channel_Report'],
-            'message_thread_id' => $reportbackup,
-            'text' => $textbotlang['keyboard']['backupError'],
-        ]);
-    }
+    telegram('sendmessage', [
+        'chat_id' => $setting['Channel_Report'],
+        'message_thread_id' => $reportbackup,
+        'text' => "❌❌❌❌❌❌ خطا در بکاپ گیری ",
+    ]);
 } else {
-    if ($canSendReport) {
+    $zip = new ZipArchive();
+    if ($zip->open($zip_file_name, ZipArchive::CREATE) === TRUE) {
+        $zip->addFile($backup_file_name, basename($backup_file_name));
+        $zip->setEncryptionName(basename($backup_file_name), ZipArchive::EM_AES_256, "Saber@#2000");
+        $zip->close();
+
         telegram('sendDocument', [
             'chat_id' => $setting['Channel_Report'],
             'message_thread_id' => $reportbackup,
-            'document' => new CURLFile($backup_file_name),
-            'caption' => $textbotlang['Admin']['report']['backupCaption'],
+            'document' => new CURLFile($zip_file_name),
+            'caption' => "📌 خروجی دیتابیس ربات اصلی 
+برای دریافت پسورد به اکانت پشتیبانی پیام دهید.",
         ]);
+        unlink($zip_file_name);
+        unlink($backup_file_name);
     }
-    unlink($backup_file_name);
 }
