@@ -2,7 +2,7 @@
 require_once 'function.php';
 require_once 'config.php';
 require_once 'botapi.php';
-global $connect;
+global $pdo;
 //-----------------------------------------------------------------
 try {
 
@@ -48,10 +48,12 @@ try {
             limitchangeloc VARCHAR(50) NULL   DEFAULT '0',
             status_cron VARCHAR(20)  NULL DEFAULT '1',
             expire VARCHAR(100) NULL ,
-            token VARCHAR(100) NULL 
+            token VARCHAR(100) NULL,
+            lang VARCHAR(5) NULL  DEFAULT 'fa'
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         $stmt->execute();
     } else {
+        addFieldToTable($tableName, "lang", "fa", "varchar(5)");
         addFieldToTable($tableName, 'token', null, "VARCHAR(100)");
         addFieldToTable($tableName, 'status_cron', "1", "VARCHAR(20)");
         addFieldToTable($tableName, 'expire', NULL, "VARCHAR(100)");
@@ -174,11 +176,8 @@ try {
         daywarn varchar(45)  NULL,
         categoryhelp varchar(45)  NULL,
         linkappstatus varchar(45)  NULL,
-        iplogin varchar(45)  NULL,
         wheelagent varchar(45)  NULL,
         Lotteryagent varchar(45)  NULL,
-        languageen varchar(45)  NULL,
-        languageru varchar(45)  NULL,
         statusfirstwheel varchar(45)  NULL,
         statuslimitchangeloc varchar(45)  NULL,
         Debtsettlement varchar(45)  NULL,
@@ -189,13 +188,37 @@ try {
         timeauto_not_verify varchar(20) NOT NULL,
         status_keyboard_config varchar(20)  NULL,
         cron_status TEXT NOT NULL,
+        text_edit JSON NULL,
         limitnumber varchar(200)  NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         $stmt->execute();
-        $stmt = $pdo->prepare("INSERT INTO setting (Bot_Status,roll_Status,get_number,limit_usertest_all,iran_number,NotUser,affiliatesstatus,affiliatespercentage,removedayc,showcard,statuscategory,numbercount,statusnewuser,statusagentrequest,volumewarn,inlinebtnmain,verifystart,statussupportpv,statusnamecustom,statuscategorygenral,agentreqprice,cronvolumere,bulkbuy,on_hold_day,verifybucodeuser,scorestatus,Lottery_prize,wheelـluck,wheelـluck_price,iplogin,daywarn,categoryhelp,linkappstatus,languageen,languageru,wheelagent,Lotteryagent,statusfirstwheel,statuslimitchangeloc,limitnumber,Debtsettlement,Dice,keyboardmain,statusnoteforf,statuscopycart,timeauto_not_verify,status_keyboard_config,cron_status) VALUES ('botstatuson','rolleon','offAuthenticationphone','1','offAuthenticationiran','offnotuser','offaffiliates','0','0','1','offcategory','0','onnewuser','onrequestagent','2','offinline','offverify','offpvsupport','offnamecustom','offcategorys','0','5','onbulk','4','offverify','0','$DATAAWARD','0','0','0','2','0','0','0','0','1','1','0','0','$limitlist','1','0','$keyboardmain','1','0','4','1','$status_cron')");
+        $stmt = $pdo->prepare("INSERT INTO setting (
+Bot_Status,roll_Status,get_number,limit_usertest_all,iran_number,NotUser,
+affiliatesstatus,affiliatespercentage,removedayc,showcard,statuscategory,
+numbercount,statusnewuser,statusagentrequest,volumewarn,inlinebtnmain,
+verifystart,statussupportpv,statusnamecustom,statuscategorygenral,
+agentreqprice,cronvolumere,bulkbuy,on_hold_day,verifybucodeuser,
+scorestatus,Lottery_prize,wheelـluck,wheelـluck_price,daywarn,
+categoryhelp,linkappstatus,wheelagent,
+Lotteryagent,statusfirstwheel,statuslimitchangeloc,limitnumber,
+Debtsettlement,Dice,keyboardmain,statusnoteforf,statuscopycart,
+timeauto_not_verify,status_keyboard_config,cron_status
+) VALUES (
+'botstatuson','rolleon','offAuthenticationphone','1','offAuthenticationiran','offnotuser',
+'offaffiliates','0','0','1','offcategory',
+'0','onnewuser','onrequestagent','2','offinline',
+'offverify','offpvsupport','offnamecustom','offcategorys',
+'0','5','onbulk','4','offverify',
+'0','$DATAAWARD','0','0','2',
+'0','0','0',
+'0','1','1','$limitlist',
+'0','0','$keyboardmain','0','0',
+'1','0','$status_cron'
+)");
         $stmt->execute();
     } else {
         addFieldToTable("setting", "cron_status", $status_cron, "TEXT");
+        addFieldToTable("setting", "text_edit", "{}", "JSON");
         addFieldToTable("setting", "status_keyboard_config", "1", "varchar(20)");
         addFieldToTable("setting", "statusnoteforf", "1", "varchar(20)");
         addFieldToTable("setting", "timeauto_not_verify", "4", "varchar(20)");
@@ -208,13 +231,10 @@ try {
         addFieldToTable("setting", "statusfirstwheel", "0", "varchar(45)");
         addFieldToTable("setting", "Lotteryagent", "1", "varchar(45)");
         addFieldToTable("setting", "wheelagent", "1", "varchar(45)");
-        addFieldToTable("setting", "languageru", "0", "varchar(45)");
-        addFieldToTable("setting", "languageen", "0", "varchar(45)");
         addFieldToTable("setting", "linkappstatus", "0", "varchar(45)");
         addFieldToTable("setting", "categoryhelp", "0", "varchar(45)");
         addFieldToTable("setting", "daywarn", "2", "varchar(45)");
         addFieldToTable("setting", "btn_status_extned", "0", "varchar(45)");
-        addFieldToTable("setting", "iplogin", "0", "varchar(45)");
         addFieldToTable("setting", "wheelـluck_price", "0", "varchar(45)");
         addFieldToTable("setting", "wheelـluck", "0", "varchar(45)");
         addFieldToTable("setting", "Lottery_prize", $DATAAWARD, "TEXT");
@@ -266,8 +286,8 @@ try {
         rule varchar(500) NOT NULL)");
         $stmt->execute();
         $randomString = bin2hex(random_bytes(5));
-        $stmt = $pdo->prepare("INSERT INTO admin (id_admin,rule,username,password) VALUES ('$adminnumber','administrator','admin','$randomString')");
-        $stmt->execute();
+        $stmt = $pdo->prepare("INSERT INTO admin (id_admin,rule,username,password) VALUES (:mp1,'administrator','admin',:mp2)");
+        $stmt->execute([':mp1' => $adminnumber, ':mp2' => $randomString]);
     } else {
         addFieldToTable("admin", "rule", "administrator", "VARCHAR(200)");
         addFieldToTable("admin", "username", null, "VARCHAR(200)");
@@ -296,21 +316,23 @@ try {
 } catch (Exception $e) {
     file_put_contents('error_log channels', $e->getMessage());
 }
+$textbotlang = languagechange();
+
 //--------------------------------------------------------------
 try {
 
-    $result = $connect->query("SHOW TABLES LIKE 'marzban_panel'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'marzban_panel'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE marzban_panel (
+        $result = $pdo->query("CREATE TABLE marzban_panel (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         code_panel varchar(200) NULL,
         name_panel varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
         status varchar(500) NULL,
         url_panel varchar(2000) NULL,
         username_panel varchar(200) NULL,
-        password_panel varchar(200) NULL,
+        password_panel TEXT NULL,
         agent varchar(200) NULL,
         sublink varchar(500) NULL,
         config varchar(500) NULL,
@@ -349,7 +371,7 @@ try {
         hide_user TEXT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table marzban_panel" . mysqli_error($connect);
+            echo "table marzban_panel" . implode(' ', $pdo->errorInfo());
         }
     } else {
         $VALUE = json_encode(array(
@@ -377,6 +399,7 @@ try {
             'n' => "365",
             'n2' => "365"
         ));
+        addFieldToTable("marzban_panel", "version_panel", "0", "VARCHAR(60)");
         addFieldToTable("marzban_panel", "on_hold_test", "1", "VARCHAR(60)");
         addFieldToTable("marzban_panel", "proxies", null, "TEXT");
         addFieldToTable("marzban_panel", "inbounds", null, "TEXT");
@@ -395,7 +418,7 @@ try {
         addFieldToTable("marzban_panel", "maxvolume", $valuemax, "VARCHAR(500)");
         addFieldToTable("marzban_panel", "maintime", $valuemain, "VARCHAR(500)");
         addFieldToTable("marzban_panel", "maxtime", $valuemax_time, "VARCHAR(500)");
-        addFieldToTable("marzban_panel", "MethodUsername", "آیدی عددی + حروف و عدد رندوم", "VARCHAR(100)");
+        addFieldToTable("marzban_panel", "MethodUsername", $textbotlang['keyboard']['numericIdRandom'], "VARCHAR(100)");
         addFieldToTable("marzban_panel", "datelogin", null, "TEXT");
         addFieldToTable("marzban_panel", "val_usertest", "100", "VARCHAR(50)");
         addFieldToTable("marzban_panel", "time_usertest", "1", "VARCHAR(50)");
@@ -407,7 +430,7 @@ try {
         addFieldToTable("marzban_panel", "linksubx", null, "VARCHAR(200)");
         addFieldToTable("marzban_panel", "conecton", "offconecton", "VARCHAR(100)");
         addFieldToTable("marzban_panel", "type", "marzban", "VARCHAR(50)");
-        addFieldToTable("marzban_panel", "Methodextend", "ریست حجم و زمان", "VARCHAR(100)");
+        addFieldToTable("marzban_panel", "Methodextend", $textbotlang['keyboard']['resetVolumeTime'], "VARCHAR(100)");
         addFieldToTable("marzban_panel", "namecustom", "vpn", "VARCHAR(100)");
         addFieldToTable("marzban_panel", "limit_panel", "unlimted", "VARCHAR(50)");
         addFieldToTable("marzban_panel", "TestAccount", "ONTestAccount", "VARCHAR(50)");
@@ -415,13 +438,16 @@ try {
         addFieldToTable("marzban_panel", "sublink", "onsublink", "VARCHAR(50)");
         addFieldToTable("marzban_panel", "config", "offconfig", "VARCHAR(50)");
         addFieldToTable("marzban_panel", "version_panel", "0", "VARCHAR(60)");
-        $max_stmt = $connect->query("SELECT MAX(CAST(SUBSTRING(code_panel, 3) AS UNSIGNED)) as max_num FROM marzban_panel WHERE code_panel LIKE '7e%'");
-        $max_row = $max_stmt->fetch_assoc();
-        $next_num = $max_row['max_num'] ? (int)$max_row['max_num'] + 1 : 15;
-        $stmt = $connect->query("SELECT id FROM marzban_panel WHERE code_panel IS NULL OR code_panel = ''");
-        while ($row = $stmt->fetch_assoc()) {
+        $max_stmt = $pdo->prepare("SELECT MAX(CAST(SUBSTRING(code_panel, 3) AS UNSIGNED)) as max_num FROM marzban_panel WHERE code_panel LIKE '7e%'");
+        $max_stmt->execute();
+        $max_row = $max_stmt->fetch(PDO::FETCH_ASSOC);
+        $next_num = $max_row['max_num'] ? (int) $max_row['max_num'] + 1 : 15;
+        $stmt = $pdo->prepare("SELECT id FROM marzban_panel WHERE code_panel IS NULL OR code_panel = ''");
+        $stmt->execute();
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $code = '7e' . $next_num;
-            $connect->query("UPDATE marzban_panel SET code_panel = '$code' WHERE id = " . $row['id']);
+            $stmt = $pdo->prepare("UPDATE marzban_panel SET code_panel = ? WHERE id = ?");
+            $stmt->execute([$code, $row['id']]);
             $next_num++;
         }
     }
@@ -432,11 +458,11 @@ try {
 //-----------------------------------------------------------------
 try {
 
-    $result = $connect->query("SHOW TABLES LIKE 'product'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'product'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE product (
+        $result = $pdo->query("CREATE TABLE product (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         code_product varchar(200)  NULL,
         name_product varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
@@ -454,7 +480,7 @@ try {
         hide_panel TEXT  NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table product" . mysqli_error($connect);
+            echo "table product" . implode(' ', $pdo->errorInfo());
         }
     } else {
         addFieldToTable("product", "one_buy_status", "0", "VARCHAR(20)");
@@ -474,11 +500,11 @@ try {
 //-----------------------------------------------------------------
 try {
 
-    $result = $connect->query("SHOW TABLES LIKE 'invoice'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'invoice'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE invoice (
+        $result = $pdo->query("CREATE TABLE invoice (
         id_invoice varchar(200) PRIMARY KEY,
         id_user varchar(200) NULL,
         username varchar(300) NULL,
@@ -498,49 +524,51 @@ try {
         Status varchar(200) NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table invoice" . mysqli_error($connect);
+            echo "table invoice" . implode(' ', $pdo->errorInfo());
         }
     } else {
-        $Check_filde = $connect->query("SHOW COLUMNS FROM invoice LIKE 'note'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $result = $connect->query("ALTER TABLE invoice ADD note VARCHAR(700)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM invoice LIKE 'note'");
+        if (($Check_filde)->rowCount() != 1) {
+            $result = $pdo->query("ALTER TABLE invoice ADD note VARCHAR(700)");
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM invoice LIKE 'notifctions'");
-        if (mysqli_num_rows($Check_filde) != 1) {
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM invoice LIKE 'notifctions'");
+        if (($Check_filde)->rowCount() != 1) {
             $data = json_encode(array(
                 'volume' => false,
                 'time' => false,
             ));
-            $result = $connect->query("ALTER TABLE invoice ADD notifctions TEXT NOT NULL");
-            $connect->query("UPDATE invoice SET notifctions = '$data'");
+            $result = $pdo->query("ALTER TABLE invoice ADD notifctions TEXT NOT NULL");
+            $__q1 = $pdo->prepare("UPDATE invoice SET notifctions = ?");
+            $__q1->bindValue(1, $data, PDO::PARAM_STR);
+            $__q1->execute();
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM invoice LIKE 'time_cron'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $result = $connect->query("ALTER TABLE invoice ADD time_cron VARCHAR(100)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM invoice LIKE 'time_cron'");
+        if (($Check_filde)->rowCount() != 1) {
+            $result = $pdo->query("ALTER TABLE invoice ADD time_cron VARCHAR(100)");
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM invoice LIKE 'refral'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $result = $connect->query("ALTER TABLE invoice ADD refral VARCHAR(100)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM invoice LIKE 'refral'");
+        if (($Check_filde)->rowCount() != 1) {
+            $result = $pdo->query("ALTER TABLE invoice ADD refral VARCHAR(100)");
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM invoice LIKE 'bottype'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $result = $connect->query("ALTER TABLE invoice ADD bottype VARCHAR(200)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM invoice LIKE 'bottype'");
+        if (($Check_filde)->rowCount() != 1) {
+            $result = $pdo->query("ALTER TABLE invoice ADD bottype VARCHAR(200)");
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM invoice LIKE 'user_info'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $result = $connect->query("ALTER TABLE invoice ADD user_info TEXT");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM invoice LIKE 'user_info'");
+        if (($Check_filde)->rowCount() != 1) {
+            $result = $pdo->query("ALTER TABLE invoice ADD user_info TEXT");
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM invoice LIKE 'time_sell'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $result = $connect->query("ALTER TABLE invoice ADD time_sell VARCHAR(200)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM invoice LIKE 'time_sell'");
+        if (($Check_filde)->rowCount() != 1) {
+            $result = $pdo->query("ALTER TABLE invoice ADD time_sell VARCHAR(200)");
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM invoice LIKE 'uuid'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $result = $connect->query("ALTER TABLE invoice ADD uuid TEXT");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM invoice LIKE 'uuid'");
+        if (($Check_filde)->rowCount() != 1) {
+            $result = $pdo->query("ALTER TABLE invoice ADD uuid TEXT");
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM invoice LIKE 'Status'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $result = $connect->query("ALTER TABLE invoice ADD Status VARCHAR(100)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM invoice LIKE 'Status'");
+        if (($Check_filde)->rowCount() != 1) {
+            $result = $pdo->query("ALTER TABLE invoice ADD Status VARCHAR(100)");
         }
     }
 } catch (Exception $e) {
@@ -549,11 +577,11 @@ try {
 //-----------------------------------------------------------------
 try {
 
-    $result = $connect->query("SHOW TABLES LIKE 'Payment_report'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'Payment_report'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE Payment_report (
+        $result = $pdo->query("CREATE TABLE Payment_report (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         id_user varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
         id_order varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
@@ -568,30 +596,30 @@ try {
         id_invoice varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table Payment_report" . mysqli_error($connect);
+            echo "table Payment_report" . implode(' ', $pdo->errorInfo());
         }
     } else {
         ensureTableUtf8mb4('Payment_report');
         addFieldToTable("Payment_report", "message_id", null, "INT");
-        $Check_filde = $connect->query("SHOW COLUMNS FROM Payment_report LIKE 'Payment_Method'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE Payment_report ADD Payment_Method VARCHAR(200)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM Payment_report LIKE 'Payment_Method'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE Payment_report ADD Payment_Method VARCHAR(200)");
             echo "The Payment_Method field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM Payment_report LIKE 'bottype'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE Payment_report ADD bottype VARCHAR(300)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM Payment_report LIKE 'bottype'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE Payment_report ADD bottype VARCHAR(300)");
             echo "The bottype field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM Payment_report LIKE 'at_updated'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE Payment_report ADD at_updated VARCHAR(200)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM Payment_report LIKE 'at_updated'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE Payment_report ADD at_updated VARCHAR(200)");
             echo "The at_updated field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM Payment_report LIKE 'id_invoice'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE Payment_report ADD id_invoice VARCHAR(400)");
-            $connect->query("UPDATE Payment_report SET id_invoice = 'none'");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM Payment_report LIKE 'id_invoice'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE Payment_report ADD id_invoice VARCHAR(400)");
+            $pdo->query("UPDATE Payment_report SET id_invoice = 'none'");
             echo "The id_invoice field was added ✅";
         }
     }
@@ -601,11 +629,11 @@ try {
 //-----------------------------------------------------------------
 try {
 
-    $result = $connect->query("SHOW TABLES LIKE 'Discount'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'Discount'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE Discount (
+        $result = $pdo->query("CREATE TABLE Discount (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         code varchar(2000) NULL,
         price varchar(200) NULL,
@@ -613,17 +641,17 @@ try {
         limitused varchar(200) NULL)
         ");
         if (!$result) {
-            echo "table Discount" . mysqli_error($connect);
+            echo "table Discount" . implode(' ', $pdo->errorInfo());
         }
     } else {
-        $Check_filde = $connect->query("SHOW COLUMNS FROM Discount LIKE 'limituse'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE Discount ADD limituse VARCHAR(200)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM Discount LIKE 'limituse'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE Discount ADD limituse VARCHAR(200)");
             echo "The limituse field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM Discount LIKE 'limitused'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE Discount ADD limitused VARCHAR(200)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM Discount LIKE 'limitused'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE Discount ADD limitused VARCHAR(200)");
             echo "The limitused field was added ✅";
         }
     }
@@ -633,243 +661,31 @@ try {
 //-----------------------------------------------------------------
 try {
 
-    $result = $connect->query("SHOW TABLES LIKE 'Giftcodeconsumed'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'Giftcodeconsumed'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE  Giftcodeconsumed (
+        $result = $pdo->query("CREATE TABLE  Giftcodeconsumed (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         code varchar(2000) NULL,
         id_user varchar(200) NULL)");
         if (!$result) {
-            echo "table Giftcodeconsumed" . mysqli_error($connect);
+            echo "table Giftcodeconsumed" . implode(' ', $pdo->errorInfo());
         }
     }
 } catch (Exception $e) {
     file_put_contents('error_log', $e->getMessage());
 }
-//-----------------------------------------------------------------
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'textbot'");
-    $table_exists = ($result->num_rows > 0);
-    $text_roll = "
-♨️ قوانین استفاده از خدمات ما
-
-1- به اطلاعیه هایی که داخل کانال گذاشته می شود حتما توجه کنید.
-2- در صورتی که اطلاعیه ای در مورد قطعی در کانال گذاشته نشده به اکانت پشتیبانی پیام دهید
-3- سرویس ها را از طریق پیامک ارسال نکنید برای ارسال پیامک می توانید از طریق ایمیل ارسال کنید.
-    ";
-    $text_dec_fq = " 
- 💡 سوالات متداول ⁉️
-
-1️⃣ فیلترشکن شما آیپی ثابته؟ میتونم برای صرافی های ارز دیجیتال استفاده کنم؟
-
-✅ به دلیل وضعیت نت و محدودیت های کشور سرویس ما مناسب ترید نیست و فقط لوکیشن‌ ثابته.
-
-2️⃣ اگه قبل از منقضی شدن اکانت، تمدیدش کنم روزهای باقی مانده می سوزد؟
-
-✅ خیر، روزهای باقیمونده اکانت موقع تمدید حساب میشن و اگه مثلا 5 روز قبل از منقضی شدن اکانت 1 ماهه خودتون اون رو تمدید کنید 5 روز باقیمونده + 30 روز تمدید میشه.
-
-3️⃣ اگه به یک اکانت بیشتر از حد مجاز متصل شیم چه اتفاقی میافته؟
-
-✅ در این صورت حجم سرویس شما زود تمام خواهد شد.
-
-4️⃣ فیلترشکن شما از چه نوعیه؟
-
-✅ فیلترشکن های ما v2ray است و پروتکل‌های مختلفی رو ساپورت میکنیم تا حتی تو دورانی که اینترنت اختلال داره بدون مشکل و افت سرعت بتونید از سرویستون استفاده کنید.
-
-5️⃣ فیلترشکن از کدوم کشور است؟
-
-✅ سرور فیلترشکن ما از کشور  آلمان است
-
-6️⃣ چطور باید از این فیلترشکن استفاده کنم؟
-
-✅ برای آموزش استفاده از برنامه، روی دکمه «📚 آموزش» بزنید.
-
-7️⃣ فیلترشکن وصل نمیشه، چیکار کنم؟
-
-✅ به همراه یک عکس از پیغام خطایی که میگیرید به پشتیبانی مراجعه کنید.
-
-8️⃣ فیلترشکن شما تضمینی هست که همیشه مواقع متصل بشه؟
-
-✅ به دلیل قابل پیش‌بینی نبودن وضعیت نت کشور، امکان دادن تضمین نیست فقط می‌تونیم تضمین کنیم که تمام تلاشمون رو برای ارائه سرویس هر چه بهتر انجام بدیم.
-
-9️⃣ امکان بازگشت وجه دارید؟
-
-✅ امکان بازگشت وجه در صورت حل نشدن مشکل از سمت ما وجود دارد.
-
-💡 در صورتی که جواب سوالتون رو نگرفتید میتونید به «پشتیبانی» مراجعه کنید.";
-    $text_channel = "   
-        ⚠️ کاربر گرامی؛ شما عضو چنل ما نیستید
-از طریق دکمه زیر وارد کانال شده و عضو شوید
-پس از عضویت دکمه بررسی عضویت را کلیک کنید";
-    $text_invoice = "📇 پیش فاکتور شما:
-👤 نام کاربری:  {username}
-🔐 نام سرویس: {name_product}
-📆 مدت اعتبار: {Service_time} روز
-💶 قیمت:  {price} تومان
-👥 حجم اکانت: {Volume} گیگ
-🗒 یادداشت محصول : {note}
-💵 موجودی کیف پول شما : {userBalance}
-          
-💰 سفارش شما آماده پرداخت است";
-    $textafterpay = "✅ سرویس با موفقیت ایجاد شد
-
-👤 نام کاربری سرویس : {username}
-🌿 نام سرویس:  {name_service}
-‏🇺🇳 لوکیشن: {location}
-⏳ مدت زمان: {day}  روز
-🗜 حجم سرویس:  {volume} گیگابایت
-
-لینک اتصال:
-{config}
-{links}
-🧑‍🦯 شما میتوانید شیوه اتصال را  با فشردن دکمه زیر و انتخاب سیستم عامل خود را دریافت کنید";
-    $text_wgdashboard = "✅ سرویس با موفقیت ایجاد شد
-
-👤 نام کاربری سرویس : {username}
-🌿 نام سرویس:  {name_service}
-‏🇺🇳 لوکیشن: {location}
-⏳ مدت زمان: {day}  روز
-🗜 حجم سرویس:  {volume} گیگابایت
-
-🧑‍🦯 شما میتوانید شیوه اتصال را  با فشردن دکمه زیر و انتخاب سیستم عامل خود را دریافت کنید";
-    $textafterpayibsng = "✅ سرویس با موفقیت ایجاد شد
-
-👤 نام کاربری سرویس : {username}
-🔑 رمز عبور سرویس :  <code>{password}</code>
-🌿 نام سرویس:  {name_service}
-‏🇺🇳 لوکیشن: {location}
-⏳ مدت زمان: {day}  روز
-🗜 حجم سرویس:  {volume} گیگابایت
-
-🧑‍🦯 شما میتوانید شیوه اتصال را  با فشردن دکمه زیر و انتخاب سیستم عامل خود را دریافت کنید";
-    $textmanual = "✅ سرویس با موفقیت ایجاد شد
-
-👤 نام کاربری سرویس : {username}
-🌿 نام سرویس:  {name_service}
-‏🇺🇳 لوکیشن: {location}
-
- اطلاعات سرویس :
-{config}
-🧑‍🦯 شما میتوانید شیوه اتصال را  با فشردن دکمه زیر و انتخاب سیستم عامل خود را دریافت کنید";
-    $textaftertext = "✅ سرویس با موفقیت ایجاد شد
-
-👤 نام کاربری سرویس : {username}
-🌿 نام سرویس:  {name_service}
-‏🇺🇳 لوکیشن: {location}
-⏳ مدت زمان: {day}  ساعت
-🗜 حجم سرویس:  {volume} مگابایت
-
-لینک اتصال:
-{config}
-🧑‍🦯 شما میتوانید شیوه اتصال را  با فشردن دکمه زیر و انتخاب سیستم عامل خود را دریافت کنید";
-    $textconfigtest = "با سلام خدمت شما کاربر گرامی 
-سرویس تست شما با نام کاربری {username} به پایان رسیده است
-امیدواریم تجربه‌ی خوبی از آسودگی و سرعت سرویستون داشته باشین. در صورتی که از سرویس‌ تست خودتون راضی بودین، میتونید سرویس اختصاصی خودتون رو تهیه کنید و از داشتن اینترنت آزاد با نهایت کیفیت لذت ببرید😉🔥
-🛍 برای تهیه سرویس با کیفیت می توانید از دکمه زیر استفاده نمایید";
-    $textcart = "برای افزایش موجودی، مبلغ <code>{price}</code>  تومان  را به شماره‌ی حساب زیر واریز کنید 👇🏻
-        
-        ==================== 
-        <code>{card_number}</code>
-        {name_card}
-        ====================
-
-❌ این تراکنش به مدت یک ساعت اعتبار دارد پس از آن امکان پرداخت این تراکنش امکان ندارد.        
-‼مبلغ باید همان مبلغی که در بالا ذکر شده واریز نمایید.
-‼️امکان برداشت وجه از کیف پول نیست.
-‼️مسئولیت واریز اشتباهی با شماست.
-🔝بعد از پرداخت  دکمه پرداخت کردم را زده سپس تصویر رسید را ارسال نمایید
-💵بعد از تایید پرداختتون توسط ادمین کیف پول شما شارژ خواهد شد و در صورتی که سفارشی داشته باشین انجام خواهد شد";
-    $textcartauto = "برای تایید فوری لطفا دقیقاً مبلغ زیر واریز شود. در غیر این صورت تایید پرداخت شما ممکن است با تاخیر مواجه شود.⚠️
-            برای افزایش موجودی، مبلغ <code>{price}</code>  ریال  را به شماره‌ی حساب زیر واریز کنید 👇🏻
-
-        ==================== 
-        <code>{card_number}</code>
-        {name_card}
-        ====================
-        
-💰دقیقا مبلغی را که در بالا ذکر شده واریز نمایید تا بصورت آنی تایید شود.
-‼️امکان برداشت وجه از کیف پول نیست.
-🔝لزومی به ارسال رسید نیست، اما در صورتی که بعد از گذشت مدتی واریز شما تایید نشد، عکس رسید خود را ارسال کنید.";
-    $insertQueries = [
-        ['text_start', 'سلام خوش آمدید'],
-        ['text_usertest', '🔑 اکانت تست'],
-        ['text_Purchased_services', '🛍 سرویس های من'],
-        ['text_support', '☎️ پشتیبانی'],
-        ['text_help', '📚 آموزش'],
-        ['text_bot_off', '❌ ربات خاموش است، لطفا دقایقی دیگر مراجعه کنید'],
-        ['text_roll', $text_roll],
-        ['text_fq', '❓ سوالات متداول'],
-        ['text_dec_fq', $text_dec_fq],
-        ['text_sell', '🔐 خرید اشتراک'],
-        ['text_Add_Balance', '💰 افزایش موجودی'],
-        ['text_channel', $text_channel],
-        ['text_Discount', '🎁 کد هدیه'],
-        ['text_Tariff_list', '💵 تعرفه اشتراک ها'],
-        ['text_dec_Tariff_list', 'تنظیم نشده است'],
-        ['text_Account_op', '🎛 حساب کاربری'],
-        ['text_affiliates', '👥 زیر مجموعه گیری'],
-        ['text_pishinvoice', $text_invoice],
-        ['accountwallet', '🏦 کیف پول + شارژ'],
-        ['carttocart', '💳 کارت به کارت'],
-        ['textnowpayment', '💵 پرداخت ارزی 1'],
-        ['textnowpaymenttron', '💵 واریز رمزارز ترون'],
-        ['textsnowpayment', '💸 پرداخت با ارز دیجیتال'],
-        ['iranpay1', '💸 درگاه  پرداخت ریالی'],
-        ['iranpay2', '💸 درگاه  پرداخت ریالی دوم'],
-        ['iranpay3', '💸 درگاه  پرداخت ریالی سوم'],
-        ['aqayepardakht', '🔵 درگاه آقای پرداخت'],
-        ['mowpayment', '💸 پرداخت با ارز دیجیتال'],
-        ['zarinpal', '🟡 زرین پال'],
-        ['textafterpay', $textafterpay],
-        ['textafterpayibsng', $textafterpayibsng],
-        ['textaftertext', $textaftertext],
-        ['textmanual', $textmanual],
-        ['textselectlocation', '📌 موقعیت سرویس را انتخاب نمایید.'],
-        ['crontest', $textconfigtest],
-        ['textpaymentnotverify', 'درگاه ریالی'],
-        ['textrequestagent', '👨‍💻 درخواست نمایندگی'],
-        ['textpanelagent', '👨‍💻 پنل نمایندگی'],
-        ['text_wheel_luck', '🎲 گردونه شانس'],
-        ['text_cart', $textcart],
-        ['text_cart_auto', $textcartauto],
-        ['text_star_telegram', "💫 Star Telegram"],
-        ['text_request_agent_dec', '📌 توضیحات خود را برای ثبت درخواست نمایندگی ارسال نمایید.'],
-        ['text_extend', '♻️ تمدید سرویس'],
-        ['text_wgdashboard', $text_wgdashboard]
-    ];
-    if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE textbot (
-        id_text varchar(600) PRIMARY KEY NOT NULL,
-        text TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL)
-        ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
-        if (!$result) {
-            echo "table textbot" . mysqli_error($connect);
-        }
-
-        foreach ($insertQueries as $query) {
-            $connect->query("INSERT INTO textbot (id_text, text) VALUES ('$query[0]', '$query[1]')");
-        }
-    } else {
-        foreach ($insertQueries as $query) {
-            $connect->query("INSERT IGNORE INTO textbot (id_text, text) VALUES ('$query[0]', '$query[1]')");
-        }
-    }
-} catch (Exception $e) {
-    file_put_contents('error_log', $e->getMessage());
-}
-
-try {
-    $result = $connect->query("SHOW TABLES LIKE 'PaySetting'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'PaySetting'");
+    $table_exists = ($result->rowCount() > 0);
     $main = 20000;
     $max = 1000000;
     $settings = [
         ['Cartstatus', 'oncard'],
         ['CartDirect', '@cart'],
         ['cardnumber', '603700000000'],
-        ['namecard', 'تنظیم نشده'],
+        ['namecard', $textbotlang['db_defaults']['namecardNotSet']],
         ['Cartstatuspv', 'offcardpv'],
         ['apinowpayment', '0'],
         ['nowpaymentstatus', 'offnowpayment'],
@@ -881,10 +697,10 @@ try {
         ['maxbalance', '1000000'],
         ['marchent_tronseller', '0'],
         ['walletaddress', '0'],
-        ['statuscardautoconfirm', 'offautoconfirm'],
-        ['urlpaymenttron', 'https://tronseller.storeddownloader.fun/api/GetOrderToken'],
         ['statustarnado', 'offternado'],
         ['apiternado', '0'],
+        ['feestatusternado', 'offfeeternado'],
+        ['feeternado', '0'],
         ['chashbackcart', '0'],
         ['chashbackstar', '0'],
         ['chashbackperfect', '0'],
@@ -942,37 +758,39 @@ try {
         ['marchent_floypay', '0'],
     ];
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE PaySetting (
+        $result = $pdo->query("CREATE TABLE PaySetting (
         NamePay varchar(500) PRIMARY KEY NOT NULL,
         ValuePay TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table PaySetting" . mysqli_error($connect);
+            echo "table PaySetting" . implode(' ', $pdo->errorInfo());
         }
 
         foreach ($settings as $setting) {
-            $connect->query("INSERT INTO PaySetting (NamePay, ValuePay) VALUES ('{$setting[0]}', '{$setting[1]}')");
+            $__q2 = $pdo->prepare("INSERT INTO PaySetting (NamePay, ValuePay) VALUES (?, ?)");
+            $__q2->bindValue(1, $setting[0], PDO::PARAM_STR);
+            $__q2->bindValue(2, $setting[1], PDO::PARAM_STR);
+            $__q2->execute();
         }
     } else {
         foreach ($settings as $setting) {
-            $connect->query("INSERT IGNORE INTO PaySetting (NamePay, ValuePay) VALUES ('{$setting[0]}', '{$setting[1]}')");
+            $__q3 = $pdo->prepare("INSERT IGNORE INTO PaySetting (NamePay, ValuePay) VALUES (?, ?)");
+            $__q3->bindValue(1, $setting[0], PDO::PARAM_STR);
+            $__q3->bindValue(2, $setting[1], PDO::PARAM_STR);
+            $__q3->execute();
         }
-
-
-
-
-
     }
+    $pdo->exec("DELETE FROM PaySetting WHERE NamePay = 'urlpaymenttron'");
 } catch (Exception $e) {
     file_put_contents('error_log', $e->getMessage());
 }
 //----------------------- [ Discount ] --------------------- //
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'DiscountSell'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'DiscountSell'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE DiscountSell (
+        $result = $pdo->query("CREATE TABLE DiscountSell (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         codeDiscount varchar(1000)  NOT NULL,
         price varchar(200)  NOT NULL,
@@ -986,42 +804,42 @@ try {
         type varchar(100)  NOT NULL,
         usedDiscount varchar(500) NOT NULL)");
         if (!$result) {
-            echo "table DiscountSell" . mysqli_error($connect);
+            echo "table DiscountSell" . implode(' ', $pdo->errorInfo());
         }
     } else {
-        $Check_filde = $connect->query("SHOW COLUMNS FROM DiscountSell LIKE 'agent'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE DiscountSell ADD agent VARCHAR(100)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM DiscountSell LIKE 'agent'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE DiscountSell ADD agent VARCHAR(100)");
             echo "The agent discount field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM DiscountSell LIKE 'type'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE DiscountSell ADD type VARCHAR(100)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM DiscountSell LIKE 'type'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE DiscountSell ADD type VARCHAR(100)");
             echo "The agent type field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM DiscountSell LIKE 'time'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE DiscountSell ADD time VARCHAR(100)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM DiscountSell LIKE 'time'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE DiscountSell ADD time VARCHAR(100)");
             echo "The agent time field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM DiscountSell LIKE 'code_panel'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE DiscountSell ADD code_panel VARCHAR(100)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM DiscountSell LIKE 'code_panel'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE DiscountSell ADD code_panel VARCHAR(100)");
             echo "The code_panel discount field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM DiscountSell LIKE 'code_product'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE DiscountSell ADD code_product VARCHAR(100)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM DiscountSell LIKE 'code_product'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE DiscountSell ADD code_product VARCHAR(100)");
             echo "The code_product discount field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM DiscountSell LIKE 'useuser'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE DiscountSell ADD useuser VARCHAR(100)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM DiscountSell LIKE 'useuser'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE DiscountSell ADD useuser VARCHAR(100)");
             echo "The useuser discount field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM DiscountSell LIKE 'usefirst'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE DiscountSell ADD usefirst VARCHAR(100)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM DiscountSell LIKE 'usefirst'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE DiscountSell ADD usefirst VARCHAR(100)");
             echo "The usefirst discount field was added ✅";
         }
     }
@@ -1030,11 +848,11 @@ try {
 }
 //-----------------------------------------------------------------
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'affiliates'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'affiliates'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE affiliates (
+        $result = $pdo->query("CREATE TABLE affiliates (
         description TEXT  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NULL,
         status_commission varchar(200)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NULL,
         Discount varchar(200)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NULL,
@@ -1043,31 +861,31 @@ try {
         id_media varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table affiliates" . mysqli_error($connect);
+            echo "table affiliates" . implode(' ', $pdo->errorInfo());
         }
-        $connect->query("INSERT INTO affiliates (description,id_media,status_commission,Discount,porsant_one_buy) VALUES ('none','none','oncommission','onDiscountaffiliates','off_buy_porsant')");
+        $pdo->query("INSERT INTO affiliates (description,id_media,status_commission,Discount,porsant_one_buy) VALUES ('none','none','oncommission','onDiscountaffiliates','off_buy_porsant')");
     } else {
-        $Check_filde = $connect->query("SHOW COLUMNS FROM affiliates LIKE 'porsant_one_buy'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE affiliates ADD porsant_one_buy VARCHAR(100)");
-            $connect->query("UPDATE affiliates SET porsant_one_buy = 'off_buy_porsant'");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM affiliates LIKE 'porsant_one_buy'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE affiliates ADD porsant_one_buy VARCHAR(100)");
+            $pdo->query("UPDATE affiliates SET porsant_one_buy = 'off_buy_porsant'");
             echo "The Discount field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM affiliates LIKE 'Discount'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE affiliates ADD Discount VARCHAR(100)");
-            $connect->query("UPDATE affiliates SET Discount = 'onDiscountaffiliates'");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM affiliates LIKE 'Discount'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE affiliates ADD Discount VARCHAR(100)");
+            $pdo->query("UPDATE affiliates SET Discount = 'onDiscountaffiliates'");
             echo "The Discount field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM affiliates LIKE 'price_Discount'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE affiliates ADD price_Discount VARCHAR(100)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM affiliates LIKE 'price_Discount'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE affiliates ADD price_Discount VARCHAR(100)");
             echo "The price_Discount field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM affiliates LIKE 'status_commission'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE affiliates ADD status_commission VARCHAR(100)");
-            $connect->query("UPDATE affiliates SET status_commission = 'oncommission'");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM affiliates LIKE 'status_commission'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE affiliates ADD status_commission VARCHAR(100)");
+            $pdo->query("UPDATE affiliates SET status_commission = 'oncommission'");
             echo "The commission field was added ✅";
         }
     }
@@ -1075,55 +893,59 @@ try {
     file_put_contents('error_log', $e->getMessage());
 }
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'shopSetting'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'shopSetting'");
+    $table_exists = ($result->rowCount() > 0);
     $agent_cashback = json_encode(array(
         'n' => 0,
         'n2' => 0
     ));
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE shopSetting (
+        $result = $pdo->query("CREATE TABLE shopSetting (
         Namevalue varchar(500) PRIMARY KEY NOT NULL,
         value TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table shopSetting" . mysqli_error($connect);
+            echo "table shopSetting" . implode(' ', $pdo->errorInfo());
         }
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('customvolmef','4000')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('customvolmen','4000')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('customvolmen2','4000')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('statusextra','offextra')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('customtimepricef','4000')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('customtimepricen','4000')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('customtimepricen2','4000')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('statusdirectpabuy','ondirectbuy')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('minbalancebuybulk','0')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('statustimeextra','ontimeextraa')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('statusdisorder','offdisorder')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('statuschangeservice','onstatus')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('statusshowprice','offshowprice')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('configshow','onconfig')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('backserviecstatus','on')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('chashbackextend','0')");
-        $connect->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('chashbackextend_agent','$agent_cashback')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('customvolmef','4000')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('customvolmen','4000')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('customvolmen2','4000')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('statusextra','offextra')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('customtimepricef','4000')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('customtimepricen','4000')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('customtimepricen2','4000')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('statusdirectpabuy','ondirectbuy')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('minbalancebuybulk','0')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('statustimeextra','ontimeextraa')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('statusdisorder','offdisorder')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('statuschangeservice','onstatus')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('statusshowprice','offshowprice')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('configshow','onconfig')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('backserviecstatus','on')");
+        $pdo->query("INSERT INTO shopSetting (Namevalue,value) VALUES ('chashbackextend','0')");
+        $__q4 = $pdo->prepare("INSERT INTO shopSetting (Namevalue,value) VALUES ('chashbackextend_agent',?)");
+        $__q4->bindValue(1, $agent_cashback, PDO::PARAM_STR);
+        $__q4->execute();
     } else {
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('customvolmef','4000')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('customvolmen','4000')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('customvolmen2','4000')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('statusextra','offextra')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('statusdirectpabuy','ondirectbuy')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('minbalancebuybulk','0')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('statustimeextra','ontimeextraa')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('customtimepricef','4000')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('customtimepricen','4000')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('customtimepricen2','4000')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('statusdisorder','offdisorder')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('statuschangeservice','onstatus')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('statusshowprice','offshowprice')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('configshow','onconfig')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('backserviecstatus','on')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('chashbackextend','0')");
-        $connect->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('chashbackextend_agent','$agent_cashback')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('customvolmef','4000')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('customvolmen','4000')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('customvolmen2','4000')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('statusextra','offextra')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('statusdirectpabuy','ondirectbuy')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('minbalancebuybulk','0')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('statustimeextra','ontimeextraa')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('customtimepricef','4000')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('customtimepricen','4000')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('customtimepricen2','4000')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('statusdisorder','offdisorder')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('statuschangeservice','onstatus')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('statusshowprice','offshowprice')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('configshow','onconfig')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('backserviecstatus','on')");
+        $pdo->query("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('chashbackextend','0')");
+        $__q5 = $pdo->prepare("INSERT IGNORE INTO shopSetting (Namevalue,value) VALUES ('chashbackextend_agent',?)");
+        $__q5->bindValue(1, $agent_cashback, PDO::PARAM_STR);
+        $__q5->execute();
 
 
 
@@ -1133,11 +955,11 @@ try {
 }
 //----------------------- [ remove requests ] --------------------- //
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'cancel_service'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'cancel_service'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE cancel_service (
+        $result = $pdo->query("CREATE TABLE cancel_service (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         id_user varchar(500)  NOT NULL,
         username varchar(1000)  NOT NULL,
@@ -1145,18 +967,18 @@ try {
         status varchar(1000)  NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table cancel_service" . mysqli_error($connect);
+            echo "table cancel_service" . implode(' ', $pdo->errorInfo());
         }
     }
 } catch (Exception $e) {
     file_put_contents('error_log', $e->getMessage());
 }
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'service_other'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'service_other'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE service_other (
+        $result = $pdo->query("CREATE TABLE service_other (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         id_user varchar(500)  NOT NULL,
         username varchar(1000)  NOT NULL,
@@ -1168,22 +990,22 @@ try {
         output TEXT  NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table service_other" . mysqli_error($connect);
+            echo "table service_other" . implode(' ', $pdo->errorInfo());
         }
     } else {
-        $Check_filde = $connect->query("SHOW COLUMNS FROM service_other LIKE 'price'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE service_other ADD price VARCHAR(200)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM service_other LIKE 'price'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE service_other ADD price VARCHAR(200)");
             echo "The price field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM service_other LIKE 'status'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE service_other ADD status VARCHAR(200)");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM service_other LIKE 'status'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE service_other ADD status VARCHAR(200)");
             echo "The status field was added ✅";
         }
-        $Check_filde = $connect->query("SHOW COLUMNS FROM service_other LIKE 'output'");
-        if (mysqli_num_rows($Check_filde) != 1) {
-            $connect->query("ALTER TABLE service_other ADD output TEXT");
+        $Check_filde = $pdo->query("SHOW COLUMNS FROM service_other LIKE 'output'");
+        if (($Check_filde)->rowCount() != 1) {
+            $pdo->query("ALTER TABLE service_other ADD output TEXT");
             echo "The output field was added ✅";
         }
     }
@@ -1191,38 +1013,38 @@ try {
     file_put_contents('error_log', $e->getMessage());
 }
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'card_number'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'card_number'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE card_number (
+        $result = $pdo->query("CREATE TABLE card_number (
         cardnumber varchar(500) PRIMARY KEY,
         namecard  varchar(1000)  NOT NULL)
         CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table x_ui" . mysqli_error($connect);
+            echo "table x_ui" . implode(' ', $pdo->errorInfo());
         }
     }
-    $columnInfo = $connect->query("SHOW FULL COLUMNS FROM card_number LIKE 'namecard'");
+    $columnInfo = $pdo->query("SHOW FULL COLUMNS FROM card_number LIKE 'namecard'");
     if ($columnInfo) {
-        $column = $columnInfo->fetch_assoc();
+        $column = $columnInfo->fetch(PDO::FETCH_ASSOC);
         $currentCollation = $column['Collation'] ?? '';
         if (empty($currentCollation) || stripos($currentCollation, 'utf8mb4') === false) {
-            $connect->query("ALTER TABLE card_number CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-            $connect->query("ALTER TABLE card_number MODIFY cardnumber varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci PRIMARY KEY");
-            $connect->query("ALTER TABLE card_number MODIFY namecard varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL");
+            $pdo->query("ALTER TABLE card_number CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $pdo->query("ALTER TABLE card_number MODIFY cardnumber varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci PRIMARY KEY");
+            $pdo->query("ALTER TABLE card_number MODIFY namecard varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL");
         }
-        $columnInfo->free();
+        $columnInfo = null;
     }
 } catch (Exception $e) {
     file_put_contents('error_log card_number', $e->getMessage());
 }
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'Requestagent'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'Requestagent'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE Requestagent (
+        $result = $pdo->query("CREATE TABLE Requestagent (
         id varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci PRIMARY KEY,
         username  varchar(500)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
         time  varchar(500)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -1231,7 +1053,7 @@ try {
         type  varchar(500)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table Requestagent" . mysqli_error($connect);
+            echo "table Requestagent" . implode(' ', $pdo->errorInfo());
         }
     } else {
         ensureTableUtf8mb4('Requestagent');
@@ -1240,37 +1062,37 @@ try {
     file_put_contents('error_log Requestagent', $e->getMessage());
 }
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'topicid'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'topicid'");
+    $table_exists = ($result->rowCount() > 0);
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE topicid (
+        $result = $pdo->query("CREATE TABLE topicid (
         report varchar(500) PRIMARY KEY NOT NULL,
         idreport TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table Requestagent" . mysqli_error($connect);
+            echo "table Requestagent" . implode(' ', $pdo->errorInfo());
         }
-        $connect->query("INSERT INTO topicid (idreport,report) VALUES ('0','buyreport')");
-        $connect->query("INSERT INTO topicid (idreport,report) VALUES ('0','otherservice')");
-        $connect->query("INSERT INTO topicid (idreport,report) VALUES ('0','paymentreport')");
-        $connect->query("INSERT INTO topicid (idreport,report) VALUES ('0','otherreport')");
-        $connect->query("INSERT INTO topicid (idreport,report) VALUES ('0','reporttest')");
-        $connect->query("INSERT INTO topicid (idreport,report) VALUES ('0','errorreport')");
-        $connect->query("INSERT INTO topicid (idreport,report) VALUES ('0','porsantreport')");
-        $connect->query("INSERT INTO topicid (idreport,report) VALUES ('0','reportnight')");
-        $connect->query("INSERT INTO topicid (idreport,report) VALUES ('0','reportcron')");
-        $connect->query("INSERT INTO topicid (idreport,report) VALUES ('0','backupfile')");
+        $pdo->query("INSERT INTO topicid (idreport,report) VALUES ('0','buyreport')");
+        $pdo->query("INSERT INTO topicid (idreport,report) VALUES ('0','otherservice')");
+        $pdo->query("INSERT INTO topicid (idreport,report) VALUES ('0','paymentreport')");
+        $pdo->query("INSERT INTO topicid (idreport,report) VALUES ('0','otherreport')");
+        $pdo->query("INSERT INTO topicid (idreport,report) VALUES ('0','reporttest')");
+        $pdo->query("INSERT INTO topicid (idreport,report) VALUES ('0','errorreport')");
+        $pdo->query("INSERT INTO topicid (idreport,report) VALUES ('0','porsantreport')");
+        $pdo->query("INSERT INTO topicid (idreport,report) VALUES ('0','reportnight')");
+        $pdo->query("INSERT INTO topicid (idreport,report) VALUES ('0','reportcron')");
+        $pdo->query("INSERT INTO topicid (idreport,report) VALUES ('0','backupfile')");
     } else {
-        $connect->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','buyreport')");
-        $connect->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','otherservice')");
-        $connect->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','paymentreport')");
-        $connect->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','otherreport')");
-        $connect->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','reporttest')");
-        $connect->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','errorreport')");
-        $connect->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','porsantreport')");
-        $connect->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','reportnight')");
-        $connect->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','reportcron')");
-        $connect->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','backupfile')");
+        $pdo->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','buyreport')");
+        $pdo->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','otherservice')");
+        $pdo->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','paymentreport')");
+        $pdo->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','otherreport')");
+        $pdo->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','reporttest')");
+        $pdo->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','errorreport')");
+        $pdo->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','porsantreport')");
+        $pdo->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','reportnight')");
+        $pdo->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','reportcron')");
+        $pdo->query("INSERT IGNORE INTO topicid (idreport,report) VALUES ('0','backupfile')");
 
 
 
@@ -1280,10 +1102,10 @@ try {
     file_put_contents('error_log topicid', $e->getMessage());
 }
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'manualsell'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'manualsell'");
+    $table_exists = ($result->rowCount() > 0);
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE manualsell (
+        $result = $pdo->query("CREATE TABLE manualsell (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         codepanel  varchar(100)  NOT NULL,
         codeproduct  varchar(100)  NOT NULL,
@@ -1293,7 +1115,7 @@ try {
         status  varchar(200)  NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table manualsell" . mysqli_error($connect);
+            echo "table manualsell" . implode(' ', $pdo->errorInfo());
         }
     }
 } catch (Exception $e) {
@@ -1314,7 +1136,8 @@ try {
             name_departman VARCHAR(600) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         $stmt->execute();
-        $connect->query("INSERT INTO departman (idsupport,name_departman) VALUES ('$adminnumber','☎️ بخش عمومی')");
+        $stmt = $pdo->prepare("INSERT INTO departman (idsupport,name_departman) VALUES (?, ?)");
+        $stmt->execute([$adminnumber, $textbotlang['db_defaults']['departmanGeneral']]);
     }
 } catch (PDOException $e) {
     file_put_contents('error_log departman', $e->getMessage());
@@ -1346,10 +1169,10 @@ try {
     file_put_contents('error_log suppeor_message', $e->getMessage());
 }
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'wheel_list'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'wheel_list'");
+    $table_exists = ($result->rowCount() > 0);
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE wheel_list (
+        $result = $pdo->query("CREATE TABLE wheel_list (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         id_user  varchar(200)  NOT NULL,
         time  varchar(200)  NOT NULL,
@@ -1358,17 +1181,17 @@ try {
         price  varchar(200)  NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table wheel_list" . mysqli_error($connect);
+            echo "table wheel_list" . implode(' ', $pdo->errorInfo());
         }
     }
 } catch (Exception $e) {
     file_put_contents('error_log botsaz', $e->getMessage());
 }
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'botsaz'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'botsaz'");
+    $table_exists = ($result->rowCount() > 0);
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE botsaz (
+        $result = $pdo->query("CREATE TABLE botsaz (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         id_user  varchar(200)  NOT NULL,
         bot_token  varchar(200)  NOT NULL,
@@ -1379,7 +1202,7 @@ try {
         time  varchar(200)  NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table botsaz" . mysqli_error($connect);
+            echo "table botsaz" . implode(' ', $pdo->errorInfo());
         }
     } else {
         addFieldToTable("botsaz", "hide_panel", "{}", "JSON");
@@ -1389,16 +1212,16 @@ try {
 }
 
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'app'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'app'");
+    $table_exists = ($result->rowCount() > 0);
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE app (
+        $result = $pdo->query("CREATE TABLE app (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         name  varchar(200)   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
         link  varchar(200)  NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table app" . mysqli_error($connect);
+            echo "table app" . implode(' ', $pdo->errorInfo());
         }
     }
 } catch (Exception $e) {
@@ -1408,10 +1231,10 @@ try {
 
 
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'logs_api'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'logs_api'");
+    $table_exists = ($result->rowCount() > 0);
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE logs_api (
+        $result = $pdo->query("CREATE TABLE logs_api (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         header JSON  NULL,
         data JSON  NULL,
@@ -1420,7 +1243,7 @@ try {
         actions  varchar(200)  NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
-            echo "table logs_api" . mysqli_error($connect);
+            echo "table logs_api" . implode(' ', $pdo->errorInfo());
         }
     }
 } catch (Exception $e) {
@@ -1428,27 +1251,27 @@ try {
 }
 //----------------------- [ Category ] --------------------- //
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'category'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'category'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE category (
+        $result = $pdo->query("CREATE TABLE category (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         remark varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin  NOT NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_bin");
         if (!$result) {
-            echo "table category" . mysqli_error($connect);
+            echo "table category" . implode(' ', $pdo->errorInfo());
         }
     }
 } catch (Exception $e) {
     file_put_contents('error_log', $e->getMessage());
 }
 try {
-    $result = $connect->query("SHOW TABLES LIKE 'reagent_report'");
-    $table_exists = ($result->num_rows > 0);
+    $result = $pdo->query("SHOW TABLES LIKE 'reagent_report'");
+    $table_exists = ($result->rowCount() > 0);
 
     if (!$table_exists) {
-        $result = $connect->query("CREATE TABLE reagent_report (
+        $result = $pdo->query("CREATE TABLE reagent_report (
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         user_id BIGINT UNIQUE  NOT NULL,
         get_gift BOOL   NOT NULL,
@@ -1456,7 +1279,7 @@ try {
         reagent varchar(30)  NOT NULL
         )ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_bin");
         if (!$result) {
-            echo "table affiliates" . mysqli_error($connect);
+            echo "table affiliates" . implode(' ', $pdo->errorInfo());
         }
     }
 } catch (Exception $e) {
@@ -1480,15 +1303,56 @@ if (!isset($balancemain['f'])) {
     update("PaySetting", "ValuePay", $value, "NamePay", "maxbalance");
     update("PaySetting", "ValuePay", $valuemain, "NamePay", "minbalance");
 }
-$connect->query("ALTER TABLE `invoice` CHANGE `Volume` `Volume` VARCHAR(200)");
-$connect->query("ALTER TABLE `invoice` CHANGE `price_product` `price_product` VARCHAR(200)");
-$connect->query("ALTER TABLE `invoice` CHANGE `name_product` `name_product` VARCHAR(200)");
-$connect->query("ALTER TABLE `invoice` CHANGE `username` `username` VARCHAR(200)");
-$connect->query("ALTER TABLE `invoice` CHANGE `Service_location` `Service_location` VARCHAR(200)");
-$connect->query("ALTER TABLE `invoice` CHANGE `time_sell` `time_sell` VARCHAR(200)");
-$connect->query("ALTER TABLE marzban_panel MODIFY name_panel VARCHAR(255) COLLATE utf8mb4_bin");
-$connect->query("ALTER TABLE product MODIFY name_product VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin");
-$connect->query("ALTER TABLE help MODIFY name_os VARCHAR(500) COLLATE utf8mb4_bin");
+$pdo->query("ALTER TABLE `invoice` CHANGE `Volume` `Volume` VARCHAR(200)");
+$pdo->query("ALTER TABLE `invoice` CHANGE `price_product` `price_product` VARCHAR(200)");
+$pdo->query("ALTER TABLE `invoice` CHANGE `name_product` `name_product` VARCHAR(200)");
+$pdo->query("ALTER TABLE `invoice` CHANGE `username` `username` VARCHAR(200)");
+$pdo->query("ALTER TABLE `invoice` CHANGE `Service_location` `Service_location` VARCHAR(200)");
+$pdo->query("ALTER TABLE `invoice` CHANGE `time_sell` `time_sell` VARCHAR(200)");
+$pdo->query("ALTER TABLE marzban_panel MODIFY password_panel TEXT COLLATE utf8mb4_bin");
+$pdo->query("ALTER TABLE marzban_panel MODIFY name_panel VARCHAR(255) COLLATE utf8mb4_bin");
+$pdo->query("ALTER TABLE product MODIFY name_product VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin");
+$pdo->query("ALTER TABLE help MODIFY name_os VARCHAR(500) COLLATE utf8mb4_bin");
+try {
+    $check = $pdo->query("SHOW COLUMNS FROM `user` LIKE 'ref_code'");
+} catch (Exception $e) {
+    error_log("[CHECK:$tableName] ❌ " . $e->getMessage());
+    exit;
+}
+
+if ($check && $check->rowCount() != 0) {
+    $pdo->exec("ALTER TABLE `user` DROP `ref_code`");
+}
+#-----------------[ performance indexes ]-----------------#
+$performanceIndexes = [
+    ['invoice', 'idx_invoice_id_user', '`id_user`(100)'],
+    ['invoice', 'idx_invoice_username', '`username`(150)'],
+    ['invoice', 'idx_invoice_status', '`Status`(100)'],
+    ['invoice', 'idx_invoice_location', '`Service_location`(150)'],
+    ['Payment_report', 'idx_payreport_id_user', '`id_user`(100)'],
+    ['Payment_report', 'idx_payreport_id_order', '`id_order`(191)'],
+    ['Payment_report', 'idx_payreport_status', '`payment_Status`(100)'],
+    ['marzban_panel', 'idx_panel_name', '`name_panel`(150)'],
+    ['marzban_panel', 'idx_panel_code', '`code_panel`(100)'],
+    ['product', 'idx_product_code', '`code_product`(50)'],
+    ['product', 'idx_product_location', '`Location`(100)'],
+    ['manualsell', 'idx_manualsell_codepanel', '`codepanel`(100)'],
+    ['service_other', 'idx_serviceother_username', '`username`(150)'],
+    ['service_other', 'idx_serviceother_type', '`type`(100)'],
+    ['user', 'idx_user_affiliates', '`affiliates`'],
+];
+foreach ($performanceIndexes as $indexDef) {
+    list($idxTable, $idxName, $idxCols) = $indexDef;
+    try {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?");
+        $stmt->execute([$idxTable, $idxName]);
+        if ((int) $stmt->fetchColumn() == 0) {
+            $pdo->exec("ALTER TABLE `$idxTable` ADD INDEX `$idxName` ($idxCols)");
+        }
+    } catch (Exception $e) {
+        error_log("[INDEX:$idxTable.$idxName] " . $e->getMessage());
+    }
+}
 telegram('setwebhook', [
     'url' => "https://$domainhosts/index.php"
 ]);

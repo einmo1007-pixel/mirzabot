@@ -4,6 +4,7 @@ date_default_timezone_set('Asia/Tehran');
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../botapi.php';
 require_once __DIR__ . '/../function.php';
+$textbotlang = languagechange();
 
 
 
@@ -17,10 +18,10 @@ foreach($marzbanlist as $location){
     $parsed_url = parse_url($location['url_panel']);
     if ($parsed_url && isset($parsed_url['host'])) {
     $address = $parsed_url['host'];
-    $port = empty($parsed_url['port']) ? 8080 : $parsed_url['port'];
+    $port = empty($parsed_url['port']) ? 443 : $parsed_url['port'];
     if (!checkConnection($address, $port)) {
        foreach ($admin_ids as $admin) {
-            $textnode = "🚨 ادمین عزیز پنل با اسم <code>{$location['name_panel']}</code> متصل نیست.";
+            $textnode = sprintf($textbotlang['Admin']['report']['panelDown'], $location['name_panel']);
         sendmessage($admin, $textnode, null, 'html');
     }
     }

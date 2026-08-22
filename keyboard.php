@@ -1,76 +1,15 @@
 <?php
 require_once 'config.php';
-$setting = select("setting", "*", null, null,"select");
-$textbotlang = languagechange(__DIR__.'/text.json');
-if (!function_exists('getPaySettingValue')) {
-    function getPaySettingValue($name)
-    {
-        $result = select("PaySetting", "ValuePay", "NamePay", $name, "select");
-        return $result['ValuePay'] ?? null;
-    }
-}
+$setting = select("setting", "*", null, null, "select");
+$textbotlang = languagechange();
 //-----------------------------[  text panel  ]-------------------------------
-$stmt = $pdo->prepare("SHOW TABLES LIKE 'textbot'");
-$stmt->execute();
-$result = $stmt->fetchAll();
-$table_exists = count($result) > 0;
-$datatextbot = array(
-    'text_usertest' => '',
-    'text_Purchased_services' => '',
-    'text_support' => '',
-    'text_help' => '',
-    'text_start' => '',
-    'text_bot_off' => '',
-    'text_dec_info' => '',
-    'text_dec_usertest' => '',
-    'text_fq' => '',
-    'accountwallet' => '',
-    'text_sell' => '',
-    'text_Add_Balance' => '',
-    'text_Discount' => '',
-    'text_Tariff_list' => '',
-    'text_affiliates' => '',
-    'carttocart' => '',
-    'textnowpayment' => '',
-    'textnowpaymenttron' => '',
-    'iranpay1' => '',
-    'iranpay2' => '',
-    'iranpay3' => '',
-    'aqayepardakht' => '',
-    'zarinpal' => '',
-    'text_fq' => '',
-    'textpaymentnotverify' =>"",
-    'textrequestagent' => '',
-    'textpanelagent' => '',
-    'text_wheel_luck' => '',
-    'text_star_telegram' => "",
-    'text_extend' => '',
-    'textsnowpayment' => '',
-    'tonoffline' => ''
-
-);
-if ($table_exists) {
-    $textdatabot =  select("textbot", "*", null, null,"fetchAll");
-    $data_text_bot = array();
-    foreach ($textdatabot as $row) {
-        $data_text_bot[] = array(
-            'id_text' => $row['id_text'],
-            'text' => $row['text']
-        );
-    }
-    foreach ($data_text_bot as $item) {
-        if (isset($datatextbot[$item['id_text']])) {
-            $datatextbot[$item['id_text']] = $item['text'];
-        }
-    }
-}
-$adminrulecheck = select("admin", "*", "id_admin", $from_id,"select");
+$adminrulecheck = select("admin", "*", "id_admin", $from_id, "select");
 if (!$adminrulecheck) {
     $adminrulecheck = array(
         'rule' => '',
     );
 }
-$users = select("user", "*", "id", $from_id,"select");
+$users = select("user", "*", "id", $from_id, "select");
 if ($users == false) {
     $users = array();
     $users = array(
@@ -83,23 +22,37 @@ if ($users == false) {
     );
 }
 $replacements = [
-    'text_usertest' => $datatextbot['text_usertest'],
-    'text_Purchased_services' => $datatextbot['text_Purchased_services'],
-    'text_support' => $datatextbot['text_support'],
-    'text_help' => $datatextbot['text_help'],
-    'accountwallet' => $datatextbot['accountwallet'],
-    'text_sell' => $datatextbot['text_sell'],
-    'text_Tariff_list' => $datatextbot['text_Tariff_list'],
-    'text_affiliates' => $datatextbot['text_affiliates'],
-    'text_wheel_luck' => $datatextbot['text_wheel_luck'],
-    'text_extend' => $datatextbot['text_extend']
+    'text_usertest' => $textbotlang['textbot']['userTest'],
+    'text_Purchased_services' => $textbotlang['textbot']['purchasedServices'],
+    'text_support' => $textbotlang['textbot']['support'],
+    'text_help' => $textbotlang['textbot']['help'],
+    'accountwallet' => $textbotlang['textbot']['accountWallet'],
+    'text_sell' => $textbotlang['textbot']['sell'],
+    'text_Tariff_list' => $textbotlang['textbot']['tariffList'],
+    'text_affiliates' => $textbotlang['textbot']['affiliates'],
+    'text_wheel_luck' => $textbotlang['textbot']['wheelLuck'],
+    'text_extend' => $textbotlang['textbot']['extend']
 ];
-$admin_idss = select("admin", "*", "id_admin", $from_id,"count");
+$admin_idss = select("admin", "*", "id_admin", $from_id, "count");
 $temp_addtional_key = [];
 $keyboardLayout = json_decode($setting['keyboardmain'], true);
 $keyboardRows = [];
 if (is_array($keyboardLayout) && isset($keyboardLayout['keyboard']) && is_array($keyboardLayout['keyboard'])) {
     $keyboardRows = $keyboardLayout['keyboard'];
+}
+
+if (!empty($keyboardRows)) {
+    $allowed_btn_styles = ['primary', 'success', 'danger'];
+    foreach ($keyboardRows as $kb_r => $kb_row) {
+        if (!is_array($kb_row)) {
+            continue;
+        }
+        foreach ($kb_row as $kb_c => $kb_btn) {
+            if (is_array($kb_btn) && isset($kb_btn['style']) && !in_array($kb_btn['style'], $allowed_btn_styles, true)) {
+                unset($keyboardRows[$kb_r][$kb_c]['style']);
+            }
+        }
+    }
 }
 
 if ($setting['inlinebtnmain'] == "oninline" && !empty($keyboardRows)) {
@@ -108,7 +61,6 @@ if ($setting['inlinebtnmain'] == "oninline" && !empty($keyboardRows)) {
         foreach ($callback_set as $keyboard_key => $keyboard) {
             if ($keyboard['text'] == "text_sell") {
                 $trace_keyboard[$key][$keyboard_key]['callback_data'] = "buy";
-                $trace_keyboard[$key][$keyboard_key];
             }
             if ($keyboard['text'] == "accountwallet") {
                 $trace_keyboard[$key][$keyboard_key]['callback_data'] = "account";
@@ -140,13 +92,13 @@ if ($setting['inlinebtnmain'] == "oninline" && !empty($keyboardRows)) {
         }
     }
     if ($admin_idss != 0) {
-        $temp_addtional_key[] = ['text' => $textbotlang['Admin']['textpaneladmin'], 'callback_data' => "admin"];
+        $temp_addtional_key[] = ['text' => $textbotlang['Admin']['panelAdmin'], 'callback_data' => "admin"];
     }
     if ($users['agent'] != "f") {
-        $temp_addtional_key[] = ['text' => $datatextbot['textpanelagent'], 'callback_data' => "agentpanel"];
+        $temp_addtional_key[] = ['text' => $textbotlang['textbot']['agentPanel'], 'callback_data' => "agentpanel"];
     }
     if ($users['agent'] == "f" && $setting['statusagentrequest'] == "onrequestagent") {
-        $temp_addtional_key[] = ['text' => $datatextbot['textrequestagent'], 'callback_data' => "requestagent"];
+        $temp_addtional_key[] = ['text' => $textbotlang['textbot']['requestAgent'], 'callback_data' => "requestagent"];
     }
     $keyboard = ['inline_keyboard' => []];
     $keyboardcustom = $trace_keyboard;
@@ -156,25 +108,16 @@ if ($setting['inlinebtnmain'] == "oninline" && !empty($keyboardRows)) {
     $keyboard = json_encode($keyboard);
 } else {
     if ($admin_idss != 0) {
-        $temp_addtional_key[] = ['text' => $textbotlang['Admin']['textpaneladmin']];
+        $temp_addtional_key[] = ['text' => $textbotlang['Admin']['panelAdmin']];
     }
     if ($users['agent'] != "f") {
-        $temp_addtional_key[] = ['text' => $datatextbot['textpanelagent']];
+        $temp_addtional_key[] = ['text' => $textbotlang['textbot']['agentPanel']];
     }
     if ($users['agent'] == "f" && $setting['statusagentrequest'] == "onrequestagent") {
-        $temp_addtional_key[] = ['text' => $datatextbot['textrequestagent']];
+        $temp_addtional_key[] = ['text' => $textbotlang['textbot']['requestAgent']];
     }
     $keyboard = ['keyboard' => [], 'resize_keyboard' => true];
     $keyboardcustom = $keyboardRows;
-    foreach ($keyboardcustom as $key => $row) {
-        foreach ($row as $keyboard_key => $btn) {
-            $btnText = trim($btn['text']);
-            if ($btnText == "text_sell") {
-                $keyboardcustom[$key][$keyboard_key];
-            }
-        }
-    }
-
     $keyboardcustom = json_decode(strtr(strval(json_encode($keyboardcustom)), $replacements), true);
     $keyboardcustom[] = $temp_addtional_key;
     $keyboard['keyboard'] = $keyboardcustom;
@@ -183,133 +126,121 @@ if ($setting['inlinebtnmain'] == "oninline" && !empty($keyboardRows)) {
 
 $keyboardPanel = json_encode([
     'inline_keyboard' => [
-        [['text' => $datatextbot['text_Discount'] ,'callback_data' => "Discount"],
-        ['text' => $datatextbot['text_Add_Balance'] ,'callback_data' => "Add_Balance",
-                        'style' => 'success']
+        [
+            ['text' => $textbotlang['textbot']['discount'], 'callback_data' => "Discount"],
+            ['text' => $textbotlang['textbot']['addBalance'], 'callback_data' => "Add_Balance"]
         ],
-        [['text' => $textbotlang['users']['backbtn'] ,'callback_data' => "backuser",
-                        'style' => 'danger']],
+        [
+            ['text' => $textbotlang['language']['changeButton'], 'callback_data' => "ّchange_language"],
+        ],
+        [['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser"]],
     ],
     'resize_keyboard' => true
 ]);
-if($adminrulecheck['rule'] == "administrator"){
-$keyboardadmin = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['Admin']['Status']['btn']]],
-        [['text' => $textbotlang['Admin']['btnkeyboardadmin']['managementpanel']],['text' => $textbotlang['Admin']['btnkeyboardadmin']['addpanel']]],
-        [['text' => "⏳ تنظیم سریع قیمت زمان"],['text' => "🔋 تنظیم سریع قیمت حجم"]],
-        [['text' => $textbotlang['Admin']['btnkeyboardadmin']['managruser']],['text' => "🏬 تنظیمات فروشگاه"]],
-        [['text' => "💎 مالی"]],
-        [['text' => "🤙 بخش پشتیبانی"],['text' => "📚 بخش آموزش"]],
-        [['text' => "📬 گزارش ربات"],['text' => "🛠 قابلیت های پنل"]],
-        [['text' => "⚙️ تنظیمات عمومی"],['text' => "💵 رسید های تایید نشده"]],
-        [['text' => $textbotlang['users']['backbtn'], 'style' => 'danger']]
-    ],
-    'resize_keyboard' => true
-]);
+if ($adminrulecheck['rule'] == "administrator") {
+    $keyboardadmin = json_encode([
+        'keyboard' => [
+            [['text' => $textbotlang['Admin']['Status']['btn']]],
+            [['text' => $textbotlang['Admin']['btnKeyboard']['managementPanel']], ['text' => $textbotlang['Admin']['btnKeyboard']['addPanel']]],
+            [['text' => $textbotlang['keyboard']['quickSetTimePrice']], ['text' => $textbotlang['keyboard']['quickSetVolumePrice']]],
+            [['text' => $textbotlang['Admin']['btnKeyboard']['manageUser']], ['text' => $textbotlang['keyboard']['shopSettings']]],
+            [['text' => $textbotlang['keyboard']['financial']]],
+            [['text' => $textbotlang['keyboard']['supportSection']], ['text' => $textbotlang['keyboard']['educationSection']]],
+            [['text' => $textbotlang['keyboard']['botReport']], ['text' => $textbotlang['keyboard']['panelFeatures']]],
+            [['text' => $textbotlang['keyboard']['generalSettings']], ['text' => $textbotlang['keyboard']['pendingReceipts']]],
+            [['text' => $textbotlang['bottext']['open_button']]],
+            [['text' => $textbotlang['users']['backbtn']]]
+        ],
+        'resize_keyboard' => true
+    ]);
 }
-if($adminrulecheck['rule'] == "Seller"){
-$keyboardadmin = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['Admin']['Status']['btn']]],
-        [['text' => "👤 مدیریت کاربر"]],
-        [['text' => $textbotlang['users']['backbtn'], 'style' => 'danger']]
-    ],
-    'resize_keyboard' => true
-]);
+if ($adminrulecheck['rule'] == "Seller") {
+    $keyboardadmin = json_encode([
+        'keyboard' => [
+            [['text' => $textbotlang['Admin']['Status']['btn']]],
+            [['text' => $textbotlang['keyboard']['manageUser']]],
+            [['text' => $textbotlang['users']['backbtn']]]
+        ],
+        'resize_keyboard' => true
+    ]);
 }
-if($adminrulecheck['rule'] == "support"){
-$keyboardadmin = json_encode([
-    'keyboard' => [
-        [['text' => "👤 مدیریت کاربر"],['text' =>"👁‍🗨 جستجو کاربر"]],
-        [['text' => $textbotlang['users']['backbtn'], 'style' => 'danger']]
-    ],
-    'resize_keyboard' => true
-]);
+if ($adminrulecheck['rule'] == "support") {
+    $keyboardadmin = json_encode([
+        'keyboard' => [
+            [['text' => $textbotlang['keyboard']['manageUser']]],
+            [['text' => $textbotlang['users']['backbtn']]]
+        ],
+        'resize_keyboard' => true
+    ]);
 }
 $CartManage = json_encode([
     'keyboard' => [
-        [['text' => "🗂 نام درگاه کارت به کارت"]],
-        [['text' => "💳 تنظیم شماره کارت"],['text' => "❌ حذف شماره کارت"]],
-        [['text' => "👤 آیدی پشتیبانی", ],['text' => "💳 درگاه آفلاین در پیوی"]],
-        [['text' => "💰  غیرفعالسازی  نمایش شماره کارت"],['text' => "💰 فعالسازی نمایش شماره کارت"]],
-        [['text' => "♻️ نمایش گروهی شماره کارت"]],
-        [['text' => "📄 خروجی افراد شماره کارت فعال"]],
-        [['text' => "♻️ تایید خودکار رسید"],['text' => "💰 کش بک کارت به کارت"]],
-        [['text' => "🔒 نمایش کارت به کارت پس از اولین پرداخت"]],
-        [['text' => "⬇️ حداقل مبلغ کارت به کارت"],['text' => "⬆️ حداکثر مبلغ کارت به کارت"]],
-        [['text' => "📚 تنظیم آموزش کارت به کارت"]],
-        [['text' => "🤖 تایید رسید  بدون بررسی"]],
-        [['text' => "💳 استثناء کردن کاربر از تایید خودکار"]],
-        [['text' => "⏳ زمان تایید خودکار بدون بررسی"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['setCardNumber']], ['text' => $textbotlang['keyboard']['deleteCardNumber']]],
+        [['text' => $textbotlang['keyboard']['supportId'],], ['text' => $textbotlang['keyboard']['offlineGatewayPv']]],
+        [['text' => $textbotlang['keyboard']['disableShowCard']], ['text' => $textbotlang['keyboard']['enableShowCard']]],
+        [['text' => $textbotlang['keyboard']['groupShowCard']]],
+        [['text' => $textbotlang['keyboard']['exportActiveCardUsers']]],
+        [['text' => $textbotlang['keyboard']['cashbackCartToCart']]],
+        [['text' => $textbotlang['keyboard']['showCartAfterFirstPay']]],
+        [['text' => $textbotlang['keyboard']['minAmountCartToCart']], ['text' => $textbotlang['keyboard']['maxAmountCartToCart']]],
+        [['text' => $textbotlang['keyboard']['setEducationCartToCart']]],
+        [['text' => $textbotlang['keyboard']['autoConfirmNoCheck']]],
+        [['text' => $textbotlang['keyboard']['excludeUserAutoConfirm']]],
+        [['text' => $textbotlang['keyboard']['autoConfirmNoCheckTime']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $trnado = json_encode([
     'keyboard' => [
-        [['text' => "🗂 نام درگاه ارزی ریالی دوم"]],
-        [['text' => "API T"]],
-        [['text' => "تنظیم آدرس api"]],
-        [['text' => "💰 کش بک ارزی ریالی دوم"]],
-        [['text' => "⬇️ حداقل مبلغ ارزی ریالی دوم"],['text' => "⬆️ حداکثر مبلغ ارزی ریالی دوم"]],
-        [['text' => "📚 تنظیم آموزش ارزی ریالی  دوم"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
-    ],
-    'resize_keyboard' => true
-]);
-$tonoffline_keyboard = json_encode([
-    'keyboard' => [
-        [['text' => "🗂 نام درگاه TON آفلاین"]],
-        [['text' => "💳 آدرس ولت TON"]],
-        [['text' => "💰 کش بک TON آفلاین"]],
-        [['text' => "⬇️ حداقل مبلغ TON آفلاین"], ['text' => "⬆️ حداکثر مبلغ TON آفلاین"]],
-        [['text' => "📚 تنظیم آموزش TON آفلاین"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'], ['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['apiT']]],
+        [['text' => $textbotlang['keyboard']['cashbackIranPay2']]],
+        [['text' => $textbotlang['keyboard']['feeStatusIranPay2']], ['text' => $textbotlang['keyboard']['feeAmountIranPay2']]],
+        [['text' => $textbotlang['keyboard']['minAmountIranPay2']], ['text' => $textbotlang['keyboard']['maxAmountIranPay2']]],
+        [['text' => $textbotlang['keyboard']['setEducationIranPay2']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $keyboardzarinpal = json_encode([
     'keyboard' => [
-        [['text' => "🗂 نام درگاه زرین پال"],['text' => "مرچنت زرین پال"]],
-        [['text' => "💰 کش بک زرین پال"]],
-        [['text' => "⬇️ حداقل مبلغ زرین پال"],['text' => "⬆️ حداکثر مبلغ زرین پال"]],
-        [['text' => "📚 تنظیم آموزش زرین پال"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['zarinPalMerchant']]],
+        [['text' => $textbotlang['keyboard']['cashbackZarinPal']]],
+        [['text' => $textbotlang['keyboard']['minAmountZarinPal']], ['text' => $textbotlang['keyboard']['maxAmountZarinPal']]],
+        [['text' => $textbotlang['keyboard']['setEducationZarinPal']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $aqayepardakht = json_encode([
     'keyboard' => [
-        [['text' => "🗂 نام درگاه آقای پرداخت"]],
-        [['text' => "تنظیم مرچنت آقای پرداخت"],['text' => "💰 کش بک آقای پرداخت"]],
-        [['text' => "⬇️ حداقل مبلغ آقای پرداخت"],['text' => "⬆️ حداکثر مبلغ آقای پرداخت"]],
-        [['text' => "📚 تنظیم آموزش درگاه اقای پرداخت"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['setAqayePardakhtMerchant']], ['text' => $textbotlang['keyboard']['cashbackAqayePardakht']]],
+        [['text' => $textbotlang['keyboard']['minAmountAqayePardakht']], ['text' => $textbotlang['keyboard']['maxAmountAqayePardakht']]],
+        [['text' => $textbotlang['keyboard']['setEducationAqayePardakht']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $NowPaymentsManage = json_encode([
     'keyboard' => [
-        [['text' => "🗂 نام درگاه   plisio"]],
-        [['text' => "🧩 api plisio"],['text'=> "💰 کش بک plisio"]],
-        [['text' => "⬇️ حداقل مبلغ plisio"],['text' =>"⬆️ حداکثر مبلغ plisio"]],
-        [['text' => "📚 تنظیم آموزش plisio"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['apiPlisio']], ['text' => $textbotlang['keyboard']['cashbackPlisio']]],
+        [['text' => $textbotlang['keyboard']['minAmountPlisio']], ['text' => $textbotlang['keyboard']['maxAmountPlisio']]],
+        [['text' => $textbotlang['keyboard']['setEducationPlisio']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
-$setting_panel =  json_encode([
+$setting_panel = json_encode([
     'keyboard' => [
-        [['text' => "⚙️ وضعیت قابلیت ها"]],
-        [['text' => "📣 گزارشات ربات"], ['text' => "📯 تنظیمات کانال"]],
-        [['text' => "✅ فعالسازی پنل تحت وب"]],
-        [['text' => "🗑 بهینه سازی ربات "]],
-        [['text' => "📝 تنظیم متن ربات"],['text' => "👨‍🔧 بخش ادمین"]],
-        [['text' => "➕ محدودیت ساخت اکانت تست برای همه"]],
-        [['text' => "💰 مبلغ عضویت نمایندگی"],['text' => "🖼 پس زمینه کیوآرکد"]],
-        [['text' => "🔗 وبهوک مجدد ربات های نماینده"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['featureStatus']]],
+        [['text' => $textbotlang['keyboard']['botReports']], ['text' => $textbotlang['keyboard']['channelSettings']]],
+        [['text' => $textbotlang['keyboard']['activateWebPanel']]],
+        [['text' => $textbotlang['keyboard']['optimizeBot']]],
+        [['text' => $textbotlang['keyboard']['adminSection']]],
+        [['text' => $textbotlang['keyboard']['setTestAccountLimitAll']]],
+        [['text' => $textbotlang['keyboard']['agentMembershipFee']], ['text' => $textbotlang['keyboard']['qrBackground']]],
+        [['text' => $textbotlang['keyboard']['reWebhookAgentBots']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
@@ -319,12 +250,12 @@ $PaySettingaqayepardakht = getPaySettingValue("statusaqayepardakht");
 $PaySettingpv = getPaySettingValue("Cartstatuspv");
 $usernamecart = getPaySettingValue("CartDirect");
 $Swapino = getPaySettingValue("statusSwapWallet");
-$statustonoffline = getPaySettingValue("statustonoffline");
 $trnadoo = getPaySettingValue("statustarnado");
 $paymentverify = getPaySettingValue("checkpaycartfirst");
-$stmt = $pdo->prepare("SELECT * FROM Payment_report WHERE id_user = '$from_id' AND payment_Status = 'paid' ");
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM Payment_report WHERE id_user = :user_id AND payment_Status = 'paid'");
+$stmt->bindValue(':user_id', $from_id);
 $stmt->execute();
-$paymentexits = $stmt->rowCount();
+$paymentexits = (int) $stmt->fetchColumn();
 $zarinpal = getPaySettingValue("zarinpalstatus");
 $affilnecurrency = getPaySettingValue("digistatus");
 $arzireyali3 = getPaySettingValue("statusiranpay3");
@@ -333,184 +264,164 @@ $paymentsstartelegram = getPaySettingValue("statusstar");
 $payment_status_nowpayment = getPaySettingValue("statusnowpayment");
 $step_payment = [
     'inline_keyboard' => []
-    ];
-   if($PaySettingcard == "oncard" && intval($users['cardpayment']) == 1){
-        if($PaySettingpv == "oncardpv"){
+];
+if ($PaySettingcard == "oncard" && intval($users['cardpayment']) == 1) {
+    if ($PaySettingpv == "oncardpv") {
         $step_payment['inline_keyboard'][] = [
-            ['text' => $datatextbot['carttocart'] ,'url' => "https://t.me/$usernamecart"],
-    ];
-        }else{
-                    $step_payment['inline_keyboard'][] = [
-            ['text' => $datatextbot['carttocart'] ,'callback_data' => "cart_to_offline"],
-    ];
-        }
-    }
-    if(($paymentexits == 0 && $paymentverify == "onpayverify"))unset($step_payment['inline_keyboard']);
-   if($PaySettingnow == "onnowpayment"){
+            ['text' => $textbotlang['textbot']['cartToCart'], 'url' => "https://t.me/$usernamecart"],
+        ];
+    } else {
         $step_payment['inline_keyboard'][] = [
-    ['text' => $datatextbot['textnowpayment'], 'callback_data' => "plisio" ]
-    ];
+            ['text' => $textbotlang['textbot']['cartToCart'], 'callback_data' => "cart_to_offline"],
+        ];
     }
-    if($payment_status_nowpayment == "1"){
-        $step_payment['inline_keyboard'][] = [
-    ['text' => $datatextbot['textsnowpayment'], 'callback_data' => "nowpayment" ]
-    ];
-    }
-   if($affilnecurrency == "ondigi"){
-        $step_payment['inline_keyboard'][] = [
-            ['text' =>  $datatextbot['textnowpaymenttron'], 'callback_data' => "digitaltron" ]
-    ];
-    }
-   if($Swapino == "onSwapinoBot"){
-        $step_payment['inline_keyboard'][] = [
-            ['text' => $datatextbot['iranpay2'] , 'callback_data' => "iranpay1" ]
-    ];
-    }
-   if($trnadoo == "onternado"){
-        $step_payment['inline_keyboard'][] = [
-            ['text' => $datatextbot['iranpay3'] , 'callback_data' => "iranpay2" ]
-    ];
-    }
-   if($statustonoffline == "ontonoffline"){
-        $step_payment['inline_keyboard'][] = [
-            ['text' => $datatextbot['tonoffline'] , 'callback_data' => "tonoffline" ]
-    ];
-    }
-     if($arzireyali3 == "oniranpay3"  && $paymentexits >= 2){
-        $step_payment['inline_keyboard'][] = [
-            ['text' => $datatextbot['iranpay1'] , 'callback_data' => "iranpay3" ]
-    ];
-    }
-   if($PaySettingaqayepardakht == "onaqayepardakht"){
-        $step_payment['inline_keyboard'][] = [
-            ['text' => $datatextbot['aqayepardakht'] , 'callback_data' => "aqayepardakht" ]
-    ];
-    }
-    if($zarinpal == "onzarinpal"){
-        $step_payment['inline_keyboard'][] = [
-            ['text' => $datatextbot['zarinpal'] , 'callback_data' => "zarinpal" ]
-    ];
-    }
-    if($paymentstatussnotverify == "onverifypay"){
-        $step_payment['inline_keyboard'][] = [
-            ['text' => $datatextbot['textpaymentnotverify'] , 'callback_data' => "paymentnotverify" ]
-    ];
-    }
-    if(intval($paymentsstartelegram) == 1){
-     $step_payment['inline_keyboard'][] = [
-            ['text' => $datatextbot['text_star_telegram'] , 'callback_data' => "startelegrams" ]
-    ];   
-    }
+}
+if (($paymentexits == 0 && $paymentverify == "onpayverify"))
+    unset($step_payment['inline_keyboard']);
+if ($PaySettingnow == "onnowpayment") {
     $step_payment['inline_keyboard'][] = [
-            ['text' => "❌ بستن لیست" , 'callback_data' => "colselist", 'style' => 'danger']
+        ['text' => $textbotlang['textbot']['nowPayment'], 'callback_data' => "plisio"]
     ];
-    $step_payment = json_encode($step_payment);
+}
+if ($payment_status_nowpayment == "1") {
+    $step_payment['inline_keyboard'][] = [
+        ['text' => $textbotlang['textbot']['cryptoPayment'], 'callback_data' => "nowpayment"]
+    ];
+}
+if ($affilnecurrency == "ondigi") {
+    $step_payment['inline_keyboard'][] = [
+        ['text' => $textbotlang['textbot']['nowPaymentTron'], 'callback_data' => "digitaltron"]
+    ];
+}
+if ($Swapino == "onSwapinoBot") {
+    $step_payment['inline_keyboard'][] = [
+        ['text' => $textbotlang['textbot']['iranPay2'], 'callback_data' => "iranpay1"]
+    ];
+}
+if ($trnadoo == "onternado") {
+    $step_payment['inline_keyboard'][] = [
+        ['text' => $textbotlang['textbot']['iranPay3'], 'callback_data' => "iranpay2"]
+    ];
+}
+if ($arzireyali3 == "oniranpay3" && $paymentexits >= 2) {
+    $step_payment['inline_keyboard'][] = [
+        ['text' => $textbotlang['textbot']['iranPay1'], 'callback_data' => "iranpay3"]
+    ];
+}
+if ($PaySettingaqayepardakht == "onaqayepardakht") {
+    $step_payment['inline_keyboard'][] = [
+        ['text' => $textbotlang['textbot']['aqayePardakht'], 'callback_data' => "aqayepardakht"]
+    ];
+}
+if ($zarinpal == "onzarinpal") {
+    $step_payment['inline_keyboard'][] = [
+        ['text' => $textbotlang['textbot']['zarinPal'], 'callback_data' => "zarinpal"]
+    ];
+}
+if ($paymentstatussnotverify == "onverifypay") {
+    $step_payment['inline_keyboard'][] = [
+        ['text' => $textbotlang['textbot']['paymentNotVerify'], 'callback_data' => "paymentnotverify"]
+    ];
+}
+if (intval($paymentsstartelegram) == 1) {
+    $step_payment['inline_keyboard'][] = [
+        ['text' => $textbotlang['textbot']['starTelegram'], 'callback_data' => "startelegrams"]
+    ];
+}
+$step_payment['inline_keyboard'][] = [
+    ['text' => $textbotlang['keyboard']['closeList'], 'callback_data' => "colselist"]
+];
+$step_payment = json_encode($step_payment);
 $keyboardhelpadmin = json_encode([
     'keyboard' => [
-        [['text' => "📚 اضافه کردن آموزش"], ['text' => "❌ حذف آموزش"]],
-        [['text' => "✏️ ویرایش آموزش"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['addEducation']], ['text' => $textbotlang['keyboard']['deleteEducation']]],
+        [['text' => $textbotlang['keyboard']['editEducation']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $shopkeyboard = json_encode([
     'keyboard' => [
-        [['text' => "🛒 وضعیت قابلیت های فروشگاه"]],
-        [['text' => "🗂 مدیریت دسته بندی"],['text' => "🛍 مدیریت محصولات"]],
-        [['text' => "🎁 ساخت کد هدیه"],['text' => "❌ حذف کد هدیه"]],
-        [['text' => "🎁 ساخت کد تخفیف"],['text' => "❌ حذف کد تخفیف"]],
-        [['text' => "⬇️ حداقل موجودی خرید عمده"],['text' => "🎁 کش بک تمدید"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['shopFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['manageCategory']], ['text' => $textbotlang['keyboard']['manageProducts']]],
+        [['text' => $textbotlang['keyboard']['createGiftCode']], ['text' => $textbotlang['keyboard']['deleteGiftCode']]],
+        [['text' => $textbotlang['keyboard']['createDiscountCode']], ['text' => $textbotlang['keyboard']['deleteDiscountCode']]],
+        [['text' => $textbotlang['keyboard']['minBulkBalance']], ['text' => $textbotlang['keyboard']['renewalCashback']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $keyboard_Category_manage = json_encode([
     'keyboard' => [
-        [['text' => "🛒 اضافه کردن دسته بندی"],['text' => "❌ حذف دسته بندی"]],
-        [['text' => "✏️ ویرایش دسته بندی"]],
-        [['text' => "⬅️ بازگشت به منوی فروشگاه", 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['addCategory']], ['text' => $textbotlang['keyboard']['deleteCategory']]],
+        [['text' => $textbotlang['keyboard']['editCategoryMenu']]],
+        [['text' => $textbotlang['keyboard']['backToShopMenu']]]
     ],
     'resize_keyboard' => true
-    ]);
+]);
 $keyboard_shop_manage = json_encode([
     'keyboard' => [
-        [['text' => "🛍 اضافه کردن محصول"], ['text' => "❌ حذف محصول"]],
-        [['text' => "✏️ ویرایش محصول"]],
-        [['text' => "⬆️ افزایش گروهی قیمت"],['text' => "⬇️ کاهش  گروهی قیمت"]],
-        [['text' => "⬅️ بازگشت به منوی فروشگاه", 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['addProduct']], ['text' => $textbotlang['keyboard']['deleteProduct']]],
+        [['text' => $textbotlang['keyboard']['editProduct']]],
+        [['text' => $textbotlang['keyboard']['increaseGroupPrice']], ['text' => $textbotlang['keyboard']['decreaseGroupPrice']]],
+        [['text' => $textbotlang['keyboard']['backToShopMenu']]]
     ],
     'resize_keyboard' => true
 ]);
-if($setting['inlinebtnmain'] == "oninline"){
+if ($setting['inlinebtnmain'] == "oninline") {
     $confrimrolls = json_encode([
-    'inline_keyboard' => [
-        [
-            ['text' => "✅ قوانین را می پذیرم", 'callback_data' => "acceptrule", 'style' => 'success'],
+        'inline_keyboard' => [
+            [
+                ['text' => $textbotlang['keyboard']['acceptRules'], 'callback_data' => "acceptrule"],
             ],
-    ]
+        ]
     ]);
-}else{
-$confrimrolls = json_encode([
-    'keyboard' => [
-        [['text' => "✅ قوانین را می پذیرم", 'style' => 'success']],
-    ],
-    'resize_keyboard' => true
-]);
+} else {
+    $confrimrolls = json_encode([
+        'keyboard' => [
+            [['text' => $textbotlang['keyboard']['acceptRules']]],
+        ],
+        'resize_keyboard' => true
+    ]);
 }
 $request_contact = json_encode([
     'keyboard' => [
-        [['text' => "☎️ ارسال شماره تلفن", 'request_contact' => true]],
-        [['text' => $textbotlang['users']['backbtn'], 'style' => 'success']]
-    ],
-    'resize_keyboard' => true
-]);
-$Feature_status = json_encode([
-    'keyboard' => [
-        [['text' => "قابلیت مشاهده اطلاعات اکانت"]],
-        [['text' => "قابلیت اکانت تست"], ['text' => "قابلیت آموزش"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['sendPhoneNumber'], 'request_contact' => true]],
+        [['text' => $textbotlang['users']['backbtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $channelkeyboard = json_encode([
     'keyboard' => [
-        [['text' => "اضافه کردن کانال"],['text' => "حذف کانال"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['addChannel']], ['text' => $textbotlang['keyboard']['deleteChannel']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
-if($setting['inlinebtnmain'] == "oninline"){
+if ($setting['inlinebtnmain'] == "oninline") {
     $backuser = json_encode([
         'inline_keyboard' => [
-        [['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser", 'style' => 'danger']]
-    ],
-]);
-}else{
-$backuser = json_encode([
+            [['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser"]]
+        ],
+    ]);
+} else {
+    $backuser = json_encode([
         'keyboard' => [
-        [['text' => $textbotlang['users']['backbtn'], 'style' => 'danger']]
-    ],
-    'resize_keyboard' => true,
-    'input_field_placeholder' =>"برای بازگشت روی دکمه زیر کلیک کنید"
-]);
+            [['text' => $textbotlang['users']['backbtn']]]
+        ],
+        'resize_keyboard' => true,
+    ]);
 }
 $backadmin = json_encode([
     'keyboard' => [
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true,
-    'input_field_placeholder' =>"برای بازگشت روی دکمه زیر کلیک کنید"
 ]);
 //------------------  [ list panel ]----------------//
-$stmt = $pdo->prepare("SHOW TABLES LIKE 'marzban_panel'");
-$stmt->execute();
-$result = $stmt->fetchAll();
-$table_exists = count($result) > 0;
 $namepanel = [];
-if ($table_exists) {
-    $stmt = $pdo->prepare("SELECT * FROM marzban_panel");
-    $stmt->execute();
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $allPanelRows = $pdo->query("SELECT * FROM marzban_panel")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($allPanelRows as $row) {
         $namepanel[] = [$row['name_panel']];
     }
     $list_marzban_panel = [
@@ -522,29 +433,21 @@ if ($table_exists) {
             ['text' => $button[0]]
         ];
     }
-        $list_marzban_panel['keyboard'][] = [
-        ['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],
-        ['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']
+    $list_marzban_panel['keyboard'][] = [
+        ['text' => $textbotlang['Admin']['backAdminBtn']],
+        ['text' => $textbotlang['Admin']['backMenuBtn']]
     ];
     $json_list_marzban_panel = json_encode($list_marzban_panel);
-//------------------  [ list panel inline ]----------------//
-    $stmt = $pdo->prepare("SELECT * FROM marzban_panel");
-    $stmt->execute();
+    //------------------  [ list panel inline ]----------------//
     $list_marzban_panel_edit_product = ['inline_keyboard' => []];
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $list_marzban_panel_edit_product['inline_keyboard'][] = [['text' =>$row['name_panel'],'callback_data' => 'locationedit_'.$row['code_panel']]];
+    foreach ($allPanelRows as $row) {
+        $list_marzban_panel_edit_product['inline_keyboard'][] = [['text' => $row['name_panel'], 'callback_data' => 'locationedit_' . $row['code_panel']]];
     }
-    $list_marzban_panel_edit_product['inline_keyboard'][] = [['text' =>"همه پنل ها",'callback_data' => 'locationedit_all']];
-    $list_marzban_panel_edit_product['inline_keyboard'][] = [['text' =>"▶️ بازگشت به منوی قبل",'callback_data' => 'backproductadmin', 'style' => 'danger']];
+    $list_marzban_panel_edit_product['inline_keyboard'][] = [['text' => $textbotlang['keyboard']['allPanels'], 'callback_data' => 'locationedit_all']];
+    $list_marzban_panel_edit_product['inline_keyboard'][] = [['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => 'backproductadmin']];
     $list_marzban_panel_edit_product = json_encode($list_marzban_panel_edit_product);
-}
 //------------------  [ list channel ]----------------//
-$stmt = $pdo->prepare("SHOW TABLES LIKE 'channels'");
-$stmt->execute();
-$result = $stmt->fetchAll();
-$table_exists = count($result) > 0;
 $list_channels = [];
-if ($table_exists) {
     $stmt = $pdo->prepare("SELECT * FROM channels");
     $stmt->execute();
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -559,19 +462,13 @@ if ($table_exists) {
             ['text' => $button[0]]
         ];
     }
-        $list_channels_join['keyboard'][] = [
-        ['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],
-        ['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']
+    $list_channels_join['keyboard'][] = [
+        ['text' => $textbotlang['Admin']['backAdminBtn']],
+        ['text' => $textbotlang['Admin']['backMenuBtn']]
     ];
     $list_channels_joins = json_encode($list_channels_join);
-}
 //------------------  [ list card ]----------------//
-$stmt = $pdo->prepare("SHOW TABLES LIKE 'card_number'");
-$stmt->execute();
-$result = $stmt->fetchAll();
-$table_exists = count($result) > 0;
 $list_card = [];
-if ($table_exists) {
     $stmt = $pdo->prepare("SELECT * FROM card_number");
     $stmt->execute();
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -586,265 +483,218 @@ if ($table_exists) {
             ['text' => $button[0]]
         ];
     }
-        $list_card_remove['keyboard'][] = [
-        ['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],
-        ['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']
+    $list_card_remove['keyboard'][] = [
+        ['text' => $textbotlang['Admin']['backAdminBtn']],
+        ['text' => $textbotlang['Admin']['backMenuBtn']]
     ];
     $list_card_remove = json_encode($list_card_remove);
-}
 //------------------  [ help list ]----------------//
-    $stmt = $pdo->prepare("SHOW TABLES LIKE 'help'");
-    $stmt->execute();
-    $result = $stmt->fetchAll();
-    $table_exists = count($result) > 0;
-    if ($table_exists) {
-    $stmt = $pdo->prepare("SELECT * FROM help");
-    $stmt->execute();
+    $helpRows = $pdo->query("SELECT * FROM help")->fetchAll(PDO::FETCH_ASSOC);
     $helpkey = [];
-    $stmt = $pdo->prepare("SELECT * FROM help");
-    $stmt->execute();
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $helpkey[] = [$row['name_os']];
-        }
-        $help_arrke = [
-            'keyboard' => [],
-            'resize_keyboard' => true,
-        ];
-        foreach ($helpkey as $button) {
-            $help_arrke['keyboard'][] = [
-                ['text' => $button[0]]
-            ];
-        }
-                $help_arrke['keyboard'][] = [
-            ['text' => $textbotlang['users']['backbtn'], 'style' => 'danger'],
-        ];
-        $json_list_helpkey = json_encode($help_arrke);
-}
-//------------------  [ help list ]----------------//
-    $stmt = $pdo->prepare("SELECT * FROM help");
-    $stmt->execute();
-    $helpcwtgory = ['inline_keyboard' => []];
-    $datahelp = [];
-    while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        if(in_array($result['category'],$datahelp))continue;
-        if($result['category'] == null)continue;
-        $datahelp[] = $result['category'];
-            $helpcwtgory['inline_keyboard'][] = [['text' => $result['category'], 'callback_data' => "helpctgoryـ{$result['category']}"]
-            ];
-        }
-if($setting['linkappstatus'] == "1"){
-    $helpcwtgory['inline_keyboard'][] = [
-        ['text' => "🔗 لینک دانلود برنامه‌ها", 'callback_data' => "linkappdownlod"],
-    ];    
+    foreach ($helpRows as $row) {
+        $helpkey[] = [$row['name_os']];
     }
+    $help_arrke = [
+        'keyboard' => [],
+        'resize_keyboard' => true,
+    ];
+    foreach ($helpkey as $button) {
+        $help_arrke['keyboard'][] = [
+            ['text' => $button[0]]
+        ];
+    }
+    $help_arrke['keyboard'][] = [
+        ['text' => $textbotlang['users']['backbtn']],
+    ];
+    $json_list_helpkey = json_encode($help_arrke);
+//------------------  [ help list ]----------------//
+$helpcwtgory = ['inline_keyboard' => []];
+$datahelp = [];
+$helpCategoryMap = [];
+foreach ($helpRows as $result) {
+    if (in_array($result['category'], $datahelp))
+        continue;
+    if ($result['category'] == null)
+        continue;
+    $datahelp[] = $result['category'];
+    $catId = dechex(crc32($result['category']));
+    $helpCategoryMap[$catId] = $result['category'];
+    $helpcwtgory['inline_keyboard'][] = [
+        ['text' => $result['category'], 'callback_data' => "helpctg_{$catId}"]
+    ];
+}
+if ($setting['linkappstatus'] == "1") {
+    $helpcwtgory['inline_keyboard'][] = [
+        ['text' => $textbotlang['keyboard']['appDownloadLink'], 'callback_data' => "linkappdownlod"],
+    ];
+}
 $helpcwtgory['inline_keyboard'][] = [
-    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser", 'style' => 'danger'],
+    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser"],
 ];
 $json_list_helpـcategory = json_encode($helpcwtgory);
 
 
 //------------------  [ help app ]----------------//
-    $stmt = $pdo->prepare("SELECT * FROM app");
-    $stmt->execute();
-    $helpapp = ['inline_keyboard' => []];
-    while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $helpapp['inline_keyboard'][] = [['text' => $result['name'], 'url' =>$result['link']]
-            ];
-        }
+$appRows = $pdo->query("SELECT * FROM app")->fetchAll(PDO::FETCH_ASSOC);
+$helpapp = ['inline_keyboard' => []];
+foreach ($appRows as $result) {
+    $helpapp['inline_keyboard'][] = [
+        ['text' => $result['name'], 'url' => $result['link']]
+    ];
+}
 $helpapp['inline_keyboard'][] = [
-    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser", 'style' => 'danger'],
+    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser"],
 ];
 $json_list_helpـlink = json_encode($helpapp);
 //------------------  [ help app admin ]----------------//
-    $stmt = $pdo->prepare("SELECT * FROM app");
-    $stmt->execute();
-    $helpappremove = ['keyboard' => [],'resize_keyboard' => true];
-    while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $helpappremove['keyboard'][] = [
-            ['text' => $result['name']],
-        ];
-        }
+$helpappremove = ['keyboard' => [], 'resize_keyboard' => true];
+foreach ($appRows as $result) {
+    $helpappremove['keyboard'][] = [
+        ['text' => $result['name']],
+    ];
+}
 $helpappremove['keyboard'][] = [
-    ['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],
+    ['text' => $textbotlang['Admin']['backAdminBtn']],
 ];
 $json_list_remove_helpـlink = json_encode($helpappremove);
- //------------------  [ listpanelusers ]----------------//
-    $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = :agent OR agent = 'all')");
-    $stmt->bindParam(':agent', $users['agent']);
-    $stmt->execute();
-    $list_marzban_panel_users = ['inline_keyboard' => []];
-    $panelcount = select("marzban_panel","*","status","active","count");
-    if($panelcount > 10){
-        $temp_row = [];
-         while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        if ($result['hide_user'] != null && in_array($from_id, json_decode($result['hide_user'], true))) continue;
-        if($result['type'] == "Manualsale"){
-            $stmt = $pdo->prepare("SELECT * FROM manualsell WHERE codepanel = :codepanel AND status = 'active'");
-            $stmt->bindParam(':codepanel', $result['code_panel']);
-            $stmt->execute();
-            $configexits = $stmt->rowCount();
-            if(intval($configexits) == 0)continue;
-        }
+//------------------  [ listpanelusers ]----------------//
+$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = :agent OR agent = 'all')");
+$stmt->bindParam(':agent', $users['agent']);
+$stmt->execute();
+$activePanelRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$manualsellCounts = [];
+if (in_array('Manualsale', array_column($activePanelRows, 'type'))) {
+    foreach ($pdo->query("SELECT codepanel, COUNT(*) AS c FROM manualsell WHERE status = 'active' GROUP BY codepanel")->fetchAll(PDO::FETCH_ASSOC) as $msRow) {
+        $manualsellCounts[$msRow['codepanel']] = (int) $msRow['c'];
+    }
+}
+$list_marzban_panel_users = ['inline_keyboard' => []];
+$panelcount = select("marzban_panel", "*", "status", "active", "count");
+if ($panelcount > 10) {
+    $temp_row = [];
+    foreach ($activePanelRows as $result) {
+        if ($result['hide_user'] != null && in_array($from_id, json_decode($result['hide_user'], true)))
+            continue;
+        if ($result['type'] == "Manualsale" && empty($manualsellCounts[$result['code_panel']]))
+            continue;
         if ($users['step'] == "getusernameinfo") {
             $temp_row[] = ['text' => $result['name_panel'], 'callback_data' => "locationnotuser_{$result['code_panel']}"];
         } else {
             $temp_row[] = ['text' => $result['name_panel'], 'callback_data' => "location_{$result['code_panel']}"];
         }
-         if (count($temp_row) == 2) {
+        if (count($temp_row) == 2) {
             $list_marzban_panel_users['inline_keyboard'][] = $temp_row;
-            $temp_row = []; 
+            $temp_row = [];
         }
-    } 
-        if (!empty($temp_row)) {
+    }
+    if (!empty($temp_row)) {
         $list_marzban_panel_users['inline_keyboard'][] = $temp_row;
     }
-    }else{
-    while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        if($result['type'] == "Manualsale"){
-            $stmts = $pdo->prepare("SELECT * FROM manualsell WHERE codepanel = :codepanel AND status = 'active'");
-            $stmts->bindParam(':codepanel', $result['code_panel']);
-            $stmts->execute();
-            $configexits = $stmts->rowCount();
-            if(intval($configexits) == 0)continue;
-        }
-        if($result['hide_user'] != null and in_array($from_id,json_decode($result['hide_user'],true)))continue;
+} else {
+    foreach ($activePanelRows as $result) {
+        if ($result['type'] == "Manualsale" && empty($manualsellCounts[$result['code_panel']]))
+            continue;
+        if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true)))
+            continue;
         if ($users['step'] == "getusernameinfo") {
             $list_marzban_panel_users['inline_keyboard'][] = [
                 ['text' => $result['name_panel'], 'callback_data' => "locationnotuser_{$result['code_panel']}"]
             ];
-        }
-        else{
-            $list_marzban_panel_users['inline_keyboard'][] = [['text' => $result['name_panel'], 'callback_data' => "location_{$result['code_panel']}"]
+        } else {
+            $list_marzban_panel_users['inline_keyboard'][] = [
+                ['text' => $result['name_panel'], 'callback_data' => "location_{$result['code_panel']}"]
             ];
         }
     }
-    }
-$statusnote = false; 
-if($setting['statusnamecustom'] == 'onnamecustom')$statusnote = true;
-if($setting['statusnoteforf'] == "0" && $users['agent'] == "f")$statusnote = false;
-    if($statusnote){
-$list_marzban_panel_users['inline_keyboard'][] = [
-    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "buyback", 'style' => 'danger'],
-];
-}else{
-$list_marzban_panel_users['inline_keyboard'][] = [
-    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser", 'style' => 'danger'],
-];  
+}
+$statusnote = false;
+if ($setting['statusnamecustom'] == 'onnamecustom')
+    $statusnote = true;
+if ($setting['statusnoteforf'] == "0" && $users['agent'] == "f")
+    $statusnote = false;
+if ($statusnote) {
+    $list_marzban_panel_users['inline_keyboard'][] = [
+        ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "buyback"],
+    ];
+} else {
+    $list_marzban_panel_users['inline_keyboard'][] = [
+        ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser"],
+    ];
 }
 $list_marzban_panel_user = json_encode($list_marzban_panel_users);
 
 
 //------------------  [ listpanelusers omdhe ]----------------//
-    $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = :agent OR agent = 'all')");
-    $stmt->bindParam(':agent', $users['agent']);
-    $stmt->execute();
-    $list_marzban_panel_users_om = ['inline_keyboard' => []];
-    while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        if($result['hide_user'] != null and in_array($from_id,json_decode($result['hide_user'],true)))continue;
-            $list_marzban_panel_users_om['inline_keyboard'][] = [['text' => $result['name_panel'], 'callback_data' => "locationom_{$result['code_panel']}"]
-            ];
-    }
+$list_marzban_panel_users_om = ['inline_keyboard' => []];
+foreach ($activePanelRows as $result) {
+    if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true)))
+        continue;
+    $list_marzban_panel_users_om['inline_keyboard'][] = [
+        ['text' => $result['name_panel'], 'callback_data' => "locationom_{$result['code_panel']}"]
+    ];
+}
 $list_marzban_panel_users_om['inline_keyboard'][] = [
-    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser", 'style' => 'danger'],
+    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser"],
 ];
 $list_marzban_panel_userom = json_encode($list_marzban_panel_users_om);
 
 //------------------  [ change location ]----------------//
-    $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = '{$users['agent']}' OR agent = 'all') AND name_panel != '{$users['Processing_value_four']}'");
-    $stmt->execute();
-    $list_marzban_panel_users_change = ['inline_keyboard' => []];
-    $panelcount = select("marzban_panel","*","status","active","count");
-    if($panelcount > 10){
-        $temp_row = [];
-        while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        if ($result['hide_user'] != null && in_array($from_id, json_decode($result['hide_user'], true))) continue;
-    
-            $temp_row[] = ['text' => $result['name_panel'], 'callback_data' => "changelocselectlo-{$result['code_panel']}"];
+$list_marzban_panel_users_change = ['inline_keyboard' => []];
+if ($panelcount > 10) {
+    $temp_row = [];
+    foreach ($activePanelRows as $result) {
+        if ($result['name_panel'] == $users['Processing_value_four'])
+            continue;
+        if ($result['hide_user'] != null && in_array($from_id, json_decode($result['hide_user'], true)))
+            continue;
+
+        $temp_row[] = ['text' => $result['name_panel'], 'callback_data' => "changelocselectlo-{$result['code_panel']}"];
         if (count($temp_row) == 2) {
             $list_marzban_panel_users_change['inline_keyboard'][] = $temp_row;
             $temp_row = [];
         }
     }
-if (!empty($temp_row)) {
-    $list_marzban_panel_users_change['inline_keyboard'][] = $temp_row;
+    if (!empty($temp_row)) {
+        $list_marzban_panel_users_change['inline_keyboard'][] = $temp_row;
+    }
+} else {
+    foreach ($activePanelRows as $result) {
+        if ($result['name_panel'] == $users['Processing_value_four'])
+            continue;
+        if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true)))
+            continue;
+        $list_marzban_panel_users_change['inline_keyboard'][] = [
+            ['text' => $result['name_panel'], 'callback_data' => "changelocselectlo-{$result['code_panel']}"]
+        ];
+    }
 }
-    }else{
-    while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        if($result['hide_user'] != null and in_array($from_id,json_decode($result['hide_user'],true)))continue;
-            $list_marzban_panel_users_change['inline_keyboard'][] = [['text' => $result['name_panel'], 'callback_data' => "changelocselectlo-{$result['code_panel']}"]
-            ];
-    }
-    }
 $list_marzban_panel_users_change['inline_keyboard'][] = [
-    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backorder", 'style' => 'danger'],
+    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backorder"],
 ];
 $list_marzban_panel_userschange = json_encode($list_marzban_panel_users_change);
 
 
 //------------------  [ listpanelusers test ]----------------//
-    $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE TestAccount = 'ONTestAccount' AND (agent = '{$users['agent']}' OR agent = 'all')");
-    $stmt->execute();
-    $list_marzban_panel_usertest = ['inline_keyboard' => []];
-    while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        if($result['hide_user'] != null and in_array($from_id,json_decode($result['hide_user'],true)))continue;
-            $list_marzban_panel_usertest['inline_keyboard'][] = [['text' => $result['name_panel'], 'callback_data' => "locationtest_{$result['code_panel']}"]
-            ];
-    }
+$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE TestAccount = 'ONTestAccount' AND (agent = :agent OR agent = 'all')");
+$stmt->bindValue(':agent', $users['agent'], PDO::PARAM_STR);
+$stmt->execute();
+$list_marzban_panel_usertest = ['inline_keyboard' => []];
+while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true)))
+        continue;
+    $list_marzban_panel_usertest['inline_keyboard'][] = [
+        ['text' => $result['name_panel'], 'callback_data' => "locationtest_{$result['code_panel']}"]
+    ];
+}
 $list_marzban_panel_usertest['inline_keyboard'][] = [
-    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser", 'style' => 'danger'],
+    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser"],
 ];
 $list_marzban_usertest = json_encode($list_marzban_panel_usertest);
 
-
-$textbot = json_encode([
-    'keyboard' => [
-        [['text' => "تنظیم متن شروع"], ['text' => "دکمه سرویس خریداری شده"]],
-        [['text' => "دکمه اکانت تست"], ['text' => "دکمه سوالات متداول"]],
-        [['text' => "متن دکمه 📚 آموزش"], ['text' => "متن دکمه ☎️ پشتیبانی"]],
-        [['text' => "دکمه افزایش موجودی"],['text' => "متن دکمه زیرمجموعه گیری"]],
-        [['text' => "متن دکمه خرید اشتراک"], ['text' => "متن دکمه لیست تعرفه"]],
-        [['text' => "متن توضیحات لیست تعرفه"]],
-        [['text' => "متن دکمه کیف پول"],['text' => "متن پیش فاکتور"]],
-        [['text' => "📝 تنظیم متن توضیحات عضویت اجباری"]],
-        [['text' => "📝 تنظیم متن توضیحات سوالات متداول"]],
-        [['text' => "⚖️ متن قانون"],['text' => "متن بعد خرید"]],
-        [['text' => "متن بعد خرید ibsng"],['text' => "دکمه تمدید"]],
-        [['text' => "متن بعد گرفتن اکانت تست"],['text' =>"متن کرون تست"]],
-        [['text' => "متن بعد گرفتن اکانت دستی"]],
-        [['text' => "متن بعد گرفتن اکانت WGDashboard"]],
-        [['text' => "متن انتخاب لوکیشن"],['text' => "متن دکمه کد هدیه"]],
-        [['text' => "متن درخواست نمایندگی"],['text' => "متن دکمه  نمایندگی"]],
-        [['text' => "متن دکمه گردونه شانس"],['text' => "متن کارت به کارت"]],
-        [['text' => "تنظیم متن کارت به کارت خودکار"]],
-        [['text' => "متن توضیحات درخواست نمایندگی"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
-    ],
-    'resize_keyboard' => true
-]);
 //--------------------------------------------------
-$stmt = $pdo->prepare("SHOW TABLES LIKE 'protocol'");
-$stmt->execute();
-$result = $stmt->fetchAll();
-$table_exists = count($result) > 0;
-if ($table_exists) {
-    $getdataprotocol = select("protocol","*",null,null,"fetchAll");
-    $protocol = [];
-    foreach($getdataprotocol as $result)
-    {
-        $protocol[] = [['text'=>$result['NameProtocol']]];
-    }
-    $protocol[] = [['text'=>$textbotlang['Admin']['backadmin'], 'style' => 'danger']];
-    $keyboardprotocollist = json_encode(['resize_keyboard'=>true,'keyboard'=> $protocol]);
- }
-//--------------------------------------------------
-$stmt = $pdo->prepare("SHOW TABLES LIKE 'product'");
-$stmt->execute();
-$result = $stmt->fetchAll();
-$table_exists = count($result) > 0;
-if ($table_exists) {
     $product = [];
     $stmt = $pdo->prepare("SELECT * FROM product WHERE Location = :text or Location = '/all' ");
-    $stmt->bindParam(':text', $text  , PDO::PARAM_STR);
+    $stmt->bindParam(':text', $text, PDO::PARAM_STR);
     $stmt->execute();
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $product[] = [$row['name_product']];
@@ -854,7 +704,7 @@ if ($table_exists) {
         'resize_keyboard' => true,
     ];
     $list_product['keyboard'][] = [
-        ['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],
+        ['text' => $textbotlang['Admin']['backAdminBtn']],
     ];
     foreach ($product as $button) {
         $list_product['keyboard'][] = [
@@ -862,13 +712,7 @@ if ($table_exists) {
         ];
     }
     $json_list_product_list_admin = json_encode($list_product);
-}
 //--------------------------------------------------
-$stmt = $pdo->prepare("SHOW TABLES LIKE 'Discount'");
-$stmt->execute();
-$result = $stmt->fetchAll();
-$table_exists = count($result) > 0;
-if ($table_exists) {
     $Discount = [];
     $stmt = $pdo->prepare("SELECT * FROM Discount");
     $stmt->execute();
@@ -880,7 +724,7 @@ if ($table_exists) {
         'resize_keyboard' => true,
     ];
     $list_Discount['keyboard'][] = [
-        ['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],
+        ['text' => $textbotlang['Admin']['backAdminBtn']],
     ];
     foreach ($Discount as $button) {
         $list_Discount['keyboard'][] = [
@@ -888,44 +732,7 @@ if ($table_exists) {
         ];
     }
     $json_list_Discount_list_admin = json_encode($list_Discount);
-}
 //--------------------------------------------------
-$stmt = $pdo->prepare("SHOW TABLES LIKE 'Inbound'");
-$stmt->execute();
-$result = $stmt->fetchAll();
-$table_exists = count($result) > 0;
-if ($table_exists) {
-    $Inboundkeyboard = [];
-    $stmt = $pdo->prepare("SELECT * FROM Inbound WHERE location = :Processing_value AND protocol = :text");
-    $stmt->bindParam(':text', $text  , PDO::PARAM_STR);
-    $stmt->bindParam(':Processing_value', $users['Processing_value']  , PDO::PARAM_STR);
-    $stmt->execute();
-if ($stmt->fetch(PDO::FETCH_ASSOC)) {
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    $Inboundkeyboard[] = [$row['NameInbound']];
-}
-    
-}
-    $list_Inbound = [
-        'keyboard' => [],
-        'resize_keyboard' => true,
-    ];
-    foreach ($Inboundkeyboard as $button) {
-        $list_Inbound['keyboard'][] = [
-            ['text' => $button[0]]
-        ];
-    }
-        $list_Inbound['keyboard'][] = [
-        ['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],
-    ];
-    $json_list_Inbound_list_admin = json_encode($list_Inbound);
-}
-//--------------------------------------------------
-$stmt = $pdo->prepare("SHOW TABLES LIKE 'DiscountSell'");
-$stmt->execute();
-$result = $stmt->fetchAll();
-$table_exists = count($result) > 0;
-if ($table_exists) {
     $DiscountSell = [];
     $stmt = $pdo->prepare("SELECT * FROM DiscountSell");
     $stmt->execute();
@@ -937,7 +744,7 @@ if ($table_exists) {
         'resize_keyboard' => true,
     ];
     $list_Discountsell['keyboard'][] = [
-        ['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],
+        ['text' => $textbotlang['Admin']['backAdminBtn']],
     ];
     foreach ($DiscountSell as $button) {
         $list_Discountsell['keyboard'][] = [
@@ -945,345 +752,370 @@ if ($table_exists) {
         ];
     }
     $json_list_Discount_list_admin_sell = json_encode($list_Discountsell);
-}
 $payment = json_encode([
     'inline_keyboard' => [
-        [['text' => "💰 پرداخت و دریافت سرویس", 'callback_data' => "confirmandgetservice", 'style' => 'success']],
-        [['text' => "🎁 ثبت کد تخفیف", 'callback_data' => "aptdc"]],
-        [['text' => $textbotlang['users']['backbtn'] ,  'callback_data' => "backuser", 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['payAndGetService'], 'callback_data' => "confirmandgetservice"]],
+        [['text' => $textbotlang['keyboard']['registerDiscountCode'], 'callback_data' => "aptdc"]],
+        [['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser"]]
     ]
 ]);
 $paymentom = json_encode([
     'inline_keyboard' => [
-        [['text' => "💰 پرداخت و دریافت سرویس", 'callback_data' => "confirmandgetservice", 'style' => 'success']],
-        [['text' => $textbotlang['users']['backbtn'] ,  'callback_data' => "backuser", 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['payAndGetService'], 'callback_data' => "confirmandgetservice"]],
+        [['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser"]]
     ]
 ]);
 $change_product = json_encode([
     'keyboard' => [
-        [['text' => "قیمت"], ['text' => "حجم"], ['text' => "زمان"]],
-        [['text' => "نام محصول"],['text' => "نوع کاربری"]],
-        [['text' => "نوع ریست حجم"],['text' => "یادداشت"]],
-        [['text' => "موقعیت محصول"],['text' => "دسته بندی"]],
-        [['text' => "🎛 تنظیم اینباند"],['text' => "نمایش برای خرید اول"]],
-        [['text' => "مخفی کردن پنل"],['text' => "حذف کلی پنل های مخفی"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['price']], ['text' => $textbotlang['keyboard']['volume']], ['text' => $textbotlang['keyboard']['time']]],
+        [['text' => $textbotlang['keyboard']['productName']], ['text' => $textbotlang['keyboard']['userType']]],
+        [['text' => $textbotlang['keyboard']['volumeResetType']], ['text' => $textbotlang['keyboard']['note']]],
+        [['text' => $textbotlang['keyboard']['productLocation']], ['text' => $textbotlang['keyboard']['category']]],
+        [['text' => $textbotlang['keyboard']['setInbound']], ['text' => $textbotlang['keyboard']['showFirstPurchase']]],
+        [['text' => $textbotlang['keyboard']['hidePanel']], ['text' => $textbotlang['keyboard']['deleteAllHiddenPanels']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 
 $keyboardprotocol = json_encode([
     'keyboard' => [
-        [['text' => "vless"],['text' => "vmess"],['text' => "trojan"]],
+        [['text' => "vless"], ['text' => "vmess"], ['text' => "trojan"]],
         [['text' => "shadowsocks"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $MethodUsername = json_encode([
     'keyboard' => [
-        [['text' => "نام کاربری + عدد به ترتیب"]],
-        [['text' => "آیدی عددی + حروف و عدد رندوم"]],
-        [['text' => "نام کاربری دلخواه"]],
-        [['text' => "نام کاربری دلخواه + عدد رندوم"]],
-        [['text' => "متن دلخواه + عدد رندوم"]],
-        [['text' => "متن دلخواه + عدد ترتیبی"]],
-        [['text' => "آیدی عددی+عدد ترتیبی"]],
-        [['text' => "متن دلخواه نماینده + عدد ترتیبی"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['usernameSequential']]],
+        [['text' => $textbotlang['keyboard']['numericIdRandom']]],
+        [['text' => $textbotlang['keyboard']['customUsername']]],
+        [['text' => $textbotlang['keyboard']['customUsernameRandom']]],
+        [['text' => $textbotlang['keyboard']['customTextRandom']]],
+        [['text' => $textbotlang['keyboard']['customTextSequential']]],
+        [['text' => $textbotlang['keyboard']['numericIdSequential']]],
+        [['text' => $textbotlang['keyboard']['agentCustomTextSequential']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $optionMarzban = json_encode([
     'keyboard' => [
-        [['text' => "⚙️ وضعیت قابلیت ها پنل"]],
-        [['text' => "✍️ نام پنل"],['text' => "❌ حذف پنل"]],
-        [['text' => "🔐 ویرایش رمز عبور"],['text' => "👤 ویرایش نام کاربری"]],
-        [['text'=>"🔗 ویرایش آدرس پنل"],['text' => "⚙️ تنظیم پروتکل و اینباند"]],
-        [['text' => "🔋 روش تمدید سرویس"],['text' =>"💡 روش ساخت نام کاربری"]],
-        [['text' => "🚨 محدودیت ساخت اکانت"],['text'=> "📍 تغییر گروه کاربری"]],
-        [['text' => "⏳ زمان سرویس تست"], ['text' => "💾 حجم اکانت تست"]],
-        [['text' => "⚙️ قیمت حجم سرویس دلخواه"],['text' => "➕ قیمت حجم اضافه"]],
-        [['text' => "⏳ قیمت زمان اضافه"],['text' => "⏳ قیمت زمان دلخواه"]],
-        [['text' => "⚙️ شناسه سرویس پیش‌فرض"], ['text' => "🌍 قیمت تغییر لوکیشن"]],
-        
-        [['text' => "📍 حداقل حجم دلخواه"],['text' => "📍 حداکثر حجم دلخواه"]],
-        [['text' => "📍 حداقل زمان دلخواه"],['text' => "📍 حداکثر زمان دلخواه"]],
-        [['text' => "⚙️  اینباند اکانت غیرفعال"]],
-        [['text' => "🫣 مخفی کردن پنل برای یک کاربر"]],
-        [['text' => "❌  حذف کاربر از لیست مخفی شدگان"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
+        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
+        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setProtocolInbound']]],
+        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
+        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
+        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
+        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
+        [['text' => $textbotlang['keyboard']['changeLocationPrice']]],
+        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
+        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
+        [['text' => $textbotlang['keyboard']['inboundDeactivate']]],
+        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
+        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
+    ],
+    'resize_keyboard' => true
+]);
+$optionrebecca = json_encode([
+    'keyboard' => [
+        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
+        [['text' => $textbotlang['keyboard']['editPassword']]],
+        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setProtocolInbound']]],
+        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
+        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
+        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
+        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
+        [['text' => $textbotlang['keyboard']['changeLocationPrice']]],
+        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
+        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
+        [['text' => $textbotlang['keyboard']['inboundDeactivate']]],
+        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
+        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $optionibsng = json_encode([
     'keyboard' => [
-        [['text' => "⚙️ وضعیت قابلیت ها پنل"]],
-        [['text' => "✍️ نام پنل"],['text' => "❌ حذف پنل"]],
-        [['text' => "🔐 ویرایش رمز عبور"],['text' => "👤 ویرایش نام کاربری"]],
-        [['text'=>"🔗 ویرایش آدرس پنل"],['text' => '🎛 تنظیم نام گروه']],
-        [['text' => "🔋 روش تمدید سرویس"],['text' =>"💡 روش ساخت نام کاربری"]],
-        [['text' => "🚨 محدودیت ساخت اکانت"],['text'=> "📍 تغییر گروه کاربری"]],
-        [['text' => "⚙️ قیمت حجم سرویس دلخواه"],['text' => "➕ قیمت حجم اضافه"]],
-        [['text' => "⏳ قیمت زمان اضافه"],['text' => "⏳ قیمت زمان دلخواه"]],
-        [['text' => "📍 حداقل حجم دلخواه"],['text' => "📍 حداکثر حجم دلخواه"]],
-        [['text' => "📍 حداقل زمان دلخواه"],['text' => "📍 حداکثر زمان دلخواه"]],
-        [['text' => "🫣 مخفی کردن پنل برای یک کاربر"]],
-        [['text' => "❌  حذف کاربر از لیست مخفی شدگان"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
+        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
+        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setGroupName']]],
+        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
+        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
+        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
+        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
+        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
+        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
+        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $option_mikrotik = json_encode([
     'keyboard' => [
-        [['text' => "⚙️ وضعیت قابلیت ها پنل"]],
-        [['text' => "✍️ نام پنل"],['text' => "❌ حذف پنل"]],
-        [['text' => "🔐 ویرایش رمز عبور"],['text' => "👤 ویرایش نام کاربری"]],
-        [['text'=>"🔗 ویرایش آدرس پنل"],['text' => '🎛 تنظیم نام گروه']],
-        [['text' => "🔋 روش تمدید سرویس"],['text' =>"💡 روش ساخت نام کاربری"]],
-        [['text' => "🚨 محدودیت ساخت اکانت"],['text'=> "📍 تغییر گروه کاربری"]],
-        [['text' => "⚙️ قیمت حجم سرویس دلخواه"],['text' => "➕ قیمت حجم اضافه"]],
-        [['text' => "⏳ قیمت زمان اضافه"],['text' => "⏳ قیمت زمان دلخواه"]],
-        [['text' => "📍 حداقل حجم دلخواه"],['text' => "📍 حداکثر حجم دلخواه"]],
-        [['text' => "📍 حداقل زمان دلخواه"],['text' => "📍 حداکثر زمان دلخواه"]],
-        [['text' => "🫣 مخفی کردن پنل برای یک کاربر"]],
-        [['text' => "❌  حذف کاربر از لیست مخفی شدگان"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
+        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
+        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setGroupName']]],
+        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
+        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
+        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
+        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
+        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
+        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
+        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $options_ui = json_encode([
     'keyboard' => [
-        [['text' => "⚙️ وضعیت قابلیت ها پنل"]],
-        [['text' => "✍️ نام پنل"],['text' => "❌ حذف پنل", 'style' => 'danger']],
-        [['text' => "🔐 ویرایش رمز عبور"],['text' => "👤 ویرایش نام کاربری"]],
-        [['text'=>"🔗 ویرایش آدرس پنل"],['text' => "⚙️ تنظیم پروتکل و اینباند"]],
-        [['text' => "🔋 روش تمدید سرویس"],['text' =>"💡 روش ساخت نام کاربری"]],
-        [['text' => "🚨 محدودیت ساخت اکانت"],['text'=> "📍 تغییر گروه کاربری"]],
-        [['text' => "⏳ زمان سرویس تست"], ['text' => "💾 حجم اکانت تست"]],
-        [['text' => "⚙️ قیمت حجم سرویس دلخواه"],['text' => "➕ قیمت حجم اضافه"]],
-        [['text' => "⏳ قیمت زمان اضافه"],['text' => "⏳ قیمت زمان دلخواه"]],
-        [['text' => "🌍 قیمت تغییر لوکیشن"]],
-        [['text' => "📍 حداقل حجم دلخواه"],['text' => "📍 حداکثر حجم دلخواه"]],
-        [['text' => "📍 حداقل زمان دلخواه"],['text' => "📍 حداکثر زمان دلخواه"]],
-        [['text' => "⚙️  اینباند اکانت غیرفعال"]],
-        [['text' => "🫣 مخفی کردن پنل برای یک کاربر"]],
-        [['text' => "❌  حذف کاربر از لیست مخفی شدگان", 'style' => 'danger']],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
+        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
+        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setProtocolInbound']]],
+        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
+        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
+        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
+        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
+        [['text' => $textbotlang['keyboard']['changeLocationPrice']]],
+        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
+        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
+        [['text' => $textbotlang['keyboard']['inboundDeactivate']]],
+        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
+        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $optionwg = json_encode([
     'keyboard' => [
-        [['text' => "⚙️ وضعیت قابلیت ها پنل"]],
-        [['text' => "✍️ نام پنل"],['text' => "❌ حذف پنل"]],
-        [['text' => "🔐 ویرایش رمز عبور"]],
-        [['text'=>"🔗 ویرایش آدرس پنل"],['text' => "💎 تنظیم شناسه اینباند"]],
-        [['text' => "🔋 روش تمدید سرویس"],['text' =>"💡 روش ساخت نام کاربری"]],
-        [['text' => "🚨 محدودیت ساخت اکانت"],['text'=> "📍 تغییر گروه کاربری"]],
-        [['text' => "⏳ زمان سرویس تست"], ['text' => "💾 حجم اکانت تست"]],
-        [['text' => "⚙️ قیمت حجم سرویس دلخواه"],['text' => "➕ قیمت حجم اضافه"]],
-        [['text' => "⏳ قیمت زمان اضافه"],['text' => "⏳ قیمت زمان دلخواه"]],
-        [['text' => "🌍 قیمت تغییر لوکیشن"]],
-        [['text' => "📍 حداقل حجم دلخواه"],['text' => "📍 حداکثر حجم دلخواه"]],
-        [['text' => "📍 حداقل زمان دلخواه"],['text' => "📍 حداکثر زمان دلخواه"]],
-        [['text' => "⚙️  اینباند اکانت غیرفعال"]],
-        [['text' => "🫣 مخفی کردن پنل برای یک کاربر"]],
-        [['text' => "❌  حذف کاربر از لیست مخفی شدگان"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
+        [['text' => $textbotlang['keyboard']['editPassword']]],
+        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setInboundId']]],
+        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
+        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
+        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
+        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
+        [['text' => $textbotlang['keyboard']['changeLocationPrice']]],
+        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
+        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
+        [['text' => $textbotlang['keyboard']['inboundDeactivate']]],
+        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
+        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $optionmarzneshin = json_encode([
     'keyboard' => [
-        [['text' => "⚙️ وضعیت قابلیت ها پنل"]],
-        [['text' => "✍️ نام پنل"],['text' => "❌ حذف پنل"]],
-        [['text' => "🔐 ویرایش رمز عبور"],['text' => "👤 ویرایش نام کاربری"]],
-        [['text'=>"🔗 ویرایش آدرس پنل"],['text' => "🔋 روش تمدید سرویس"]],
-        [['text' =>"💡 روش ساخت نام کاربری"]],
-        [['text' => "⚙️ تنظیمات سرویس"],['text' => "🚨 محدودیت ساخت اکانت"]],
-        [['text'=> "📍 تغییر گروه کاربری"]],
-        [['text' => "⏳ زمان سرویس تست"], ['text' => "💾 حجم اکانت تست"]],
-        [['text' => "🌍 قیمت تغییر لوکیشن"],['text' => "➕ قیمت حجم اضافه"]],
-        [['text' => "⏳ قیمت زمان اضافه"],['text' => "⚙️ قیمت حجم سرویس دلخواه"]],
-        [['text' => "⏳ قیمت زمان دلخواه"]],
-        [['text' => "📍 حداقل حجم دلخواه"],['text' => "📍 حداکثر حجم دلخواه"]],
-        [['text' => "📍 حداقل زمان دلخواه"],['text' => "📍 حداکثر زمان دلخواه"]],
-        [['text' => "🫣 مخفی کردن پنل برای یک کاربر"]],
-        [['text' => "❌  حذف کاربر از لیست مخفی شدگان"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
+        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
+        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['renewalMethod']]],
+        [['text' => $textbotlang['keyboard']['usernameMethod']]],
+        [['text' => $textbotlang['keyboard']['serviceSettings']], ['text' => $textbotlang['keyboard']['accountCreateLimit']]],
+        [['text' => $textbotlang['keyboard']['changeUserGroup']]],
+        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
+        [['text' => $textbotlang['keyboard']['changeLocationPrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['customTimePrice']]],
+        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
+        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
+        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
+        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $optionManualsale = json_encode([
     'keyboard' => [
-        [['text' => "⚙️ وضعیت قابلیت ها پنل"]],
-        [['text' => "✍️ نام پنل"],['text' => "❌ حذف پنل"]],
-        [['text' => "💡 روش ساخت نام کاربری"]],
-        [['text' => "🚨 محدودیت ساخت اکانت"],['text'=> "📍 تغییر گروه کاربری"]],
-        [['text' => "➕ اضافه کردن اشتراک"],['text' => "❌ حذف کانفیگ "]],
-        [['text' => "✏️ ویرایش کانفیگ"]],
-        [['text' => "🫣 مخفی کردن پنل برای یک کاربر"]],
-        [['text' => "❌  حذف کاربر از لیست مخفی شدگان"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
+        [['text' => $textbotlang['keyboard']['usernameMethod']]],
+        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
+        [['text' => $textbotlang['keyboard']['addConfig']], ['text' => $textbotlang['keyboard']['deleteConfig']]],
+        [['text' => $textbotlang['keyboard']['editConfig']]],
+        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
+        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $optionX_ui_single = json_encode([
     'keyboard' => [
-        [['text' => "⚙️ وضعیت قابلیت ها پنل"]],
-        [['text' => "✍️ نام پنل"],['text' => "❌ حذف پنل"]],
-        [['text' => "🔐 ویرایش رمز عبور"],['text' => "👤 ویرایش نام کاربری"]],
-        [['text'=>"🔗 ویرایش آدرس پنل"],['text' => "🔋 روش تمدید سرویس"]],
-        [['text' => "💎 تنظیم شناسه اینباند"]],
-        [['text' =>"💡 روش ساخت نام کاربری"],['text' => '🔗 دامنه لینک ساب']],
-        [['text' => "📍 تغییر گروه کاربری"],['text' => "🚨 محدودیت ساخت اکانت"]],
-        [['text' => "⏳ زمان سرویس تست"], ['text' => "💾 حجم اکانت تست"]],
-        [['text' => "🌍 قیمت تغییر لوکیشن"],['text' => "➕ قیمت حجم اضافه"]],
-        [['text' => "⏳ قیمت زمان اضافه"],['text' => "⚙️ قیمت حجم سرویس دلخواه"]],
-        [['text' => "⏳ قیمت زمان دلخواه"]],
-        [['text' => "📍 حداقل حجم دلخواه"],['text' => "📍 حداکثر حجم دلخواه"]],
-        [['text' => "📍 حداقل زمان دلخواه"],['text' => "📍 حداکثر زمان دلخواه"]],
-        [['text' => "🫣 مخفی کردن پنل برای یک کاربر"]],
-        [['text' => "❌  حذف کاربر از لیست مخفی شدگان"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
+        [['text' => $textbotlang['keyboard']['editPassword']]],
+        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['renewalMethod']]],
+        [['text' => $textbotlang['keyboard']['setProtocolInbound']]],
+        [['text' => $textbotlang['keyboard']['usernameMethod']], ['text' => $textbotlang['keyboard']['subLinkDomain']]],
+        [['text' => $textbotlang['keyboard']['changeUserGroup']], ['text' => $textbotlang['keyboard']['accountCreateLimit']]],
+        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
+        [['text' => $textbotlang['keyboard']['changeLocationPrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['customTimePrice']]],
+        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
+        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
+        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
+        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $optionalireza_single = json_encode([
     'keyboard' => [
-        [['text' => "⚙️ وضعیت قابلیت ها پنل"]],
-        [['text' => "✍️ نام پنل"],['text' => "❌ حذف پنل"]],
-        [['text' => "🔐 ویرایش رمز عبور"],['text' => "👤 ویرایش نام کاربری"]],
-        [['text'=>"🔗 ویرایش آدرس پنل"],['text' => "🔋 روش تمدید سرویس"]],
-        [['text' => "💎 تنظیم شناسه اینباند"]],
-        [['text' =>"💡 روش ساخت نام کاربری"]],
-        [['text' => '🔗 دامنه لینک ساب']],
-        [['text' => "📍 تغییر گروه کاربری"],['text' => "🚨 محدودیت ساخت اکانت"]],
-        [['text' => "⏳ زمان سرویس تست"], ['text' => "💾 حجم اکانت تست"]],
-        [['text' => "🌍 قیمت تغییر لوکیشن"],['text' => "➕ قیمت حجم اضافه"]],
-        [['text' => "⏳ قیمت زمان اضافه"],['text' => "⚙️ قیمت حجم سرویس دلخواه"]],
-        [['text' => "⏳ قیمت زمان دلخواه"]],
-        [['text' => "📍 حداقل حجم دلخواه"],['text' => "📍 حداکثر حجم دلخواه"]],
-        [['text' => "📍 حداقل زمان دلخواه"],['text' => "📍 حداکثر زمان دلخواه"]],
-        [['text' => "🫣 مخفی کردن پنل برای یک کاربر"]],
-        [['text' => "❌  حذف کاربر از لیست مخفی شدگان"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
+        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
+        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['renewalMethod']]],
+        [['text' => $textbotlang['keyboard']['setInboundId']]],
+        [['text' => $textbotlang['keyboard']['usernameMethod']]],
+        [['text' => $textbotlang['keyboard']['subLinkDomain']]],
+        [['text' => $textbotlang['keyboard']['changeUserGroup']], ['text' => $textbotlang['keyboard']['accountCreateLimit']]],
+        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
+        [['text' => $textbotlang['keyboard']['changeLocationPrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['customTimePrice']]],
+        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
+        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
+        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
+        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $optionhiddfy = json_encode([
     'keyboard' => [
-        [['text' => "⚙️ وضعیت قابلیت ها پنل"]],
-        [['text' => "✍️ نام پنل"],['text' => "❌ حذف پنل"]],
-        [['text'=>"🔗 ویرایش آدرس پنل"],['text' => "🔋 روش تمدید سرویس"]],
-        [['text' => "📍 تغییر گروه کاربری"]],
-        [['text' =>"💡 روش ساخت نام کاربری"]],
-        [['text' => '🔗 دامنه لینک ساب']],
-        [['text' => "🚨 محدودیت ساخت اکانت"],['text' => "🔗 uuid admin"]],
-        [['text' => "⏳ زمان سرویس تست"], ['text' => "💾 حجم اکانت تست"]],
-        [['text' => "🌍 قیمت تغییر لوکیشن"],['text' => "➕ قیمت حجم اضافه"]],
-        [['text' => "⏳ قیمت زمان اضافه"],['text' => "⚙️ قیمت حجم سرویس دلخواه"]],
-        [['text' => "⏳ قیمت زمان دلخواه"]],
-        [['text' => "📍 حداقل حجم دلخواه"],['text' => "📍 حداکثر حجم دلخواه"]],
-        [['text' => "📍 حداقل زمان دلخواه"],['text' => "📍 حداکثر زمان دلخواه"]],
-        [['text' => "🫣 مخفی کردن پنل برای یک کاربر"]],
-        [['text' => "❌  حذف کاربر از لیست مخفی شدگان"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
+        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['renewalMethod']]],
+        [['text' => $textbotlang['keyboard']['changeUserGroup']]],
+        [['text' => $textbotlang['keyboard']['usernameMethod']]],
+        [['text' => $textbotlang['keyboard']['subLinkDomain']]],
+        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => "🔗 uuid admin"]],
+        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
+        [['text' => $textbotlang['keyboard']['changeLocationPrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['customTimePrice']]],
+        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
+        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
+        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
+        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
-if($setting['statussupportpv'] == "onpvsupport"){
+if ($setting['statussupportpv'] == "onpvsupport") {
     $supportoption = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $datatextbot['text_fq'], 'callback_data' => "fqQuestions"] ,
-                ['text' => "🎟 ارتباط با پشتیبانی", 'url' => "https://t.me/{$setting['id_support']}"    ],
-            ],[
-                ['text' => "🔙 بازگشت به منوی اصلی" ,'callback_data' => "backuser", 'style' => 'danger']
+                ['text' => $textbotlang['textbot']['faq'], 'callback_data' => "fqQuestions"],
+                ['text' => $textbotlang['keyboard']['sendMessageToSupport'], 'url' => "https://t.me/{$setting['id_support']}"],
             ],
- 
+            [
+                ['text' => $textbotlang['keyboard']['backToMainMenu'], 'callback_data' => "backuser"]
+            ],
+
         ]
     ]);
-}else{
-$supportoption = json_encode([
+} else {
+    $supportoption = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $datatextbot['text_fq'], 'callback_data' => "fqQuestions"] ,
-                ['text' => "🎟 ارتباط با پشتیبانی", 'callback_data' => "support"],
-            ],[
-                ['text' => "🔙 بازگشت به منوی اصلی" ,'callback_data' => "backuser", 'style' => 'danger']
+                ['text' => $textbotlang['textbot']['faq'], 'callback_data' => "fqQuestions"],
+                ['text' => $textbotlang['keyboard']['sendMessageToSupport'], 'callback_data' => "support"],
             ],
- 
+            [
+                ['text' => $textbotlang['keyboard']['backToMainMenu'], 'callback_data' => "backuser"]
+            ],
+
         ]
     ]);
 }
 $adminrule = json_encode([
     'keyboard' => [
-        [['text' => "administrator"],['text' => "Seller"],['text' => "support"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => "administrator"], ['text' => "Seller"], ['text' => "support"]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
-$affiliates =  json_encode([
+$affiliates = json_encode([
     'keyboard' => [
-        [['text' => "🧮 تنظیم درصد زیرمجموعه"]],
-        [['text' => "🏞 تنظیم بنر زیرمجموعه گیری"]],
-        [['text' => "🎁 پورسانت بعد از خرید"],['text' => "🎁 هدیه استارت"]],
-        [['text' => "🎉 پورسانت فقط برای خرید اول"]],
-        [['text' => "🌟 مبلغ هدیه استارت"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['setAffiliatePercent']]],
+        [['text' => $textbotlang['keyboard']['setAffiliateBanner']]],
+        [['text' => $textbotlang['keyboard']['purchaseCommission']], ['text' => $textbotlang['keyboard']['startGift']]],
+        [['text' => $textbotlang['keyboard']['firstPurchaseCommission']]],
+        [['text' => $textbotlang['keyboard']['startGiftAmount']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
-$keyboardexportdata =  json_encode([
+$keyboardexportdata = json_encode([
     'keyboard' => [
-        [['text' => "خروجی کاربران"],['text' => "خروجی سفارشات"]],
-        [['text' => "خروجی گرفتن پرداخت ها"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['exportUsers']], ['text' => $textbotlang['keyboard']['exportOrders']]],
+        [['text' => $textbotlang['keyboard']['exportPayments']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
-$helpedit =  json_encode([
+$helpedit = json_encode([
     'keyboard' => [
-        [['text' =>"ویرایش نام"],['text' =>"ویرایش توضیحات"]],
-        [['text' => "ویرایش رسانه"],['text' => "ویرایش دسته بندی"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['editName']], ['text' => $textbotlang['keyboard']['editDescription']]],
+        [['text' => $textbotlang['keyboard']['editMedia']], ['text' => $textbotlang['keyboard']['editCategory']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $Methodextend = json_encode([
     'keyboard' => [
-        [['text' => "ریست حجم و زمان"]],
-        [['text' => "اضافه شدن زمان و حجم به ماه بعد"]],
-        [['text'=> "ریست زمان و اضافه کردن حجم قبلی"]],
-        [['text' => "ریست شدن حجم و اضافه شدن زمان"]],
-        [['text' => "اضافه شدن زمان و تبدیل حجم کل به حجم باقی مانده"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['resetVolumeTime']]],
+        [['text' => $textbotlang['keyboard']['addTimeVolumeNextMonth']]],
+        [['text' => $textbotlang['keyboard']['resetTimeAddVolume']]],
+        [['text' => $textbotlang['keyboard']['resetVolumeAddTime']]],
+        [['text' => $textbotlang['keyboard']['addTimeConvertVolume']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $keyboardtimereset = json_encode([
     'keyboard' => [
-        [['text' => "no_reset"],['text' => "day"],['text' => "week"]],
-        [['text' => "month"],['text' => "year"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => "no_reset"], ['text' => "day"], ['text' => "week"]],
+        [['text' => "month"], ['text' => "year"]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $keyboardtypepanel = json_encode([
     'inline_keyboard' => [
         [
-            ['text' => "مرزبان" , 'callback_data' => "typepanel#marzban"],
-            ['text' => "مرزنشین" , 'callback_data' => "typepanel#marzneshin"]
+            ['text' => $textbotlang['keyboard']['marzban'], 'callback_data' => "typepanel#marzban"],
+            ['text' => $textbotlang['keyboard']['marzneshin'], 'callback_data' => "typepanel#marzneshin"]
         ],
         [
-            ['text' => 'ثنایی تک پورت', 'callback_data' => 'typepanel#x-ui_single'],
-            ['text' => 'علیرضا تک پورت' , 'callback_data' => 'typepanel#alireza_single']
+            ['text' => $textbotlang['keyboard']['passargadPanel'], 'callback_data' => "typepanel#pasarguard"],
+            ['text' => $textbotlang['keyboard']['mirzaAgentPanel'], 'callback_data' => "typepanel#mirza_agent"]
         ],
         [
-            ['text' => "فروش دستی" , 'callback_data' => 'typepanel#Manualsale'],
-            ['text' => "هیدیفای" , 'callback_data' => 'typepanel#hiddify'],
+            ['text' => $textbotlang['keyboard']['panelTypeSanaei'], 'callback_data' => 'typepanel#x-ui_single'],
+            ['text' => $textbotlang['keyboard']['panelTypeAlireza'], 'callback_data' => 'typepanel#alireza_single']
+        ],
+        [
+            ['text' => $textbotlang['keyboard']['manualSale'], 'callback_data' => 'typepanel#Manualsale'],
+            ['text' => $textbotlang['keyboard']['hiddify'], 'callback_data' => 'typepanel#hiddify'],
         ],
         [
             ['text' => "WGDashboard", 'callback_data' => 'typepanel#WGDashboard'],
@@ -1291,114 +1123,106 @@ $keyboardtypepanel = json_encode([
         ],
         [
             ['text' => "ibsng", 'callback_data' => 'typepanel#ibsng'],
-            ['text' => "میکروتیک", 'callback_data' => 'typepanel#mikrotik']
+            ['text' => $textbotlang['keyboard']['mikrotik'], 'callback_data' => 'typepanel#mikrotik']
         ],
-        
-                [['text' => "پنل اختصاصی (vento)", 'callback_data' => 'typepanel#custom_panel']], 
-
         [
-            ['text' => $textbotlang['Admin']['backadmin'] , 'callback_data' => 'admin', 'style' => 'danger']
+            ['text' => $textbotlang['keyboard']['rebecca'], 'callback_data' => 'typepanel#rebecca']
+        ],
+        [
+            ['text' => $textbotlang['Admin']['backAdminBtn'], 'callback_data' => 'admin']
         ]
     ],
 ]);
 
-$panelechekc = select("marzban_panel","*","MethodUsername","متن دلخواه نماینده + عدد ترتیبی","count");
-if($setting['inlinebtnmain'] == "oninline"){
+$panelechekc = select("marzban_panel", "*", "MethodUsername", $textbotlang['keyboard']['usernameMethodAgentCustom'], "count");
+if ($setting['inlinebtnmain'] == "oninline") {
     $keyboardagent = [
-    'inline_keyboard' => [
-        [
-            ['text' => "🗂 خرید انبوه", 'callback_data' => "kharidanbuh"],
-            ['text' => "👤 انتخاب نام دلخواه", 'callback_data' => "selectname"]
+        'inline_keyboard' => [
+            [
+                ['text' => $textbotlang['keyboard']['bulkPurchase'], 'callback_data' => "kharidanbuh"],
+                ['text' => $textbotlang['keyboard']['selectCustomName'], 'callback_data' => "selectname"]
+            ],
+            [
+                ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser"]
+            ]
         ],
-        [
-            ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser", 'style' => 'danger']
-        ]
-    ],
-    'resize_keyboard' => true
-];
-if($panelechekc == 0){
-    unset($keyboardagent['inline_keyboard'][0][1]);
-}
-}else{
-$keyboardagent = [
-    'keyboard' => [
-        [['text' => "🗂 خرید انبوه"],['text' => "👤 انتخاب نام دلخواه"]],
-        [['text' => $textbotlang['users']['backbtn'], 'style' => 'danger']]
-    ],
-    'resize_keyboard' => true
-];
-if($panelechekc == 0){
-    unset($keyboardagent['keyboard'][0][1]);
-}
+        'resize_keyboard' => true
+    ];
+    if ($panelechekc == 0) {
+        unset($keyboardagent['inline_keyboard'][0][1]);
+    }
+} else {
+    $keyboardagent = [
+        'keyboard' => [
+            [['text' => $textbotlang['keyboard']['bulkPurchase']], ['text' => $textbotlang['keyboard']['selectCustomName']]],
+            [['text' => $textbotlang['users']['backbtn']]]
+        ],
+        'resize_keyboard' => true
+    ];
+    if ($panelechekc == 0) {
+        unset($keyboardagent['keyboard'][0][1]);
+    }
 }
 $keyboardagent = json_encode($keyboardagent);
 $Swapinokey = json_encode([
     'keyboard' => [
-        [['text' => "تنظیم api"]],
-        [['text' => "🗂 نام درگاه ارزی ریالی"]],
-        [['text' => "💰 کش بک ارزی ریالی"],['text' => "📚 تنظیم آموزش ارزی ریالی اول"]],
-        [['text' => "⬇️ حداقل مبلغ ارزی ریالی"],['text' => "⬆️ حداکثر مبلغ ارزی ریالی"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['setApi']]],
+        [['text' => $textbotlang['keyboard']['cashbackIranPay1']], ['text' => $textbotlang['keyboard']['setEducationIranPay1']]],
+        [['text' => $textbotlang['keyboard']['minAmountIranPay1']], ['text' => $textbotlang['keyboard']['maxAmountIranPay1']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 
 $tronnowpayments = json_encode([
     'keyboard' => [
-        [['text' => "🗂 نام درگاه رمز ارز آفلاین"]],
-        [['text' => "⬇️ حداقل مبلغ رمزارز آفلاین"],['text' => "⬆️ حداکثر مبلغ رمزارز آفلاین"]],
-        [['text' => "📚 تنظیم آموزش  ارزی افلاین"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['minAmountCryptoOffline']], ['text' => $textbotlang['keyboard']['maxAmountCryptoOffline']]],
+        [['text' => $textbotlang['keyboard']['setEducationCryptoOffline']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $optionathmarzban = json_encode([
     'keyboard' => [
-        [['text' => "🔧 ساخت کانفیگ دستی"],['text' => "🖥 مدیریت نود ها"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['manualCreateConfig']], ['text' => $textbotlang['keyboard']['manageNodes']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $optionathx_ui = json_encode([
     'keyboard' => [
-        [['text' => "🔧 ساخت کانفیگ دستی"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['manualCreateConfig']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $configedit = json_encode([
     'keyboard' => [
-        [['text' => "مخشصات کانفیگ"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['configDetails']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $iranpaykeyboard = json_encode([
     'keyboard' => [
-        [['text' => "api  درگاه ارزی ریالی"]],
-        [['text' => "🗂 نام درگاه ارزی ریالی سوم"]],
-        [['text' => "⬇️ حداقل مبلغ ارزی ریالی سوم"],['text' => "⬆️ حداکثر مبلغ ارزی ریالی سوم"]],
-        [['text' => "💰 کش بک ارزی ریالی سوم"]],
-        [['text' => "📚 تنظیم آموزش ارزی ریالی سوم"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['apiIranPay']]],
+        [['text' => $textbotlang['keyboard']['minAmountIranPay3']], ['text' => $textbotlang['keyboard']['maxAmountIranPay3']]],
+        [['text' => $textbotlang['keyboard']['cashbackIranPay3']]],
+        [['text' => $textbotlang['keyboard']['setEducationIranPay3']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $supportcenter = json_encode([
     'keyboard' => [
-        [['text' => "👤 تنظیم آیدی پشتیبانی"]],
-        [['text' => "🔼 اضافه کردن دپارتمان"],['text' => "🔽 حذف کردن دپارتمان"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['setSupportId']]],
+        [['text' => $textbotlang['keyboard']['addDepartment']], ['text' => $textbotlang['keyboard']['deleteDepartment']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 //------------------  [ list departeman ]----------------//
-$stmt = $pdo->prepare("SHOW TABLES LIKE 'departman'");
-$stmt->execute();
-$result = $stmt->fetchAll();
-$table_exists = count($result) > 0;
 $departeman = [];
-if ($table_exists) {
     $stmt = $pdo->prepare("SELECT * FROM departman");
     $stmt->execute();
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -1413,211 +1237,232 @@ if ($table_exists) {
             ['text' => $button[0]]
         ];
     }
-        $departemans['keyboard'][] = [
-        ['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],
-        ['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']
+    $departemans['keyboard'][] = [
+        ['text' => $textbotlang['Admin']['backAdminBtn']],
+        ['text' => $textbotlang['Admin']['backMenuBtn']]
     ];
     $departemanslist = json_encode($departemans);
-}
 // list departeman
-    $list_departman = ['inline_keyboard' => []];
- $stmt = $pdo->prepare("SELECT * FROM departman");
- $stmt->execute();
+$list_departman = ['inline_keyboard' => []];
+    $stmt = $pdo->prepare("SELECT * FROM departman");
+    $stmt->execute();
     while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $list_departman['inline_keyboard'][] = [['text' => $result['name_departman'], 'callback_data' => "departman_{$result['id']}"]
-            ];
+        $list_departman['inline_keyboard'][] = [
+            ['text' => $result['name_departman'], 'callback_data' => "departman_{$result['id']}"]
+        ];
     }
 $list_departman['inline_keyboard'][] = [
-    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser", 'style' => 'danger'],
+    ['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser"],
 ];
 $list_departman = json_encode($list_departman);
-$active_panell =  json_encode([
+$active_panell = json_encode([
     'keyboard' => [
-        [['text' => "📣 گزارشات ربات"]],
+        [['text' => $textbotlang['keyboard']['botReports']]],
     ],
     'resize_keyboard' => true
 ]);
-$lottery =  json_encode([
+$lottery = json_encode([
     'keyboard' => [
-        [['text' => "1️⃣ تنظیم جایزه نفر اول"],['text' => "2️⃣ تنظیم جایزه نفر دوم"]],
-        [['text' => "3️⃣ تنظیم جایزه نفر سوم"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['setFirstPrize']], ['text' => $textbotlang['keyboard']['setSecondPrize']]],
+        [['text' => $textbotlang['keyboard']['setThirdPrize']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']]]
     ],
     'resize_keyboard' => true
 ]);
-$wheelkeyboard =  json_encode([
+$wheelkeyboard = json_encode([
     'keyboard' => [
-        [['text' => "🎲 مبلغ برنده شدن کاربر"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['lotteryWinAmount']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $keyboardlinkapp = json_encode([
     'keyboard' => [
-        [['text' => "🔗 اضافه کردن برنامه"],['text' => "❌ حذف برنامه"]],
-        [['text' => "✏️ ویرایش برنامه"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['addApp']], ['text' => $textbotlang['keyboard']['deleteApp']]],
+        [['text' => $textbotlang['keyboard']['editApp']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
-function KeyboardProduct($location,$query,$pricediscount,$datakeyboard,$statuscustom = false,$backuser = "backuser", $valuetow = null,$customvolume = "customsellvolume"){
-    global $pdo,$textbotlang,$from_id;
+function KeyboardProduct($location, $query, $pricediscount, $datakeyboard, $statuscustom = false, $backuser = "backuser", $valuetow = null, $customvolume = "customsellvolume")
+{
+    global $pdo, $textbotlang, $from_id;
     $product = ['inline_keyboard' => []];
-    $statusshowprice = select("shopSetting","*","Namevalue","statusshowprice","select")['value'];
+    $statusshowprice = select("shopSetting", "*", "Namevalue", "statusshowprice", "select")['value'];
     $stmt = $pdo->prepare($query);
     $stmt->execute();
-    if($valuetow != null){
-            $valuetow = "-$valuetow";
-    }else{
-            $valuetow = "";
-        }
+    if ($valuetow != null) {
+        $valuetow = "-$valuetow";
+    } else {
+        $valuetow = "";
+    }
+    $countorder = null;
     while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $hide_panel = json_decode($result['hide_panel'],true);
-        if(in_array($location,$hide_panel))continue;
-        $stmts2 = $pdo->prepare("SELECT * FROM invoice WHERE Status != 'Unpaid' AND id_user = '$from_id'");
-        $stmts2->execute();
-        $countorder = $stmts2->rowCount();
-        if($result['one_buy_status'] == "1" && $countorder != 0 )continue;
-        if(intval($pricediscount) != 0){
-            $resultper = ($result['price_product'] * $pricediscount) / 100;
-            $result['price_product'] = $result['price_product'] -$resultper;
+        $hide_panel = json_decode($result['hide_panel'], true);
+        if (in_array($location, $hide_panel))
+            continue;
+        if ($result['one_buy_status'] == "1") {
+            if ($countorder === null) {
+                $stmts2 = $pdo->prepare("SELECT COUNT(*) FROM invoice WHERE Status != 'Unpaid' AND id_user = :id_user");
+                $stmts2->bindValue(':id_user', $from_id);
+                $stmts2->execute();
+                $countorder = (int) $stmts2->fetchColumn();
+            }
+            if ($countorder != 0)
+                continue;
         }
-        $namekeyboard = $result['name_product']." - ".number_format($result['price_product']) ."تومان";
-        if($statusshowprice == "onshowprice"){
+        if (intval($pricediscount) != 0) {
+            $resultper = ($result['price_product'] * $pricediscount) / 100;
+            $result['price_product'] = $result['price_product'] - $resultper;
+        }
+        $namekeyboard = $result['name_product'] . " - " . number_format($result['price_product']) . $textbotlang['common']['labels']['toman'];
+        if ($statusshowprice == "onshowprice") {
             $result['name_product'] = $namekeyboard;
         }
         $product['inline_keyboard'][] = [
-                ['text' =>  $result['name_product'], 'callback_data' => "{$datakeyboard}{$result['code_product']}{$valuetow}"]
-            ];
+            ['text' => $result['name_product'], 'callback_data' => "{$datakeyboard}{$result['code_product']}{$valuetow}"]
+        ];
     }
-    if ($statuscustom)$product['inline_keyboard'][] = [['text' => $textbotlang['users']['customsellvolume']['title'], 'callback_data' => $customvolume]];
+    if ($statuscustom)
+        $product['inline_keyboard'][] = [['text' => $textbotlang['users']['customSellVolume']['title'], 'callback_data' => $customvolume]];
     $product['inline_keyboard'][] = [
-        ['text' => $textbotlang['users']['stateus']['backinfo'], 'callback_data' => $backuser, 'style' => 'danger'],
+        ['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => $backuser],
     ];
     return json_encode($product);
 }
-function KeyboardCategory($location,$agent,$backuser = "backuser"){
-    global $pdo,$textbotlang;
+function KeyboardCategory($location, $agent, $backuser = "backuser")
+{
+    global $pdo, $textbotlang;
+    $stmts = $pdo->prepare("SELECT category, COUNT(*) AS c FROM product WHERE (Location = :location OR Location = '/all') AND agent = :agent GROUP BY category");
+    $stmts->bindParam(':location', $location, PDO::PARAM_STR);
+    $stmts->bindParam(':agent', $agent);
+    $stmts->execute();
+    $categoryCounts = [];
+    foreach ($stmts->fetchAll(PDO::FETCH_ASSOC) as $catRow) {
+        $categoryKey = mb_strtolower(trim((string) $catRow['category']), 'UTF-8');
+        $categoryCounts[$categoryKey] = ($categoryCounts[$categoryKey] ?? 0) + (int) $catRow['c'];
+    }
     $stmt = $pdo->prepare("SELECT * FROM category");
     $stmt->execute();
     $list_category = ['inline_keyboard' => [],];
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $stmts = $pdo->prepare("SELECT * FROM product WHERE (Location = :location OR Location = '/all') AND category = :category AND agent = :agent");
-        $stmts->bindParam(':location', $location, PDO::PARAM_STR);
-        $stmts->bindParam(':category', $row['remark'], PDO::PARAM_STR);
-        $stmts->bindParam(':agent', $agent);
-        $stmts->execute();
-        if($stmts->rowCount() == 0)continue;
-        $list_category['inline_keyboard'][] = [['text' =>$row['remark'],'callback_data' => "categorynames_".$row['id']]];
+        if (empty($categoryCounts[mb_strtolower(trim((string) $row['remark']), 'UTF-8')]))
+            continue;
+        $list_category['inline_keyboard'][] = [['text' => $row['remark'], 'callback_data' => "categorynames_" . $row['id']]];
     }
     $list_category['inline_keyboard'][] = [
-        ['text' => "▶️ بازگشت به منوی قبل","callback_data" => $backuser, 'style' => 'danger'],
+        ['text' => $textbotlang['keyboard']['backToPreviousMenu'], "callback_data" => $backuser],
     ];
     return json_encode($list_category);
 }
 
-function keyboardTimeCategory($name_panel,$agent,$callback_data = "producttime_",$callback_data_back = "backuser",$statuscustomvolume = false,$statusbtnextend = false){
-    global $pdo,$textbotlang;
-    $stmt = $pdo->prepare("SELECT (Service_time) FROM product WHERE (Location = '$name_panel' OR Location = '/all') AND  agent = '$agent'");
+function keyboardTimeCategory($name_panel, $agent, $callback_data = "producttime_", $callback_data_back = "backuser", $statuscustomvolume = false, $statusbtnextend = false)
+{
+    global $pdo, $textbotlang;
+    $stmt = $pdo->prepare("SELECT (Service_time) FROM product WHERE (Location = :name_panel OR Location = '/all') AND  agent = :agent");
+    $stmt->bindValue(':name_panel', $name_panel, PDO::PARAM_STR);
+    $stmt->bindValue(':agent', $agent, PDO::PARAM_STR);
     $stmt->execute();
     $montheproduct = array_flip(array_flip($stmt->fetchAll(PDO::FETCH_COLUMN)));
     $monthkeyboard = ['inline_keyboard' => []];
-    if (in_array("1",$montheproduct)){
+    if (in_array("1", $montheproduct)) {
         $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['1day'], 'callback_data' => "{$callback_data}1"]
-                ];
-            }
-    if (in_array("7",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['7day'], 'callback_data' => "{$callback_data}7"]
-                ];
-            }
-    if (in_array("31",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['1'], 'callback_data' => "{$callback_data}31"]
-                ];
-            }
-    if (in_array("30",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['1'], 'callback_data' => "{$callback_data}30"]
-                ];
-            }
-    if (in_array("61",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['2'], 'callback_data' => "{$callback_data}61"]
-                ];
-            }
-    if (in_array("60",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['2'], 'callback_data' => "{$callback_data}60"]
-                ];
-            }
-    if (in_array("91",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['3'], 'callback_data' => "{$callback_data}91"]
-                ];
-            }
-    if (in_array("90",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['3'], 'callback_data' => "{$callback_data}90"]
-                ];
-            }
-    if (in_array("121",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['4'], 'callback_data' => "{$callback_data}121"]
-                ];
-            }
-    if (in_array("120",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['4'], 'callback_data' => "{$callback_data}120"]
-                ];
-            }
-    if (in_array("181",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['6'], 'callback_data' => "{$callback_data}181"]
-                ];
-            }
-    if (in_array("180",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['6'], 'callback_data' => "{$callback_data}180"]
-                ];
-            }
-    if (in_array("365",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['365'], 'callback_data' => "{$callback_data}365"]
-                ];
-            }
-    if (in_array("0",$montheproduct)){
-                $monthkeyboard['inline_keyboard'][] = [
-                    ['text' => $textbotlang['Admin']['month']['unlimited'], 'callback_data' => "{$callback_data}0"]
-                ];
-            }
-    if($statusbtnextend)$monthkeyboard['inline_keyboard'][] = [['text' => "♻️ تمدید پلن فعلی", 'callback_data' => "exntedagei", 'style' => 'success']];
-    if ($statuscustomvolume == true)$monthkeyboard['inline_keyboard'][] = [['text' => $textbotlang['users']['customsellvolume']['title'], 'callback_data' => "customsellvolume"]];
+            ['text' => $textbotlang['common']['duration']['1day'], 'callback_data' => "{$callback_data}1"]
+        ];
+    }
+    if (in_array("7", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['7day'], 'callback_data' => "{$callback_data}7"]
+        ];
+    }
+    if (in_array("31", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['1'], 'callback_data' => "{$callback_data}31"]
+        ];
+    }
+    if (in_array("30", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['1'], 'callback_data' => "{$callback_data}30"]
+        ];
+    }
+    if (in_array("61", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['2'], 'callback_data' => "{$callback_data}61"]
+        ];
+    }
+    if (in_array("60", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['2'], 'callback_data' => "{$callback_data}60"]
+        ];
+    }
+    if (in_array("91", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['3'], 'callback_data' => "{$callback_data}91"]
+        ];
+    }
+    if (in_array("90", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['3'], 'callback_data' => "{$callback_data}90"]
+        ];
+    }
+    if (in_array("121", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['4'], 'callback_data' => "{$callback_data}121"]
+        ];
+    }
+    if (in_array("120", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['4'], 'callback_data' => "{$callback_data}120"]
+        ];
+    }
+    if (in_array("181", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['6'], 'callback_data' => "{$callback_data}181"]
+        ];
+    }
+    if (in_array("180", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['6'], 'callback_data' => "{$callback_data}180"]
+        ];
+    }
+    if (in_array("365", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['365'], 'callback_data' => "{$callback_data}365"]
+        ];
+    }
+    if (in_array("0", $montheproduct)) {
+        $monthkeyboard['inline_keyboard'][] = [
+            ['text' => $textbotlang['common']['duration']['byVolume'], 'callback_data' => "{$callback_data}0"]
+        ];
+    }
+    if ($statusbtnextend)
+        $monthkeyboard['inline_keyboard'][] = [['text' => $textbotlang['keyboard']['renewCurrentPlan'], 'callback_data' => "exntedagei"]];
+    if ($statuscustomvolume == true)
+        $monthkeyboard['inline_keyboard'][] = [['text' => $textbotlang['users']['customSellVolume']['title'], 'callback_data' => "customsellvolume"]];
     $monthkeyboard['inline_keyboard'][] = [
-                ['text' => $textbotlang['users']['stateus']['backinfo'], 'callback_data' => $callback_data_back, 'style' => 'danger']
-            ];
+        ['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => $callback_data_back]
+    ];
     return json_encode($monthkeyboard);
 }
 $Startelegram = json_encode([
     'keyboard' => [
-        [['text' => "🗂 نام درگاه استار"]],
-        [['text' => "💰 کش بک استار"],['text' => "📚 تنظیم آموزش استار"]],
-        [['text' => "⬇️ حداقل مبلغ استار"],['text' => "⬆️ حداکثر مبلغ استار"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['cashbackStar']], ['text' => $textbotlang['keyboard']['setEducationStar']]],
+        [['text' => $textbotlang['keyboard']['minAmountStar']], ['text' => $textbotlang['keyboard']['maxAmountStar']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $keyboardchangelimit = json_encode([
     'keyboard' => [
-        [['text' => "🆓 محدودیت رایگان"],['text' => "↙️ محدودیت کلی"]],
-        [['text' => "🔄 ریست محدودیت کل کاربران"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['freeLimit']], ['text' => $textbotlang['keyboard']['generalLimit']]],
+        [['text' => $textbotlang['keyboard']['resetAllUsersLimit']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']]]
     ],
     'resize_keyboard' => true
 ]);
-function KeyboardCategoryadmin(){
-    global $pdo,$textbotlang;
+function KeyboardCategoryadmin()
+{
+    global $pdo, $textbotlang;
     $stmt = $pdo->prepare("SELECT * FROM category");
     $stmt->execute();
     $list_category = [
@@ -1625,89 +1470,123 @@ function KeyboardCategoryadmin(){
         'resize_keyboard' => true,
     ];
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $list_category['keyboard'][] = [['text' =>$row['remark']]];
+        $list_category['keyboard'][] = [['text' => $row['remark']]];
     }
     $list_category['keyboard'][] = [
-        ['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],
+        ['text' => $textbotlang['Admin']['backAdminBtn']],
     ];
     return json_encode($list_category);
 }
 $nowpayment_setting_keyboard = json_encode([
     'keyboard' => [
-        [['text' => "API NOWPAYMENT"],['text' => "🗂 نام درگاه nowpayment"]],
-        [['text' => "💰 کش بک nowpayment"],['text' => "📚 تنظیم آموزش nowpayment"]],
-        [['text' => "⬇️ حداقل مبلغ nowpayment"],['text' => "⬆️ حداکثر مبلغ nowpayment"]],
-        [['text' => $textbotlang['Admin']['backadmin'], 'style' => 'danger'],['text' => $textbotlang['Admin']['backmenu'], 'style' => 'danger']]
+        [['text' => "API NOWPAYMENT"]],
+        [['text' => $textbotlang['keyboard']['cashbackNowPayment']], ['text' => $textbotlang['keyboard']['setEducationNowPayment']]],
+        [['text' => $textbotlang['keyboard']['minAmountNowPayment']], ['text' => $textbotlang['keyboard']['maxAmountNowPayment']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
 $Exception_auto_cart_keyboard = json_encode([
     'keyboard' => [
-        [['text' => "➕ استثناء کردن کاربر"],['text' => "❌ حذف کاربر از لیست"]],
-        [['text' => "👁 نمایش لیست افراد"]],
-        [['text' => "▶️ بازگشت به منوی تظنیمات کارت", 'style' => 'danger']]
+        [['text' => $textbotlang['keyboard']['excludeUser']], ['text' => $textbotlang['keyboard']['removeUserFromList']]],
+        [['text' => $textbotlang['keyboard']['showUserList']]],
+        [['text' => $textbotlang['keyboard']['backToCardSettings']]]
     ],
     'resize_keyboard' => true
 ]);
-function keyboard_config($config_split,$id_invoice,$back_active = true){
+function keyboard_config($config_split, $id_invoice, $back_active = true)
+{
     global $textbotlang;
     $keyboard_config = ['inline_keyboard' => []];
     $keyboard_config['inline_keyboard'][] = [
-        ['text' => "⚙️ کانفیگ", 'callback_data' => "none"],
-        ['text' => "✏️نام کانفیگ", 'callback_data' => "none"],
-        ];
-    for($i = 0; $i<count($config_split);$i++){
+        ['text' => $textbotlang['keyboard']['config'], 'callback_data' => "none"],
+        ['text' => $textbotlang['keyboard']['configName'], 'callback_data' => "none"],
+    ];
+    for ($i = 0; $i < count($config_split); $i++) {
         $config = $config_split[$i];
-        $split_config = explode("://",$config);
+        $split_config = explode("://", $config);
         $type_prtocol = $split_config[0];
-        $split_config = $split_config[1];
-        if(isBase64($split_config)){
+        $split_config = $split_config[1] ?? '';
+        if (isBase64($split_config)) {
             $split_config = base64_decode($split_config);
         }
-        if($type_prtocol == "vmess"){
-            $split_config = json_decode($split_config,true)['ps'];
-        }elseif($type_prtocol == "ss"){
-            $split_config = $split_config;
-            $split_config = explode("#",$split_config)[1];
-        }else{
-        $split_config = explode("#",$split_config)[1];
+        if ($type_prtocol == "vmess") {
+            $split_config = json_decode($split_config, true)['ps'] ?? '';
+        } else {
+            $parts = explode("#", $split_config);
+            $split_config = $parts[1] ?? $parts[0];
         }
         $keyboard_config['inline_keyboard'][] = [
-        ['text' => "دریافت کانفیگ", 'callback_data' => "configget_{$id_invoice}_$i"],
-        ['text' => urldecode($split_config), 'callback_data' => "none"],
+            ['text' => $textbotlang['keyboard']['getConfig'], 'callback_data' => "configget_{$id_invoice}_$i"],
+            ['text' => urldecode($split_config), 'callback_data' => "none"],
         ];
-        
+
     }
-    $keyboard_config['inline_keyboard'][] = [['text' => "⚙️ دریافت همه کانفیگ ها", 'callback_data' => "configget_$id_invoice"."_1520"]];
-    if($back_active){
-    $keyboard_config['inline_keyboard'][] = [['text' => $textbotlang['users']['stateus']['backinfo'], 'callback_data' => "product_$id_invoice", 'style' => 'danger']];
+    $keyboard_config['inline_keyboard'][] = [['text' => $textbotlang['keyboard']['getAllConfigs'], 'callback_data' => "configget_$id_invoice" . "_1520"]];
+    if ($back_active) {
+        $keyboard_config['inline_keyboard'][] = [['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => "product_$id_invoice"]];
     }
     return json_encode($keyboard_config);
 }
 $keyboard_buy = json_encode([
-        'inline_keyboard' => [
-            [
-                ['text' => "🛍خرید اشتراک", 'callback_data' => 'buy', 'style' => 'success'],
-            ],
-        ]
-    ]);
+    'inline_keyboard' => [
+        [
+            ['text' => $textbotlang['keyboard']['buySubscription'], 'callback_data' => 'buy'],
+        ],
+    ]
+]);
 $keyboard_stat = json_encode([
-            'inline_keyboard' => [
-                [
-                    ['text' => "⏱️ آمار کل", 'callback_data' => 'stat_all_bot'],
-                ],[
-                    ['text' => "⏱️ یک ساعت اخیر", 'callback_data' => 'hoursago_stat'],
-                ],
-                [
-                    ['text' => "⛅️ امروز", 'callback_data' => 'today_stat'],
-                    ['text' => "☀️ دیروز", 'callback_data' => 'yesterday_stat'],
-                ],
-                [
-                    ['text' => "☀️ ماه فعلی ", 'callback_data' => 'month_current_stat'],
-                    ['text' => "⛅️ ماه قبل", 'callback_data' => 'month_old_stat'],
-                ],
-                [
-                    ['text' => "🗓 مشاهده آمار در تاریخ مشخص", 'callback_data' => 'view_stat_time'],
-                ]
-            ]
-        ]);
+    'inline_keyboard' => [
+        [
+            ['text' => $textbotlang['keyboard']['totalStats'], 'callback_data' => 'stat_all_bot'],
+        ],
+        [
+            ['text' => $textbotlang['keyboard']['lastHourStats'], 'callback_data' => 'hoursago_stat'],
+        ],
+        [
+            ['text' => $textbotlang['keyboard']['today'], 'callback_data' => 'today_stat'],
+            ['text' => $textbotlang['keyboard']['yesterday'], 'callback_data' => 'yesterday_stat'],
+        ],
+        [
+            ['text' => $textbotlang['keyboard']['currentMonth'], 'callback_data' => 'month_current_stat'],
+            ['text' => $textbotlang['keyboard']['lastMonth'], 'callback_data' => 'month_old_stat'],
+        ],
+        [
+            ['text' => $textbotlang['keyboard']['statsAtDate'], 'callback_data' => 'view_stat_time'],
+        ]
+    ]
+]);
+$option_mirza = json_encode([
+    'keyboard' => [
+        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
+        [['text' => $textbotlang['keyboard']['editPassword']]],
+        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['panelSetting']]],
+        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
+        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
+        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
+        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
+        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
+        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
+        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
+        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
+    ],
+    'resize_keyboard' => true
+]);
+function keyboard_list_text($lang)
+{
+    global $textbotlang;
+    $keyboard_text = ['inline_keyboard' => []];
+    $keyboard_list_text = $textbotlang['bottext']['items'];
+    $keyboard_text['inline_keyboard'][] = [
+        ['text' => ($lang == 'fa' ? "✅" : "") . $textbotlang['bottext']['langs']['fa'], 'callback_data' => "bt_lang:fa"],
+        ['text' => ($lang == 'en' ? "✅" : "") . $textbotlang['bottext']['langs']['en'], 'callback_data' => "bt_lang:en"],
+        ['text' => ($lang == 'ru' ? "✅" : "") . $textbotlang['bottext']['langs']['ru'], 'callback_data' => "bt_lang:ru"],
+        ['text' => ($lang == 'zh' ? "✅" : "") . $textbotlang['bottext']['langs']['zh'], 'callback_data' => "bt_lang:zh"],
+    ];
+    foreach ($keyboard_list_text as $data) {
+        $keyboard_text['inline_keyboard'][] = [['text' => $data['label'], 'callback_data' => "bt_edit|$lang|{$data['key']}"]];
+    }
+    $keyboard_text['inline_keyboard'][] = [['text' => $textbotlang['bottext']['btn_close'], 'callback_data' => 'bt_close']];
+    return json_encode($keyboard_text);
+}

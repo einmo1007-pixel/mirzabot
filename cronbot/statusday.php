@@ -4,13 +4,14 @@ date_default_timezone_set('Asia/Tehran');
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../botapi.php';
 require_once __DIR__ . '/../function.php';
+$textbotlang = languagechange();
 $setting = select("setting","*",null,null,"select");
 
 //________________[ time 12 report]________________
 $midnight_time = date("H:i");
 $reportnight = select("topicid","idreport","report","reportnight","select")['idreport'];
 // if(true){
-if ($midnight_time >= "23:45") {
+if ($midnight_time == "23:45") {
 $datefirst = date("Y-m-d") . " 00:00:00";
 $dateend = date("Y-m-d") . " 23:59:59";
 
@@ -29,7 +30,7 @@ $sqlInvoices = "SELECT COUNT(*) AS count, SUM(price_product) AS total_price, SUM
                 FROM invoice 
                 WHERE (FROM_UNIXTIME(time_sell) BETWEEN :startDate AND :endDate) 
                 AND (status IN ('active', 'end_of_time', 'sendedwarn', 'send_on_hold')) 
-                AND name_product != 'سرویس تست'";
+                AND name_product != '{$textbotlang['common']['labels']['testServiceName']}'";
 $params = [':startDate' => $datefirst, ':endDate' => $dateend];
 $stmt = executeQuery($pdo, $sqlInvoices, $params);
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -42,7 +43,7 @@ $sqlTestService = "SELECT COUNT(*) AS count
                   FROM invoice 
                   WHERE (FROM_UNIXTIME(time_sell) BETWEEN :startDate AND :endDate) 
                   AND (status IN ('active', 'end_of_time', 'sendedwarn')) 
-                  AND name_product = 'سرویس تست'";
+                  AND name_product = '{$textbotlang['common']['labels']['testServiceName']}'";
 $stmt = executeQuery($pdo, $sqlTestService, $params);
 $dayListSelltest = $stmt->fetchColumn() ?? 0;
 
@@ -95,21 +96,21 @@ $params = [
 
 $stmt = executeQuery($pdo, $sqlTopAgents, $params);
 $listagentuser = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$textagent = "لیست نمایندگانی که بیشترین خرید در امروز داشتند :\n";
+$textagent = $textbotlang['Admin']['report']['dailyTopAgentsTitle'];
 foreach ($listagentuser as $agent) {
-    $textagent .= "\nایدی عددی کاربر : {$agent['id']}\nنام کاربری کاربر : {$agent['username']}\nجمع کل خرید امروز : {$agent['total_spent']}\n---------------\n";
+    $textagent .= sprintf($textbotlang['Admin']['report']['dailyTopAgentRow'], $agent['id'], $agent['username'], $agent['total_spent']);
 }
 
 // Fetch panel reports
 $panels = select("marzban_panel", "*", null, null, "fetchAll");
-$textpanel = "گزارش پنل ها :\n";
+$textpanel = $textbotlang['Admin']['report']['dailyPanelsTitle'];
 foreach ($panels as $panel) {
     $sqlPanel = "SELECT COUNT(*) AS orders, SUM(price_product) AS total_price, SUM(Volume) AS total_volume 
                  FROM invoice 
                  WHERE (FROM_UNIXTIME(time_sell) BETWEEN :startDate AND :endDate) 
                  AND (status IN ('active', 'end_of_time', 'sendedwarn', 'send_on_hold')) 
                  AND Service_location = :location 
-                 AND name_product != 'سرویس تست'";
+                 AND name_product != '{$textbotlang['common']['labels']['testServiceName']}'";
     $params = [':startDate' => $datefirst, ':endDate' => $dateend, ':location' => $panel['name_panel']];
     $stmt = executeQuery($pdo, $sqlPanel, $params);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -118,11 +119,11 @@ foreach ($panels as $panel) {
     $total_price = $result['total_price'] ?? 0;
     $total_volume = $result['total_volume'] ?? 0;
 
-    $textpanel .= "\nنام پنل : {$panel['name_panel']}\n🛍 تعداد سفارشات امروز : $orders عدد\n🛍 جمع مبلغ سفارشات امروز : $total_price تومان\n🔋 جمع حجم های فروخته شده : $total_volume گیگابایت\n---------------\n";
+    $textpanel .= sprintf($textbotlang['Admin']['report']['dailyPanelRow'], $panel['name_panel'], $orders, $total_price, $total_volume);
 }
 
 // Daily report text
-$textreport = "📌 گزارش روزانه کارکرد ربات :\n\n🧲 تعداد تمدید امروز : $countextendday عدد\n💰 جمع تمدید امروز : $sumcountextend تومان\n🛍 تعداد سفارشات امروز : $dayListSell عدد\n🛍 جمع مبلغ سفارشات امروز : $suminvoiceday تومان\n🔑 اکانت های تست امروز : $dayListSelltest عدد\n🔋 جمع حجم های فروخته شده : $sumvolume گیگابایت\nتعداد کاربرانی که امروز به ربات پیوستند : $usernew نفر\n";
+$textreport = sprintf($textbotlang['Admin']['report']['dailyBot'], $countextendday, $sumcountextend, $dayListSell, $suminvoiceday, $dayListSelltest, $sumvolume, $usernew);
 
 // Send reports to Telegram
 if (!empty($setting['Channel_Report'])) {

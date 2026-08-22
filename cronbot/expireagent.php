@@ -4,23 +4,20 @@ date_default_timezone_set('Asia/Tehran');
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../botapi.php';
 require_once __DIR__ . '/../function.php';
+$textbotlang = languagechange();
 
 $setting = select("setting", "*");
 $otherreport = select("topicid","idreport","report","otherreport","select")['idreport'];
 // buy service 
-$stmt = $pdo->prepare("SELECT * FROM user WHERE expire IS NOT NULL");
-$stmt->execute();
+$stmt = $pdo->prepare("SELECT id, username FROM user WHERE expire IS NOT NULL AND CAST(expire AS UNSIGNED) < :now");
+$stmt->execute([':now' => time()]);
 while ($user = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    $time_expire = $user['expire'] - time();
-    if($time_expire < 0){
-    $textexpire = "📌 نماینده عزیز زمان نمایندگی شما به پایان. رسید و حساب شما از حالت نمایندگی خارج گردید. چهت فعالسازی مجدد نمایندگی می توانید با پشتیبانی در ارتباط باشید.";
+    $textexpire = $textbotlang['users']['agent']['expiredNotice'];
     sendmessage($user['id'],$textexpire, null, 'HTML');
-    update("user","agent","f","id",$user['id']);
-    update("user","expire",null,"id",$user['id']);
-    $textreport = "📌 گروه کاربری کاربر بدلیل انقضای زمان نمایندگی  به f تغییر پیدا کرد
-
-آیدی عددی کاربر :  {$user['id']}
-نام کاربری کاربر :‌ {$user['username']}";
+    $stmtExpire = $pdo->prepare("UPDATE user SET agent = 'f', expire = NULL WHERE id = ?");
+    $stmtExpire->execute([$user['id']]);
+    clearSelectCache('user');
+    $textreport = sprintf($textbotlang['Admin']['reportgroup']['agentExpiredGroupChanged'], $user['id'], $user['username']);
     if (strlen($setting['Channel_Report']) > 0) {
         telegram('sendmessage',[
             'chat_id' => $setting['Channel_Report'],
@@ -29,6 +26,4 @@ while ($user = $stmt->fetch(PDO::FETCH_ASSOC)) {
             'parse_mode' => "HTML"
         ]);
     }
-    }
-
 }

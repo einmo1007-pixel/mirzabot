@@ -3,7 +3,7 @@
 $botinfo = select("botsaz", "*", "bot_token", $ApiToken, "select");
 $userbot = select("user", "*", "id", $botinfo['id_user'], "select");
 $hide_panel = json_decode($botinfo['hide_panel'], true);
-$text_bot_var =  json_decode(file_get_contents('text.json'), true);
+$text_bot_var = json_decode(file_get_contents('text.json'), true);
 // keyboard bot 
 $keyboarddate = array(
     'text_sell' => $text_bot_var['btn_keyboard']['buy'],
@@ -40,7 +40,7 @@ foreach ($keyboarddate as $keyboardtext) {
 if (count($tempArray) > 0) {
     $keyboard['keyboard'][] = $tempArray;
 }
-$keyboard  = json_encode($keyboard);
+$keyboard = json_encode($keyboard);
 
 $backuser = json_encode([
     'keyboard' => [
@@ -52,12 +52,14 @@ $backuser = json_encode([
 
 // keyboard list panel for test 
 
-$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE TestAccount = 'ONTestAccount' AND (agent = '{$userbot['agent']}' OR agent = 'all')");
-$stmt->execute();
+$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE TestAccount = 'ONTestAccount' AND (agent = :mp1 OR agent = 'all')");
+$stmt->execute([':mp1' => $userbot['agent']]);
 $list_marzban_panel_usertest = ['inline_keyboard' => []];
 while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true))) continue;
-    if (in_array($result['name_panel'], $hide_panel)) continue;
+    if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true)))
+        continue;
+    if (in_array($result['name_panel'], $hide_panel))
+        continue;
     $list_marzban_panel_usertest['inline_keyboard'][] = [
         ['text' => $result['name_panel'], 'callback_data' => "locationtest_{$result['code_panel']}"]
     ];
@@ -82,7 +84,8 @@ $keyboardadmin = json_encode([
             ['text' => "👨‍🔧  مدیریت ادمین ها"]
         ],
         [
-            ['text' => "📝 تنظیم متون"]
+            ['text' => "📝 تنظیم متون"],
+            ['text' => "🆕 آپدیت ربات"]
         ],
         [
             ['text' => "📞 تنظیم نام کاربری پشتیبانی"],
@@ -95,7 +98,7 @@ $keyboardadmin = json_encode([
             ['text' => "🏠 بازگشت به منوی اصلی"]
         ],
     ],
-    'resize_keyboard' =>  true
+    'resize_keyboard' => true
 ]);
 
 $keyboardprice = json_encode([
@@ -112,7 +115,7 @@ $keyboardprice = json_encode([
             ['text' => "بازگشت به منوی ادمین"]
         ],
     ],
-    'resize_keyboard' =>  true
+    'resize_keyboard' => true
 ]);
 
 $keyboard_change_price = json_encode([
@@ -136,7 +139,7 @@ $keyboard_change_price = json_encode([
             ['text' => "بازگشت به منوی ادمین"]
         ]
     ],
-    'resize_keyboard' =>  true
+    'resize_keyboard' => true
 ]);
 
 $backadmin = json_encode([
@@ -145,16 +148,18 @@ $backadmin = json_encode([
             ['text' => "بازگشت به منوی ادمین"]
         ],
     ],
-    'resize_keyboard' =>  true
+    'resize_keyboard' => true
 ]);
 
 //------------------  [ listpanelusers ]----------------//
-$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = '{$userbot['agent']}' OR agent = 'all')");
-$stmt->execute();
+$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = :mp2 OR agent = 'all')");
+$stmt->execute([':mp2' => $userbot['agent']]);
 $list_marzban_panel_users = ['inline_keyboard' => []];
 while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true))) continue;
-    if (in_array($result['name_panel'], $hide_panel)) continue;
+    if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true)))
+        continue;
+    if (in_array($result['name_panel'], $hide_panel))
+        continue;
     $list_marzban_panel_users['inline_keyboard'][] = [
         ['text' => $result['name_panel'], 'callback_data' => "location_{$result['code_panel']}"]
     ];
@@ -167,13 +172,13 @@ $list_marzban_panel_user = json_encode($list_marzban_panel_users);
 $payment = json_encode([
     'inline_keyboard' => [
         [['text' => "💰 پرداخت و دریافت سرویس", 'callback_data' => "confirmandgetservice"]],
-        [['text' => "🏠 بازگشت به منوی اصلی",  'callback_data' => "backuser"]]
+        [['text' => "🏠 بازگشت به منوی اصلی", 'callback_data' => "backuser"]]
     ]
 ]);
 $KeyboardBalance = json_encode([
     'inline_keyboard' => [
         [['text' => "💸 افزایش موجودی", 'callback_data' => "AddBalance"]],
-        [['text' => "🏠 بازگشت به منوی اصلی",  'callback_data' => "backuser"]]
+        [['text' => "🏠 بازگشت به منوی اصلی", 'callback_data' => "backuser"]]
     ]
 ]);
 
@@ -186,25 +191,29 @@ function KeyboardProduct($location, $query, $pricediscount, $datakeyboard, $stat
     $stmt->execute();
     $valuetow = $valuetow != null ? "-$valuetow" : "";
     while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $productlist = json_decode(file_get_contents('product.json'), true);
-        $productlist_name = json_decode(file_get_contents('product_name.json'), true);
-        if (isset($productlist[$result['code_product']])) $result['price_product'] = $productlist[$result['code_product']];
+        $productlist = readJsonFileIfExists('product.json');
+        $productlist_name = readJsonFileIfExists('product_name.json');
+        if (isset($productlist[$result['code_product']]))
+            $result['price_product'] = $productlist[$result['code_product']];
         $result['name_product'] = empty($productlist_name[$result['code_product']]) ? $result['name_product'] : $productlist_name[$result['code_product']];
         $hide_panel = json_decode($result['hide_panel'], true);
-        if (in_array($location, $hide_panel)) continue;
+        if (in_array($location, $hide_panel))
+            continue;
         if (intval($pricediscount) != 0) {
             $resultper = ($result['price_product'] * $pricediscount) / 100;
             $result['price_product'] = $result['price_product'] - $resultper;
         }
         $namekeyboard = $result['name_product'] . " - " . number_format($result['price_product']) . "تومان";
-        if ($statusshowprice == "onshowprice")$result['name_product'] = $namekeyboard;
+        if ($statusshowprice == "onshowprice")
+            $result['name_product'] = $namekeyboard;
         $product['inline_keyboard'][] = [
-            ['text' =>  $result['name_product'], 'callback_data' => "{$datakeyboard}{$result['code_product']}{$valuetow}"]
+            ['text' => $result['name_product'], 'callback_data' => "{$datakeyboard}{$result['code_product']}{$valuetow}"]
         ];
     }
-    if ($statuscustom) $product['inline_keyboard'][] = [['text' => $textbotlang['users']['customsellvolume']['title'], 'callback_data' => $customvolume]];
+    if ($statuscustom)
+        $product['inline_keyboard'][] = [['text' => $textbotlang['users']['customSellVolume']['title'], 'callback_data' => $customvolume]];
     $product['inline_keyboard'][] = [
-        ['text' => $textbotlang['users']['stateus']['backinfo'], 'callback_data' => $backuser],
+        ['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => $backuser],
     ];
     return json_encode($product);
 }
@@ -220,7 +229,8 @@ function KeyboardCategory($location, $agent, $backuser = "backuser")
         $stmts->bindParam(':category', $row['remark'], PDO::PARAM_STR);
         $stmts->bindParam(':agent', $agent);
         $stmts->execute();
-        if ($stmts->rowCount() == 0) continue;
+        if ($stmts->rowCount() == 0)
+            continue;
         $list_category['inline_keyboard'][] = [['text' => $row['remark'], 'callback_data' => "categorynames_" . $row['id']]];
     }
     $list_category['inline_keyboard'][] = [
