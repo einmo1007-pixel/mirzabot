@@ -63,11 +63,10 @@ class ManagePanel
         if ($Get_Data_Panel['type'] == "marzban") {
             //create user
             $ConnectToPanel = adduser($Get_Data_Panel['name_panel'], $data_limit, $usernameC, $expire, $note, $Get_Data_Product['data_limit_reset'], $Get_Data_Product['name_product']);
-            if (!empty($ConnectToPanel['status']) && $ConnectToPanel['status'] >= 400) {
-                $errBody = json_decode($ConnectToPanel['body'] ?? '', true);
+            if (!empty($ConnectToPanel['status']) && $ConnectToPanel['status'] == 500) {
                 return array(
                     'status' => 'Unsuccessful',
-                    'msg' => is_array($errBody) && !empty($errBody['detail']) ? $errBody['detail'] : $ConnectToPanel['status']
+                    'msg' => $ConnectToPanel['status']
                 );
             }
             if (!empty($ConnectToPanel['error'])) {
@@ -90,31 +89,26 @@ class ManagePanel
                 }
                 if ($Get_Data_Panel['version_panel'] == "1") {
                     $out_put_link = outputlink($data_Output['subscription_url']);
-
-                    $links = isBase64($out_put_link)
-                        ? base64_decode($out_put_link)
-                        : ($data_Output['links'] ?? ($out_put_link ?: ''));
-
-                    $data_Output['links'] = is_array($links)
-                        ? $links
-                        : explode("\n", (string) $links);
+                    if (isBase64($out_put_link)) {
+                        $data_Output['links'] = base64_decode(string: outputlink($data_Output['subscription_url']));
+                    }
+                    $data_Output['links'] = explode("\n", $data_Output['links']);
                 }
                 if ($invoice != false) {
                     $data_Output['subscription_url'] = "https://$domainhosts/sub/" . $invoice['id_invoice'];
                 }
                 $Output['status'] = 'successful';
                 $Output['username'] = $data_Output['username'];
-                $Output['subscription_url'] = applyStripSub($Get_Data_Panel, $data_Output['subscription_url']);
+                $Output['subscription_url'] = $data_Output['subscription_url'];
                 $Output['configs'] = $data_Output['links'];
             }
         } elseif ($Get_Data_Panel['type'] == "marzneshin") {
             //create user
             $ConnectToPanel = adduserm($Get_Data_Panel['name_panel'], $data_limit, $usernameC, $expire, $Get_Data_Product['name_product'], $note, $Get_Data_Product['data_limit_reset']);
-            if (!empty($ConnectToPanel['status']) && $ConnectToPanel['status'] >= 400) {
-                $errBody = json_decode($ConnectToPanel['body'] ?? '', true);
+            if (!empty($ConnectToPanel['status']) && $ConnectToPanel['status'] == 500) {
                 return array(
                     'status' => 'Unsuccessful',
-                    'msg' => is_array($errBody) && !empty($errBody['detail']) ? $errBody['detail'] : $ConnectToPanel['status']
+                    'msg' => $ConnectToPanel['status']
                 );
             }
             if (!empty($ConnectToPanel['error'])) {
@@ -273,7 +267,7 @@ class ManagePanel
             $configman = $statement->fetch(PDO::FETCH_ASSOC);
             $Output['status'] = 'successful';
             $Output['username'] = $usernameC;
-            $Output['subscription_url'] = is_array($configman) ? $configman['contentrecord'] : null;
+            $Output['subscription_url'] = $configman['contentrecord'];
             $Output['configs'] = "";
             update("manualsell", "status", "selled", "id", $configman['id']);
             update("manualsell", "username", $usernameC, "id", $configman['id']);
@@ -350,7 +344,7 @@ class ManagePanel
                 $name_group = "usertest";
             }
             $data_Output = addUserIBsng($Get_Data_Panel['name_panel'], $usernameC, $password, $name_group);
-            if (empty($data_Output['status'])) {
+            if (!$data_Output) {
                 $Output['status'] = 'Unsuccessful';
                 $Output['msg'] = $data_Output['msg'];
             } else {
@@ -379,7 +373,7 @@ class ManagePanel
             }
         } elseif ($Get_Data_Panel['type'] == "mirza_agent") {
             //create user
-            $ConnectToPanel = create_user_mirza($Get_Data_Panel, $data_limit / pow(1024, 3), $expire == 0 ? 0 : ($expire - time()) / 86400, $usernameC);
+            $ConnectToPanel = create_user_mirza($Get_Data_Panel, $data_limit / pow(1024, 3), ($expire - time()) / 86400, $usernameC);
             if (!empty($ConnectToPanel['status']) && $ConnectToPanel['status'] != 200) {
                 return array(
                     'status' => 'Unsuccessful',
@@ -478,20 +472,20 @@ class ManagePanel
                     'msg' => $UsernameData['status']
                 );
             } else {
-                $UsernameData = json_decode($UsernameData['body'] ?? '', true);
-                if (!is_array($UsernameData) || !empty($UsernameData['detail']) || empty($UsernameData['username'])) {
+                $UsernameData = json_decode($UsernameData['body'], true);
+                if (!empty($UsernameData['detail'])) {
                     return array(
                         'status' => 'Unsuccessful',
-                        'msg' => is_array($UsernameData) ? ($UsernameData['detail'] ?? 'Unsuccessful') : 'Unsuccessful'
+                        'msg' => $UsernameData['detail']
                     );
                 }
-                if (!preg_match('/^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:\d+)?((\/[^\s\/]+)+)?$/', $UsernameData['subscription_url'] ?? '')) {
-                    $UsernameData['subscription_url'] = $Get_Data_Panel['url_panel'] . "/" . ltrim($UsernameData['subscription_url'] ?? '', "/");
+                if (!preg_match('/^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:\d+)?((\/[^\s\/]+)+)?$/', $UsernameData['subscription_url'])) {
+                    $UsernameData['subscription_url'] = $Get_Data_Panel['url_panel'] . "/" . ltrim($UsernameData['subscription_url'], "/");
                 }
                 if ($Get_Data_Panel['version_panel'] == "1") {
-                    $UsernameData['expire'] = strtotime($UsernameData['expire'] ?? '');
-                    $links = $UsernameData['links'] ?? base64_decode(outputlink($UsernameData['subscription_url']));
-                    $UsernameData['links'] = is_array($links) ? $links : explode("\n", (string) $links);
+                    $UsernameData['expire'] = strtotime($UsernameData['expire']);
+                    $UsernameData['links'] = base64_decode(outputlink($UsernameData['subscription_url']));
+                    $UsernameData['links'] = explode("\n", $UsernameData['links']);
                     $sublist_update = get_list_update($name_panel, $username);
                     if (!empty($sublist_update['error'])) {
                         return array(
@@ -504,7 +498,7 @@ class ManagePanel
                             'msg' => $sublist_update['status']
                         );
                     }
-                    $sublist_update_body = json_decode($sublist_update['body'] ?? '', true);
+                    $sublist_update_body = json_decode($sublist_update['body'], true);
                     if (!empty($sublist_update_body['updates']) && is_array($sublist_update_body['updates'])) {
                         $first_update = $sublist_update_body['updates'][0];
                         $UsernameData['sub_updated_at'] = isset($first_update['created_at']) ? $first_update['created_at'] : null;
@@ -514,7 +508,7 @@ class ManagePanel
                         $UsernameData['sub_last_user_agent'] = isset($UsernameData['sub_last_user_agent']) ? $UsernameData['sub_last_user_agent'] : null;
                     }
                 } else {
-                    $UsernameData['expire'] = $UsernameData['expire'] ?? null;
+                    $UsernameData['expire'] = $UsernameData['expire'];
                 }
                 if ($invoice != false) {
                     $UsernameData['subscription_url'] = "https://$domainhosts/sub/" . $invoice['id_invoice'];
@@ -523,18 +517,18 @@ class ManagePanel
                     $UsernameData['proxies'] = isset($UsernameData['proxy_settings']) ? $UsernameData['proxy_settings'] : null;
                 }
                 $Output = array(
-                    'status' => $UsernameData['status'] ?? 'Unknown',
-                    'username' => $UsernameData['username'] ?? $username,
-                    'data_limit' => $UsernameData['data_limit'] ?? null,
-                    'expire' => $UsernameData['expire'] ?? null,
-                    'online_at' => $UsernameData['online_at'] ?? null,
-                    'used_traffic' => $UsernameData['used_traffic'] ?? null,
-                    'links' => $UsernameData['links'] ?? [],
-                    'subscription_url' => $UsernameData['subscription_url'] ?? '',
-                    'sub_updated_at' => $UsernameData['sub_updated_at'] ?? null,
-                    'sub_last_user_agent' => $UsernameData['sub_last_user_agent'] ?? null,
-                    'uuid' => $UsernameData['proxies'] ?? null,
-                    'data_limit_reset' => $UsernameData['data_limit_reset_strategy'] ?? null
+                    'status' => $UsernameData['status'],
+                    'username' => $UsernameData['username'],
+                    'data_limit' => $UsernameData['data_limit'],
+                    'expire' => $UsernameData['expire'],
+                    'online_at' => $UsernameData['online_at'],
+                    'used_traffic' => $UsernameData['used_traffic'],
+                    'links' => $UsernameData['links'],
+                    'subscription_url' => $UsernameData['subscription_url'],
+                    'sub_updated_at' => $UsernameData['sub_updated_at'],
+                    'sub_last_user_agent' => $UsernameData['sub_last_user_agent'],
+                    'uuid' => $UsernameData['proxies'],
+                    'data_limit_reset' => $UsernameData['data_limit_reset_strategy']
                 );
             }
         } elseif ($Get_Data_Panel['type'] == "marzneshin") {
@@ -602,7 +596,7 @@ class ManagePanel
                         'online_at' => $UsernameData['online_at'],
                         'used_traffic' => $UsernameData['used_traffic'],
                         'links' => $links_user,
-                        'subscription_url' => applyStripSub($Get_Data_Panel, $UsernameData['subscription_url']),
+                        'subscription_url' => $UsernameData['subscription_url'],
                         'sub_updated_at' => $UsernameData['sub_updated_at'],
                         'sub_last_user_agent' => $UsernameData['sub_last_user_agent'],
                         'uuid' => null
@@ -721,7 +715,7 @@ class ManagePanel
                 $usageLimit = isset($UsernameData['usage_limit_GB']) ? $UsernameData['usage_limit_GB'] * pow(1024, 3) : 0;
                 $currentUsage = isset($UsernameData['current_usage_GB']) ? $UsernameData['current_usage_GB'] * pow(1024, 3) : 0;
                 $uuid = $UsernameData['uuid'] ?? null;
-                $linksuburl = applyStripSub($Get_Data_Panel, $uuid ? "{$Get_Data_Panel['linksubx']}/{$uuid}/" : $Get_Data_Panel['linksubx']);
+                $linksuburl = $uuid ? "{$Get_Data_Panel['linksubx']}/{$uuid}/" : $Get_Data_Panel['linksubx'];
                 $lastOnline = $UsernameData['last_online'] ?? null;
                 if ($lastOnline == "1-01-01 00:00:00") {
                     $lastOnline = null;
@@ -759,14 +753,14 @@ class ManagePanel
             $configman = $stmt->fetch(PDO::FETCH_ASSOC);
             $service = select("invoice", "*", "username", $username, "select");
             $Output = array(
-                'status' => is_array($service) ? $service['Status'] : null,
-                'username' => is_array($service) ? $service['username'] : $username,
+                'status' => $service['Status'],
+                'username' => $service['username'],
                 'data_limit' => null,
-                'expire' => is_array($service) ? $service['time_sell'] : null,
+                'expire' => $service['time_sell'],
                 'online_at' => null,
                 'used_traffic' => null,
                 'links' => [],
-                'subscription_url' => is_array($configman) ? $configman['contentrecord'] : null,
+                'subscription_url' => $configman['contentrecord'],
                 'sub_updated_at' => null,
                 'sub_last_user_agent' => null,
                 'uuid' => null
@@ -774,7 +768,7 @@ class ManagePanel
         } elseif ($Get_Data_Panel['type'] == "alireza_single") {
             $UsernameData2 = get_clinetsalireza($username, $Get_Data_Panel['name_panel']);
             if (!is_array($UsernameData2)) {
-                return array(
+                $Output = array(
                     'status' => 'Unsuccessful',
                     'msg' => "user not found"
                 );
@@ -813,7 +807,7 @@ class ManagePanel
                     'online_at' => $status_user,
                     'used_traffic' => $UsernameData['up'] + $UsernameData['down'],
                     'links' => [outputlink($Get_Data_Panel['linksubx'] . "/{$UsernameData2['subId']}")],
-                    'subscription_url' => applyStripSub($Get_Data_Panel, $Get_Data_Panel['linksubx'] . "/{$UsernameData2['subId']}"),
+                    'subscription_url' => $Get_Data_Panel['linksubx'] . "/{$UsernameData2['subId']}",
                     'sub_updated_at' => null,
                     'sub_last_user_agent' => null,
                 );
@@ -1133,7 +1127,7 @@ class ManagePanel
                 $Output = array(
                     'status' => 'successful',
                     'configs' => [outputlink($Get_Data_Panel['linksubx'] . "/{$subId}")],
-                    'subscription_url' => applyStripSub($Get_Data_Panel, $Get_Data_Panel['linksubx'] . "/{$subId}"),
+                    'subscription_url' => $Get_Data_Panel['linksubx'] . "/{$subId}",
                 );
             }
         } elseif ($Get_Data_Panel['type'] == "alireza_single") {
@@ -1161,7 +1155,7 @@ class ManagePanel
                 $Output = array(
                     'status' => 'successful',
                     'configs' => [outputlink($Get_Data_Panel['linksubx'] . "/{$subId}")],
-                    'subscription_url' => applyStripSub($Get_Data_Panel, $Get_Data_Panel['linksubx'] . "/{$subId}"),
+                    'subscription_url' => $Get_Data_Panel['linksubx'] . "/{$subId}",
                 );
             }
         } elseif ($Get_Data_Panel['type'] == "hiddify") {
@@ -1787,12 +1781,6 @@ class ManagePanel
             $configs['data'] = array_merge($configs['data'], $config);
             $configs['data'] = json_encode($configs['data'], true);
             $modify = updateClientS_ui($Get_Data_Panel['name_panel'], $configs);
-            if (!is_array($modify) || (array_key_exists('success', $modify) && !$modify['success'])) {
-                return array(
-                    'status' => false,
-                    'msg' => is_array($modify) ? ($modify['msg'] ?? 'panel update failed') : 'panel update failed'
-                );
-            }
             return array(
                 'status' => true,
                 'data' => $modify
@@ -1804,16 +1792,18 @@ class ManagePanel
         $DataUserOut = $this->DataUser($name_panel, $username);
         $Get_Data_Panel = select("marzban_panel", "*", "name_panel", $name_panel, "select");
         if ($DataUserOut['status'] == "Unsuccessful") {
-            return array(
+            $Output = array(
                 'status' => 'Unsuccessful',
-                'msg' => $DataUserOut['msg']
+                'msg' => $DataUserOut['detail']
             );
+            return;
         }
         if (!in_array($DataUserOut['status'], ["active", "disabled"])) {
-            return array(
+            $Output = array(
                 'status' => 'Unsuccessful',
                 'msg' => "status invalid"
             );
+            return;
         }
         if ($Get_Data_Panel['type'] == "marzban") {
             if ($DataUserOut['status'] == "active") {
@@ -2480,11 +2470,12 @@ class ManagePanel
                 ),
             );
         } elseif ($panel['type'] == "hiddify") {
+            $new_limit = ($old_limit_time / pow(1024, 3)) + $limit_time_new;
             $datauser = getdatauser($username_account, $panel['name_panel']);
             $data = array(
                 "current_usage_GB" => $datauser['current_usage_GB'],
                 "usage_limit_GB" => $datauser['usage_limit_GB'],
-                "package_days" => $limit_time_new == 0 ? 0 : ($new_limit - time()) / 86400,
+                "package_days" => $new_limit,
                 "start_date" => null
             );
         } elseif ($panel['type'] == "WGDashboard") {

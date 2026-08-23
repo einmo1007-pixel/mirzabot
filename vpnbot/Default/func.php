@@ -49,9 +49,6 @@ function DirectPaymentbot($order_id,$image = 'images.jpg'){
 }
 function channel_check($id_channel){
     global $from_id;
-        if (isTelegramChatIdEmpty($id_channel)) {
-            return [];
-        }
         $channel_link = array();
          $response = telegram('getChatMember',[
                 'chat_id' => $id_channel,

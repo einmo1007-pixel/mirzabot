@@ -9,14 +9,15 @@ $textbotlang = languagechange();
 $setting = select("setting", "*");
 $otherreport = select("topicid","idreport","report","otherreport","select")['idreport'];
 // buy service 
-$stmt = $pdo->prepare("SELECT id, username FROM user WHERE expire IS NOT NULL AND CAST(expire AS UNSIGNED) < :now");
-$stmt->execute([':now' => time()]);
+$stmt = $pdo->prepare("SELECT * FROM user WHERE expire IS NOT NULL");
+$stmt->execute();
 while ($user = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $time_expire = $user['expire'] - time();
+    if($time_expire < 0){
     $textexpire = $textbotlang['users']['agent']['expiredNotice'];
     sendmessage($user['id'],$textexpire, null, 'HTML');
-    $stmtExpire = $pdo->prepare("UPDATE user SET agent = 'f', expire = NULL WHERE id = ?");
-    $stmtExpire->execute([$user['id']]);
-    clearSelectCache('user');
+    update("user","agent","f","id",$user['id']);
+    update("user","expire",null,"id",$user['id']);
     $textreport = sprintf($textbotlang['Admin']['reportgroup']['agentExpiredGroupChanged'], $user['id'], $user['username']);
     if (strlen($setting['Channel_Report']) > 0) {
         telegram('sendmessage',[
@@ -26,4 +27,6 @@ while ($user = $stmt->fetch(PDO::FETCH_ASSOC)) {
             'parse_mode' => "HTML"
         ]);
     }
+    }
+
 }

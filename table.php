@@ -697,10 +697,9 @@ try {
         ['maxbalance', '1000000'],
         ['marchent_tronseller', '0'],
         ['walletaddress', '0'],
+        ['urlpaymenttron', 'https://tronseller.storeddownloader.fun/api/GetOrderToken'],
         ['statustarnado', 'offternado'],
         ['apiternado', '0'],
-        ['feestatusternado', 'offfeeternado'],
-        ['feeternado', '0'],
         ['chashbackcart', '0'],
         ['chashbackstar', '0'],
         ['chashbackperfect', '0'],
@@ -779,8 +778,12 @@ try {
             $__q3->bindValue(2, $setting[1], PDO::PARAM_STR);
             $__q3->execute();
         }
+
+
+
+
+
     }
-    $pdo->exec("DELETE FROM PaySetting WHERE NamePay = 'urlpaymenttron'");
 } catch (Exception $e) {
     file_put_contents('error_log', $e->getMessage());
 }
@@ -1322,36 +1325,6 @@ try {
 
 if ($check && $check->rowCount() != 0) {
     $pdo->exec("ALTER TABLE `user` DROP `ref_code`");
-}
-#-----------------[ performance indexes ]-----------------#
-$performanceIndexes = [
-    ['invoice', 'idx_invoice_id_user', '`id_user`(100)'],
-    ['invoice', 'idx_invoice_username', '`username`(150)'],
-    ['invoice', 'idx_invoice_status', '`Status`(100)'],
-    ['invoice', 'idx_invoice_location', '`Service_location`(150)'],
-    ['Payment_report', 'idx_payreport_id_user', '`id_user`(100)'],
-    ['Payment_report', 'idx_payreport_id_order', '`id_order`(191)'],
-    ['Payment_report', 'idx_payreport_status', '`payment_Status`(100)'],
-    ['marzban_panel', 'idx_panel_name', '`name_panel`(150)'],
-    ['marzban_panel', 'idx_panel_code', '`code_panel`(100)'],
-    ['product', 'idx_product_code', '`code_product`(50)'],
-    ['product', 'idx_product_location', '`Location`(100)'],
-    ['manualsell', 'idx_manualsell_codepanel', '`codepanel`(100)'],
-    ['service_other', 'idx_serviceother_username', '`username`(150)'],
-    ['service_other', 'idx_serviceother_type', '`type`(100)'],
-    ['user', 'idx_user_affiliates', '`affiliates`'],
-];
-foreach ($performanceIndexes as $indexDef) {
-    list($idxTable, $idxName, $idxCols) = $indexDef;
-    try {
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?");
-        $stmt->execute([$idxTable, $idxName]);
-        if ((int) $stmt->fetchColumn() == 0) {
-            $pdo->exec("ALTER TABLE `$idxTable` ADD INDEX `$idxName` ($idxCols)");
-        }
-    } catch (Exception $e) {
-        error_log("[INDEX:$idxTable.$idxName] " . $e->getMessage());
-    }
 }
 telegram('setwebhook', [
     'url' => "https://$domainhosts/index.php"

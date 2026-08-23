@@ -218,5 +218,7 @@ function get_onlineclialireza($name_panel, $username)
     if (in_array($username, $response))
         return "online";
     return "offline";
+    curl_close($curl);
+    unlink('cookie.txt');
 
 }

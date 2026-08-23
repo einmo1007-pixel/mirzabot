@@ -34,12 +34,13 @@ class ServiceMonitor
         $invoices = $this->getActiveInvoices();
         if ($invoices == false)
             return;
-        $stmtCron = $this->pdo->prepare("UPDATE invoice SET time_cron = ? WHERE id_invoice = ?");
         foreach ($invoices as $invoice) {
-            if ($invoice['time_cron'] != null && (time() - $invoice['time_cron']) < 1600)
-                continue;
-            $stmtCron->execute([time(), $invoice['id_invoice']]);
-            clearSelectCache('invoice');
+            if ($invoice['time_cron'] != null) {
+                $time_cron = time() - $invoice['time_cron'];
+                if ($time_cron < 1600)
+                    continue;
+            }
+            update("invoice", "time_cron", time(), "id_invoice", $invoice['id_invoice']);
             $check_send = json_decode($invoice['notifctions'], true);
             $data = $this->processInvoice($invoice);
             if (!is_array($data))
