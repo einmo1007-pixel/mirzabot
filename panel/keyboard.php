@@ -53,16 +53,12 @@ if ($method == "POST" && is_array($keyboard)) {
 ?>
 
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="FA">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title><?= $textbotlang['panel']['keyboardManageTitle'] ?></title>
-
-    <script>
-        window.__MIRZA_API_ORIGIN = new URL('..', window.location.href).href.replace(/\/$/, '');
-    </script>
 
     <script type="module" crossorigin src="js/sort_keyboard.js"></script>
     <link rel="stylesheet" crossorigin href="css/sort_keyboard.css">
@@ -88,7 +84,6 @@ if ($method == "POST" && is_array($keyboard)) {
             font-family: yekan;
             font-size: 13px;
             font-weight: bold;
-            text-decoration: none;
         }
 
         .btndefult {
@@ -103,7 +98,6 @@ if ($method == "POST" && is_array($keyboard)) {
             font-family: yekan;
             font-size: 13px;
             font-weight: bold;
-            text-decoration: none;
         }
     </style>
 </head>
