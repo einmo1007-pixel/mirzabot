@@ -78,7 +78,7 @@ function panel_panels(array $data, string $method): void
         $totalpanel = (int) $stmt->fetchColumn();
         $totalPages = (int) ceil($totalpanel / $limit);
 
-        $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE name_panel LIKE CONCAT('%', :name_panel, '%') ORDER BY id LIMIT :limit OFFSET :offset");
+        $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE name_panel LIKE CONCAT('%', :name_panel, '%') ORDER BY display_order, id LIMIT :limit OFFSET :offset");
         $stmt->bindValue(':name_panel', $q, PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -155,21 +155,21 @@ function panel_panel_add(array $data, string $method): void
         $panelData = [
             'code_panel' => bin2hex(random_bytes(3)),
             'name_panel' => $data['name'],
-            'url_panel' => $data['url'],
-            'username_panel' => $data['username_panel'],
-            'password_panel' => $data['password_panel'],
+            'url_panel' => normalizePanelUrl(htmlspecialchars_decode((string) $data['url'], ENT_QUOTES)),
+            'username_panel' => htmlspecialchars_decode((string) $data['username_panel'], ENT_QUOTES),
+            'password_panel' => htmlspecialchars_decode((string) $data['password_panel'], ENT_QUOTES),
             'status' => empty($data['status']) ? "active" : $data['status'],
             'agent' => empty($data['agent']) ? "all" : $data['agent'],
             'sublink' => empty($data['sublink']) ? "onsublink" : $data['sublink'],
             'config' => empty($data['config']) ? "offconfig" : $data['config'],
             'type' => empty($data['type']) ? "marzban" : $data['type'],
-            'MethodUsername' => empty($data['MethodUsername']) ? null : $data['MethodUsername'],
-            'Methodextend' => empty($data['Methodextend']) ? null : $data['Methodextend'],
+            'MethodUsername' => empty($data['MethodUsername']) ? null : usernameMethodKey($data['MethodUsername']),
+            'Methodextend' => empty($data['Methodextend']) ? null : extendMethodKey($data['Methodextend']),
             'TestAccount' => empty($data['TestAccount']) ? "ONTestAccount" : $data['TestAccount'],
             'limit_panel' => empty($data['limit_panel']) ? "unlimted" : $data['limit_panel'],
             'namecustom' => empty($data['namecustom']) ? "vpn" : $data['namecustom'],
             'conecton' => "offconecton",
-            'linksubx' => empty($data['linksubx']) ? null : $data['linksubx'],
+            'linksubx' => empty($data['linksubx']) ? null : htmlspecialchars_decode((string) $data['linksubx'], ENT_QUOTES),
             'inboundid' => empty($data['inboundid']) ? "1" : $data['inboundid'],
             'inboundstatus' => "offinbounddisable",
             'inbound_deactive' => "0",
@@ -200,6 +200,7 @@ function panel_panel_add(array $data, string $method): void
             $stmt->bindValue(":{$key}", $value);
         }
         $stmt->execute();
+        $pdo->prepare("UPDATE marzban_panel SET display_order = id WHERE id = ?")->execute([$pdo->lastInsertId()]);
 
         sendJsonResponse(true, "Successful");
 
@@ -253,6 +254,24 @@ function panel_panel_edit(array $data, string $method): void
 
         if ($panelData === []) {
             sendJsonResponse(false, "nothing to update", [], 200);
+        }
+
+        if (isset($panelData['Methodextend'])) {
+            $panelData['Methodextend'] = extendMethodKey($panelData['Methodextend']);
+        }
+
+        if (isset($panelData['MethodUsername'])) {
+            $panelData['MethodUsername'] = usernameMethodKey($panelData['MethodUsername']);
+        }
+
+        foreach (['url_panel', 'username_panel', 'password_panel', 'linksubx'] as $rawColumn) {
+            if (isset($panelData[$rawColumn]) && is_string($panelData[$rawColumn])) {
+                $panelData[$rawColumn] = htmlspecialchars_decode($panelData[$rawColumn], ENT_QUOTES);
+            }
+        }
+
+        if (isset($panelData['url_panel']) && is_string($panelData['url_panel'])) {
+            $panelData['url_panel'] = normalizePanelUrl($panelData['url_panel']);
         }
 
         // Credential changes invalidate the cached panel session.
@@ -329,25 +348,28 @@ function panel_set_inbounds(array $data, string $method): void
         // Marzban >= 1.0 renamed "proxies" to "proxy_settings" and moved the
         // inbound list into "group_ids".
         $isNewMarzban = $panel['version_panel'] == "1";
-        $proxyKey = $isNewMarzban ? 'proxy_settings' : 'proxies';
-        if ((isset($DataUserOut['msg']) && $DataUserOut['msg'] == "User not found") or !isset($DataUserOut[$proxyKey]))
+        if ((isset($DataUserOut['msg']) && $DataUserOut['msg'] == "User not found") or !isset($DataUserOut[$isNewMarzban ? 'group_ids' : 'proxies']))
             sendJsonResponse(false, "User Not Found", [], 200);
 
-        foreach ($DataUserOut[$proxyKey] as $key => $value) {
-            if ($key == "shadowsocks" || $key == "trojan") {
-                unset($DataUserOut[$proxyKey][$key]['password']);
-            } elseif ($key == "wireguard") {
-                unset($DataUserOut[$proxyKey][$key]['private_key']);
-                unset($DataUserOut[$proxyKey][$key]['public_key']);
-                unset($DataUserOut[$proxyKey][$key]['peer_ips']);
-            } else {
-                unset($DataUserOut[$proxyKey][$key]['id']);
+        if (!$isNewMarzban) {
+            foreach ($DataUserOut['proxies'] as $key => $value) {
+                if ($key == "shadowsocks" || $key == "trojan") {
+                    unset($DataUserOut['proxies'][$key]['password']);
+                } elseif ($key == "wireguard") {
+                    unset($DataUserOut['proxies'][$key]['private_key']);
+                    unset($DataUserOut['proxies'][$key]['public_key']);
+                    unset($DataUserOut['proxies'][$key]['peer_ips']);
+                } elseif ($key == "hysteria") {
+                    unset($DataUserOut['proxies'][$key]['auth']);
+                } else {
+                    unset($DataUserOut['proxies'][$key]['id']);
+                }
+                if (count($DataUserOut['proxies'][$key]) == 0) {
+                    $DataUserOut['proxies'][$key] = new stdClass();
+                }
             }
-            if (count($DataUserOut[$proxyKey][$key]) == 0) {
-                $DataUserOut[$proxyKey][$key] = new stdClass();
-            }
+            $proxy_output = json_encode($DataUserOut['proxies']);
         }
-        $proxy_output = json_encode($DataUserOut[$proxyKey]);
         $datainbound = json_encode($isNewMarzban ? ($DataUserOut['group_ids'] ?? []) : ($DataUserOut['inbounds'] ?? []));
     } elseif ($panel['type'] == "marzneshin") {
         $userdata = json_decode(getuserm($data['input'], $panel['name_panel'])['body'] ?? '', true);
@@ -364,16 +386,6 @@ function panel_set_inbounds(array $data, string $method): void
         if ($user_data == null)
             sendJsonResponse(false, "User Not Found", [], 200);
         $datainbound = $user_data['inboundId'];
-    } elseif ($panel['type'] == "s_ui") {
-        $user_data = GetClientsS_UI($data['input'], $panel['name_panel']);
-        if (!is_array($user_data) || count($user_data) == 0 || !isset($user_data['inbounds'])) {
-            sendJsonResponse(false, "User Not Found", [], 200);
-        }
-        $servies = [];
-        foreach ($user_data['inbounds'] as $service) {
-            $servies[] = $service;
-        }
-        $datainbound = json_encode($servies);
     } elseif ($panel['type'] == "ibsng" || $panel['type'] == "mikrotik") {
         $datainbound = $data['input'];
     } else {

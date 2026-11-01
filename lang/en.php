@@ -15,6 +15,9 @@ Current language: <b>{lang}</b>',
                 'msg_session' => '⛔️ Session expired. Please open it again.',
                 'msg_empty' => '⛔️ The text is empty. Send it again or tap «Close».',
                 'msg_saved' => '✅ Text saved.',
+                'msg_emoji_unsupported' => '⚠️ Premium emoji cannot be displayed by this bot.
+The text was saved, but a regular emoji is shown instead of the premium one.
+To enable it, the bot owner needs a Telegram Premium subscription, or the bot must own a username purchased on Fragment.',
                 'msg_closed' => 'Closed.',
                 'langs' => [
                         'fa' => '🇮🇷 فارسی',
@@ -156,11 +159,6 @@ Current language: <b>{lang}</b>',
                         'agent' => 'Agent',
                         'normal' => 'Regular',
                 ],
-                'gateways' => [
-                        'perfectMoney' => 'Perfect Money',
-                        'rial1' => 'Rial currency payment',
-                        'rial2' => 'Second Rial currency payment',
-                ],
                 'labels' => [
                         'testServiceName' => 'Test service',
                         'toman' => 'Toman',
@@ -187,6 +185,7 @@ Current language: <b>{lang}</b>',
                         'unknown' => 'Unknown',
                         'unlimited' => 'Unlimited',
                 ],
+                'htmlNotAllowed' => '⛔️ HTML tags are not allowed in this name. Please send it without the “&lt;” character.',
                 'invalidInput' => '⭕️ Invalid input',
                 'invalidTime' => 'The number of days is invalid',
                 'invalidUsername' => '❌ The username is invalid.
@@ -201,7 +200,6 @@ Current language: <b>{lang}</b>',
                 'backmenu' => '🏠 Back to previous menu',
                 'buttonDisabled' => '❌ This button is disabled',
                 'buttonDisabledForYou' => '❌ This button is disabled for you',
-                'customusername' => 'Custom username',
                 'erroroccurred' => '❌ An error occurred. Please start the steps again',
                 'featureUnavailable' => '❌ This feature is not available at the moment',
                 'featureUnavailable2' => '❌ This feature is not available at the moment.',
@@ -212,6 +210,7 @@ Current language: <b>{lang}</b>',
 🔄 Please send your username again',
                 'sectionDisabled' => '📛 This section is currently disabled',
                 'selectoption' => 'Choose an option',
+                'invalidCommand' => 'Invalid command',
                 'selectusername' => 'Send a custom username
 ⚠️ The username must not contain extra characters such as @, space, or hyphen. 
 ⚠️ The username must be in English.
@@ -219,12 +218,10 @@ Current language: <b>{lang}</b>',
 ❌ Invalid usernames: ali_ | tele@ | _mahdi | محسن',
                 'text_start' => 'Hello, welcome',
                 'Balance' => [
-                        'Failed' => '⭕️ Your payment has not been confirmed',
                         'addBalanceUser' => '⭕️ Manually add balance',
                         'blockedfake' => '⭕️ Block user',
                         'changeto' => '❌ Error 
     The minimum amount for payment via this gateway is 2 TRON',
-                        'confirmPayAdmin' => '⭕️ The payment has already been confirmed',
                         'confirmPaying' => '✅ Confirm payment',
                         'errorLinkPayment' => '❌ An error occurred while creating the payment link. Please contact support to resolve it.',
                         'errorprice' => '❌ Error 
@@ -235,21 +232,21 @@ Current language: <b>{lang}</b>',
 💸 To top up your balance, enter the amount in Toman:
 ✅ Minimum amount %s Toman, maximum amount %s Toman',
                         'linkpayments' => 'Creating payment link...',
+                        'notEnoughBalance' => '❌ Your balance is not enough for this. Please top up your account first.',
                         'maxpurchasereached' => '❌ You have reached your maximum purchase limit. Please first top up your account, then purchase a new service or renew an existing one',
                         'nowpayments' => '❌ Error 
     The minimum amount for payment via this gateway is 1 USD.',
                         'payments' => 'Payment',
                         'receiptimage' => '🖼 Submitted receipt image',
-                        'refunded' => 'The amount has been returned to your wallet',
                         'rejectPay' => '❌ Reject payment',
                         'selectPayment' => '💵 Choose your payment method',
                         'sendReceipt' => '🚀 Your payment receipt has been sent. After approval by the administration, the amount will be deposited into your wallet',
                         'sendReceiptAndConfig' => '🚀 Your receipt has been sent, and after review the service details will be sent to you',
-                        'sending' => 'The payment has been received and is being reviewed, please wait',
                         'waiting' => 'Awaiting payment confirmation',
                         'zarinpal' => '❌ Error 
     The minimum amount for payment via this gateway is 5000 Toman.',
-                        'pendingPayment' => '❌ You have an unconfirmed payment. Please wait until the previous payment is reviewed, then send the new payment',
+                        'variza' => '❌ Error 
+    The minimum amount for payment via this gateway is 5000 Toman.',
                         'cardEnabledNotice' => '💳 Dear user, the card number has been activated for you; you can now make your purchase.',
                         'cardInstructionAlt' => 'To pay, deposit the amount to the card number below',
                         'giftDepositAlt' => '🎁 Dear user, the amount of %s Toman has been deposited into your account as a gift.',
@@ -259,7 +256,6 @@ Current language: <b>{lang}</b>',
                 
 ',
                         'giftFromManagement' => '🎁 Dear user, an amount of %s Toman was credited to your wallet as a gift from management.',
-                        'deductedNotice' => '❌ Dear user, an amount of %s Toman was deducted from your wallet balance.',
                         'addedNotice' => '💎 Dear user, an amount of %s Toman was added to your wallet balance.',
                         'deductedNotice2' => '❌ Dear user, an amount of %s Toman was deducted from your wallet balance.',
                         'addedNotice2' => '💎 Dear user, an amount of %s Toman was added to your wallet balance.',
@@ -340,12 +336,6 @@ Use the button below to pay👇🏻',
 
 ⚠️  The minimum amount is <b>%s</b> and the maximum is <b>%s</b> Toman',
                         'giftDeposit' => '🎁 Dear user, the amount of %s Toman has been deposited into your account as a gift.',
-                        'invoiceExpired' => '⭕️ Dear user, the invoice below expired due to non-payment within the specified time .
-❗️Please do not pay any amount for this invoice under any circumstances and create a new invoice .
-
-🛒 Your payment method : %s
-📌 Invoice code : <code>%s</code>
-🪙 Invoice amount :  %s Toman',
                         'giftDepositIranpay' => '🎁 Dear user, the amount of %s Toman has been deposited into your account as a gift.',
                         'invoiceCreated' => '✅ Payment invoice was created.
 
@@ -401,6 +391,14 @@ Use the button below to pay👇🏻',
 ❌ After the transaction it takes 15 minutes to one hour for the transaction to be approved
 
 ✅ If you have a problem, you can contact support',
+                        'cubepayCardDetails' => '💳 Card-to-card payment
+
+🔢 Card number: <code>%s</code>
+👤 Card holder: %s
+💰 Exact amount: <code>%s</code> Toman
+⏳ Payment deadline: %s minutes
+
+⚠️ Transfer exactly this amount; the last digits are intentional and automatic confirmation relies on them.',
                         'transactionCreated3' => '✅ Your transaction was created
         
 🛒 Tracking code:  <code>%s</code> 
@@ -455,7 +453,6 @@ Use the button below to pay👇🏻',
                         'invalidCode' => '❌ The discount code is invalid',
                         'expired' => '❌ The discount code time has expired.',
                         'useLimit' => '⭕️ This code can only be used {useuser}  times',
-                        'appliedRenew' => '🤩 Your discount code was valid and {discount_price} percent discount was applied to your invoice.',
                         'applied' => '🤩 Your discount code was valid and {discount_price} percent discount was applied to your invoice.',
                         'notAllowed' => '❌ Purchase with this discount code is not possible',
                 ],
@@ -684,7 +681,6 @@ You can now use the bot ✔️',
                         'planNotAvailable' => '❌ Renewal with the current plan is not possible. Go through the steps from the beginning and select another plan.',
                         'restartError' => '❌ An error occurred. Perform the renewal steps from the beginning.',
                         'errorSupport' => '❌ An error occurred while renewing the service; contact support',
-                        'errorSupport2' => '❌ An error occurred while renewing the service; contact support',
                         'genericError' => '❌ An error occurred during renewal. Contact support',
                         'giftCharged' => 'Congratulations 🎉
 📌 As a renewal gift, an amount of %s Toman was credited to your account',
@@ -901,6 +897,7 @@ Support account : @%s',
 🪪(example: Ali, Ahmad, Uncle, customer from out of town, etc.)',
                         'serviceSelect' => '🛍️ Please select the service you want to purchase!',
                         'serviceSelectFirst' => '🛍️ Please select the service you want to purchase!',
+                        'productSoldOut' => '❌ This product is currently sold out.',
                         'service_not_available' => '⛔️ You have no active service',
                         'service_sell' => '🛍 Subscriptions purchased by you
 
@@ -1081,6 +1078,10 @@ Thank you for using our services.',
                         'confirmEnableConfig' => '📌 By confirming the option below, your config will be turned on and you will be able to connect to it.
 ⚠️ If you want the config to be deactivated again, you must click the <u>❌ Turn off account</u> button from the service management section',
                         'getConfigHint' => '📌 To get the config, click the Get config button',
+                        'lowBalanceAlert' => '⚠️ Your wallet balance is %s Toman and running low.
+Top up your wallet to buy or renew services.',
+                        'wireguardFile' => '⚙️ Your WireGuard config file
+📥 Import this file into the WireGuard app.',
                         'connectionInfo' => '
 📶 Last connection time  : %s
 🔄 Last subscription link update time  : %s
@@ -1200,7 +1201,6 @@ Message text:
                 'wheelLuck' => [
                         'alreadyParticipated' => '❌ You already participated today. Try your luck again tomorrow',
                         'error' => '❌ An error occurred while getting the game result. Please try again later.',
-                        'featureDisabled' => '❌ This feature is currently turned off',
                         'notWinner' => '🥲 Unfortunately you did not win. Try again another day',
                         'wheelWinner' => '⭕️ A user with username @%s and numeric ID %s won the wheel of fortune',
                         'winnerCongratulations' => '🤩 Congratulations, you won! The amount of %s Toman has been added to your account.',
@@ -1208,6 +1208,21 @@ Message text:
                 ],
         ],
         'Admin' => [
+                'cronHealth' => [
+                        'title' => "⏱ <b>Cron status</b>",
+                        'running' => "✅ Cron jobs are running.",
+                        'stopped' => "❌ Cron is not running or has stopped.",
+                        'lastRun' => "🕐 Last run: %s",
+                        'never' => "never",
+                        'justNow' => "just now",
+                        'minutesAgo' => "%s min ago",
+                        'disabled' => "off",
+                        'command' => "📌 To set it up manually, add this line to the server crontab:\n<code>%s</code>",
+                        'missingMysql' => "❌ The MySQL extension is not installed for command-line PHP %1\$s, so cron jobs cannot connect to the database.\nRun on the server:\n<code>apt install php%1\$s-mysql</code>",
+                        'refresh' => "🔄 Refresh",
+                        'fix' => "🔧 Reinstall cron",
+                        'fixed' => "✅ Cron was reinstalled.",
+                ],
                 'activeBotText' => 'To use the admin panel features:
 
 Go to a page that has a keyboard at the bottom.
@@ -1222,9 +1237,10 @@ This step is mandatory',
                 'backMenuBtn' => '▶️ Back to previous menu',
                 'changesSaved' => 'Changes applied successfully',
                 'changesSaved2' => '✅ Changes saved successfully',
+                'botCommandsSet' => '✅ Bot commands have been set. Leave the bot chat once and open it again to see the changes.',
                 'confirmByButton' => 'To confirm, click the confirm button',
                 'confirmByWord' => 'To confirm, send the word below.
-<code>confirm</code>',
+<code>Confirm</code>',
                 'errorCode' => '❌  An error occurred. Error code:  %s',
                 'errorCode2' => '❌  An error occurred. Error code:  %s',
                 'errorCode3' => '❌  An error occurred. Error code:  %s',
@@ -1232,19 +1248,26 @@ This step is mandatory',
                 'errorCode5' => '❌  An error occurred. Error code:  %s',
                 'errorCode6' => '❌  An error occurred. Error code:  %s',
                 'errorOccurred' => 'An error occurred',
-                'errorReason' => 'Error reason: 
-%s',
-                'errorReason2' => 'Error reason %s',
                 'errorRestart' => '❌ An error occurred; go through the steps from the beginning.',
                 'getStats' => 'If you want to view the statistics for a different date range, first send the start date.
 Example: 
 <code>%s</code>',
                 'invalidValue' => '❌ Invalid value',
                 'mainAdminOnly' => '❌ This section is only available to the main admin',
+                'installerNotice' => [
+                        'user' => '⛔️ <b>The bot is temporarily unavailable.</b>
+
+The service is under maintenance. Please try again in a few minutes or contact support.',
+                        'admin' => '⛔️ <b>The bot is halted: the install folder was not removed.</b>
+
+The <code>install</code> folder still exists on the server and the bot could not remove it automatically. While that folder remains, the bot will not answer any user.
+
+🔹 Connect to the server over SSH and delete the <code>install</code> folder from the bot directory.
+🔹 Then check the ownership and permissions of the bot directory so the web server user is allowed to delete it.',
+                ],
                 'notUser' => 'No user was found with this ID',
                 'panelAdmin' => '👨‍💼 Management panel',
                 'saved' => '✅ Saved.',
-                'selectOption' => '📌 Select an option',
                 'selectOption2' => 'Select an option',
                 'selectOption3' => '📌 Select an option from the list below',
                 'selectOption4' => 'Select one of the options below ',
@@ -1254,18 +1277,12 @@ Example:
                         'addBalanceUser' => '✅ The amount was added to the user\'s balance',
                         'addBalanceUsers' => '✅ The amount was added to the users\' balances',
                         'invalidPrice' => 'The amount is invalid',
-                        'negativeBalance' => '⚜️ Send the user\'s numeric ID 
-Description: To deduct the user\'s balance, first send the user\'s numeric ID',
-                        'negativeBalanceUser' => '✅ The amount was deducted from the user\'s balance',
-                        'priceBalance' => 'The numeric ID was received. Send the amount you want to deduct from the user; the amount should be in Toman',
                         'askUserGroup' => '📌 Which of the following user groups should the top-up be deposited to?',
                         'askTargetUsers' => '📌 Which user should the public top-up be sent to?',
                         'askNotify' => '📌 Should a top-up notification message be sent to the users or not?
 Yes: 1
 No: 0',
                         'operationStarted' => '✅ The message-sending operation has begun. You will be notified when it finishes.',
-                        'btnDecrease' => '⬇️ Decrease balance',
-                        'maxAmountRial' => '📌 The maximum amount is 100 million Rials.',
                         'maxAmountToman' => '❌ The maximum amount is 100 million Toman',
                         'askMinCharge' => '📌 Set the minimum amount you want the user to top up their account with',
                         'askMinChargeGroup' => '📌 For which user group should the minimum balance apply?
@@ -1287,36 +1304,25 @@ If you want the user to purchase unlimited, send the number 0',
                 ],
                 'Channel' => [
                         'setChannelReport' => '🔰 The channel was successfully configured',
-                        'testChannel' => 'Test group connection',
-                        'notForumGroup' => '❌ The selected group is not in forum mode. First enable the group\'s topic feature, then set the group\'s numeric ID again',
                         'botNotGroupAdmin' => '❌ The bot is not an admin of the group',
-                        'askReportGroupId' => '📣 In this section you can send the group\'s numeric ID for sending notifications
-Group setup tutorial:
-1 - First create a group 
-2 - Add the bot @myidbot to the group and send the command /getgroupid@myidbot inside the group 
-3 - Turn on topic or forum mode from the group settings4
-4 - Make your own bot an admin of the group 
-5 - Send the sent numeric ID to the bot.
+                        'askReportGroupId' => '📣 Tap «Select reports group» and pick your forum (topics) group from the list; the bot will be added as admin and create the topics automatically.
 
-Your current numeric ID: %s',
-                        'connectionFailed' => '❌ The connection to the group was not successful  
-
-Received error:  %s',
+Current group: %s',
+                        'selectGroupBtn' => 'Select reports group',
+                        'selectGroupHint' => '❌ Please pick a group using the «Select reports group» button',
                 ],
                 'Discount' => [
-                        'agentCode' => 'For which user do you want to define the code?
-
-⚠️ If you want to define it for all users, send the text <code>allusers</code>',
+                        'giftManage' => "🎁 Gift code management\n\n• 🎫 Registered codes: %s\n\n📌 Use the buttons next to each code to view details or delete it.",
+                        'giftDetail' => "🎫 %s\n\n💰 Amount: %s Toman\n🔴 Total limit: %s\n✅ Used: %s times",
+                        'discountManage' => "🎁 Discount code management\n\n• 🎫 Registered codes: %s\n\n📌 Use the buttons next to each code to view details or delete it.",
+                        'discountDetail' => "🎫 %s\n\n🧮 Discount: %s%%\n🎯 User group: %s\n🧩 Section: %s\n🎛 Panel: %s\n📦 Product: %s\n🔴 Total limit: %s\n👤 Per-user limit: %s\n🥇 First purchase only: %s\n⏳ Expiry: %s\n✅ Used: %s times",
+                        'agentCode' => '🎯 Which user group should the code be defined for?',
                         'errorCode' => 'The code is invalid. The code must be in English without extra characters',
                         'firstDiscount' => '📌 Should the discount code be for the first purchase or all purchases?',
                         'getCode' => 'Send a code for the gift code',
                         'invalidAgentCode' => '❌ The user type is invalid',
-                        'notCode' => '❌ Error 
-📝 The selected gift code does not exist',
                         'priceCode' => 'The code was received. Now send the code\'s amount',
                         'priceCodeSell' => 'The code was received. Now send the code\'s percentage',
-                        'removeCode' => 'Select the code you want to delete',
-                        'removedCode' => '✅ The code was successfully deleted.',
                         'saveCode' => '✅ The code was successfully registered',
                         'setLimitUse' => '📌 Send the usage limit.
 ⚠️ The limit is for all users',
@@ -1324,10 +1330,8 @@ Received error:  %s',
                         'askUserLimit' => '📌 Send the usage limit per user.',
                         'askSection' => '📌 Which section should the discount code apply to?',
                         'userLimitTooHigh' => '📌 The usage count per user must be smaller than the total limit',
-                        'askProductLocation' => '📌 To set a discount code for a specific product, first select the product position.
-Note: To select all panels, send the word <code>/all</code>',
-                        'askProduct' => '📌 Which product should the discount code apply to? Note that if you want the discount code to apply to all products, send the word all',
-                        'invalidPercent' => 'Invalid percentage',
+                        'askProductLocation' => '🎛 Which panel should the discount code apply to?',
+                        'askProduct' => '📦 Which product should the discount code apply to?',
                         'created' => '
 🎁 Your discount code was created successfully.
 
@@ -1371,8 +1375,6 @@ Note: To select all panels, send the word <code>/all</code>',
                         'rejected' => '⭕️ The payment was successfully rejected and a message was sent to the user',
                         'reviewedPayment' => '❌ This payment has already been reviewed by another admin',
                         'reviewReceiptsFirst' => '⚠️ To approve user requests, first review and approve the purchase or subscription renewal receipts. Then approve the wallet top-up receipt. ',
-                        'disableAutoConfirmFirst' => '❌ First turn off automatic approval without review.',
-                        'disableAutoConfirmFirst2' => '❌ First turn off automatic approval.',
                         'autoConfirmDesc' => '📌 By activating this feature, during the times when you are not online, the bot automatically approves all card-to-card transactions; then after you come online, you review the receipts, and if a fake receipt was sent, you cancel the transaction',
                         'noPending' => '❌ You have no unapproved payments.',
                         'pendingIntro' => '📌 Unapproved card-to-card payments 
@@ -1466,6 +1468,7 @@ User types: f, n, n2',
                         'askNewVolume' => 'Send the new volume',
                         'updated' => '✅ Product updated',
                         'firstPurchaseDesc' => '📌 Through this feature you can set whether this product is for the first purchase or not',
+                        'saleStatusDesc' => '📌 Use this button to make the product available or sold out. A sold out product stays in the purchase list with a sold out label and cannot be bought. Renewals of existing services are not affected.',
                         'nameExists' => '❌ A product named %s already exists',
                         'editSummary' => '
 📌 Information of the product being edited:
@@ -1483,13 +1486,6 @@ Number of products sold: %s
 ',
                         'nameExists2' => '❌ A product named %s already exists',
                 ],
-                'Protocol' => [
-                        'invalidProtocol' => '❌ Invalid protocol',
-                        'removeProtocol' => 'Select the protocol you want to delete.',
-                        'removedProtocol' => 'The protocol was successfully deleted.',
-                        'btnDelete' => '🗑 Delete protocol',
-                        'btnSettings' => '⚙️ Protocol settings',
-                ],
                 'SettingPayment' => [
                         'cartDirect' => '✅ Your username was successfully registered.',
                         'getNameCard' => '📌 Send the cardholder\'s name.',
@@ -1506,25 +1502,20 @@ Number of products sold: %s
                         'activePanel' => '⭕️ In this section you can turn the panel off or on for sales',
                         'activePanelOff' => '❌ The panel was turned off',
                         'activePanelOn' => '✅ The panel was turned on',
-                        'autoConfirmCard' => 'Auto-confirmation status for card-to-card receipts',
+                        'wheelSettings' => "🎲 <b>Wheel of luck settings</b>\n\n💰 Prize amount: <b>%s</b> Toman\n\n📌 Tap an item to turn it on or off.",
+                        'lotterySettings' => "🎁 <b>Lottery settings</b>\n\n🥇 First prize: <b>%s</b> Toman\n🥈 Second prize: <b>%s</b> Toman\n🥉 Third prize: <b>%s</b> Toman\n\n📌 Tap an item to turn it on or off.",
+                        'categoryTitle' => "<b>%s</b>\n\n📌 Tap a feature to turn it on or off.",
                         'botTitle' => '📌 In this section you can specify whether the following features are enabled or not.',
                         'btn' => '📊 Bot statistics',
                         'cardStatusOffPv' => '⭕ The offline gateway status in PV was turned off',
                         'cardStatusOnPv' => 'The offline gateway status in PV was turned on',
                         'cardTitlePv' => 'In this section you can disable the card-to-card feature and handle the card-to-card process from PV',
-                        'commission' => 'Status of the gift-after-bot-start feature being enabled',
-                        'commissionOff' => 'The commission feature was disabled',
-                        'commissionOn' => 'The commission feature was enabled',
-                        'discountAffiliates' => 'Status of the gift feature being enabled',
-                        'discountAffiliatesOff' => 'The gift feature was disabled',
-                        'discountAffiliatesOn' => 'The gift feature was enabled',
                         'inlinebtns' => '🛡 Make the bot buttons inline',
                         'paydirect' => '🎯 Direct purchase status',
                         'statusBot' => '📡 Bot status',
                         'statusCategoryTime' => '⏱ Time category',
                         'statusNotifNewUser' => '👤 New user notification',
                         'statusRole' => '♨️ Rules',
-                        'statusShowAgent' => '👨‍💻 Agent request',
                         'statusSubject' => 'Status',
                         'statusTimeExtra' => '⏳ Extra time',
                         'statusUsernameBtn' => '👤 Username button',
@@ -1568,18 +1559,17 @@ Number of products sold: %s
                         'askBanner' => '⭕️ Send your referral banner 
 
 ❌ The banner must include an image',
-                        'joinGiftSaved' => '✅ The referral amount was successfully registered',
-                        'percentSaved' => '✅ The deposit percentage for the user was successfully set',
-                        'bannerSaved' => '✅ Your banner was successfully registered.',
                         'invalidBanner' => '❌ The banner you sent is invalid (the banner must be sent with an image)',
                         'askJoinGift' => '📌 Enter the amount you want the user to receive for each new referral',
+                        'settingsTitle' => "🎁 <b>Referral settings</b>\n\n• 🎁 Commission after purchase: %s\n• 🎉 Commission: %s\n• 🧮 Commission percent: %s\n• 🎁 Start gift: %s\n• 💎 Start gift amount: %s Toman\n\n📌 Tap the left button of an item to change it.",
+                        'invalidNumber' => "❌ The value must be a number.",
+                        'saved' => "✅ Saved.",
                         'askPercent' => '📌 Send the percentage you want to be deposited to the user after a purchase',
                         'titleTopic' => '🎁 Commission reports',
                         'noReferrals' => '❌ The user has no referrals.',
                         'idsSent' => '📌 The ID related to the user\'s referrals has been sent.',
                         'userRemoved' => '📌 The user was removed from the referral.',
                         'referralsDeleted' => '📌 The user\'s referrals were deleted.',
-                        'commissionScope' => 'You can decide whether the commission is given to the user only for their referral\'s first purchase or for all of their purchases.',
                 ],
                 'agent' => [
                         'getTypeAgent' => '📌 To add an agent, send the agent type
@@ -1784,10 +1774,13 @@ trojan://xyz',
 Current time: ',
                         'setVolumeRemove' => '📌 Send the number of days after which accounts whose volume has run out should be deleted. The account time is calculated based on the user\'s last connection. This feature is for the Marzban panel
 Current time: ',
-                        'btnSettings' => '🕚 Cron job settings',
                         'cannotDeleteUnlimited' => '❌ The service cannot be deleted because its volume and time are unlimited. ',
                         'askOnHoldDays' => 'In this section you must set, if the user has not connected to their config after a certain number of days and is in on_hold status, to send the user a message',
                         'askVolumeAlert' => '📌 In this section you can set that if the user\'s volume reaches x, a warning message is sent. Send the volume in GB.',
+                        'askLowBalanceAlert' => '📌 When the wallet balance of a user reaches this amount or less, they receive a one-time warning.
+Send the amount in Toman.
+
+Current value: %s Toman',
                         'askNotifyDays' => '📌 In this section you can set how many days before the subscription ends the user is notified. The time is in days',
                         'userNotifyEnabled' => '✅ Cron notifications were enabled for the user.',
                         'userNotifyDisabled' => '✅ Cron notifications were disabled for the user.',
@@ -1803,12 +1796,22 @@ Current time: ',
                 'gateway' => [
                         'tronadoStatus' => 'Tornado gateway status',
                         'tronadoDesc' => 'In this section you can turn the Tornado gateway off or on',
+                        'askMinAmount' => '💵 Send the minimum payable amount for this gateway in Toman.',
+                        'askMaxAmount' => '💵 Send the maximum payable amount for this gateway in Toman.',
+                        'askCashback' => '🎁 Send the cashback percentage for payments with this gateway. Send 0 to disable it.',
+                        'askEducation' => '📚 Send the tutorial text for this gateway.',
+                        'detail' => "💳 Gateway: <b>%s</b>\n\nStatus: %s\n\n📌 Tap the buttons to change the status or settings.",
+                        'cubepayFeeOn' => "✅ Passing the fee to the customer is <b>on</b>.\n\n💵 Current value: <b>%s</b>\nIt is added to the customer's invoice, while their balance is still topped up with the amount they requested.",
+                        'cubepayFeeOff' => "❌ Passing the fee to the customer is <b>off</b>.",
+                        'cubepayFeeAsk' => "💵 Send the fee value:\n\n▫️ <b>0 to 100</b> → a <b>percentage</b> fee (decimals allowed, e.g. <code>9.9</code>)\n▫️ <b>above 100</b> → a <b>fixed amount in toman</b> (e.g. <code>5000</code>)\n\nCurrent value: <b>%s</b>",
+                        'cubepayFeeSavedPercent' => "✅ Saved — <b>%s%%</b> percentage fee\n\nExample: a 100,000 toman order becomes <b>%s</b> toman for the customer.",
+                        'cubepayFeeSavedFixed' => "✅ Saved — <b>%s toman</b> fixed fee\n\nExample: a 100,000 toman order becomes <b>%s</b> toman for the customer.",
+                        'askDailyLimit' => "⏳ Send the daily cap for <b>successful</b> AbanGateway payments.\n\n<b>0</b> means no cap.",
                         'off' => 'Turned off',
                         'on' => 'Turned on',
                         'intro' => '📌 From the list below you can manage the gateways.
 
 ⚠️ The Mirza team gives no guarantee for the gateways, and all use and responsibility is on you',
-                        'btnPerfectMoneyHelp' => '📚 Set up Perfect Money tutorial',
                         'askPlisioApi' => '⚙️ Please send your Plisio API Key.
 
 🔑 To get your API key, visit the following site:
@@ -1827,8 +1830,17 @@ nowpayments.io
         
 Your current merchant code: %s',
                         'askZarinpalMerchant' => '💳 Obtain your merchant code from ZarinPal and enter it in this section
-        
+         
 Your current merchant code: %s',
+                        'askVarizaApiToken' => '💳 Enter your Variza API token from Variza panel (Profile → API key)
+
+Current key: <code>%s</code>',
+                        'askVarizaWebhookSecret' => '🔐 Enter your Variza webhook secret from Variza panel (Profile → Webhook)
+
+Current key: <code>%s</code>
+
+🔗 Webhook URL to register in your Variza profile:
+<code>%s</code>',
                         'askMerchant' => '💳 Obtain your merchant code and enter it in this section
         
 Your current merchant code: %s',
@@ -1889,9 +1901,7 @@ Error reason : %s',
                         'dataorder' => 'No date recorded',
                         'descriptionBlock' => '✍️ The reason for blocking the user was saved',
                         'failedPhone' => 'Not confirmed',
-                        'getIdMessage' => '✅ The text was received. Now send the user\'s numeric ID.',
                         'getIdUserUnblock' => '👤 Send the user\'s numeric ID',
-                        'getText' => 'Send your text',
                         'getTextResponse' => 'To reply to the message, send your text.',
                         'lowBalanceUser' => '👇 Decrease balance',
                         'lowBalanceUserDesc' => '⭕️ Send the amount you want to deduct',
@@ -2003,12 +2013,8 @@ The support access level has access to user services and support message reply s
                         'changedPasswordPanel' => '✅ The panel password was successfully changed.',
                         'changedUrlPanel' => '✅ The panel address was successfully changed.',
                         'changedUsernamePanel' => '✅ The panel username was successfully changed.',
-                        'connectXUi' => '✅ The panel is connected',
                         'customNameSend' => 'Send your custom text',
                         'errorStatusPanel' => 'It is not possible to connect to the panel 😔 The error is written below. If the problem is not resolved, contact support',
-                        'getLimitedPanel' => '📌 Specify the account creation limit on this panel.
-⚠️ Note that the limit is based on the number of active orders in the bot 
-If you want it to be unlimited, send the text unlimited',
                         'getLoc' => 'To edit the panel, send the panel name',
                         'getNameNew' => 'Send the new panel name',
                         'getPassword' => '🔑 The username was saved. Enter your password',
@@ -2023,7 +2029,6 @@ If you want it to be unlimited, send the text unlimited',
                         'savedData' => '✅ The changes were successfully saved.',
                         'savedName' => '✅ The name was successfully saved',
                         'setLimit' => 'Send the new account creation limit. If you want it to be unlimited, send the text unlimited',
-                        'setProtocol' => '✅ The protocol was successfully set',
                         'usernameSet' => '👤 The panel address was saved. Now send the username',
                         'noteSetInboundAndDomain' => '❌ Note:
 To activate the panel, you must go to the panel management menu and be sure to configure the Set Inbound ID and Subscription Link Domain options; otherwise, the config will not be created',
@@ -2041,14 +2046,46 @@ To activate, you must go to Panel Management > Set Group Name and send the defau
 
 1 - uuid admin: get and register the admin uuid from the panel
 2 - Subscription link domain: send the subscription link domain of the Hiddify panel',
-                        'noteSendConfigUsername' => '❌ Note:
-1 - From Panel Management > Set ⚙️ Protocol and Inbound, send a config username.',
                         'invalidSelection' => '❌ The selected panel is wrong',
                         'hidden' => 'Hidden',
                         'shown' => 'Shown',
                         'invalidCredentials' => '❌ The panel username or password is incorrect',
                         'fetchErrorCode' => '❌ An error occurred while retrieving data. Error code: ',
                         'fetchError' => '❌ An error occurred while retrieving data. Error: ',
+                        'protocolsNotConfigured' => '⚠️ Protocols and inbounds are not configured for this location. Until they are, the bot cannot build a working config. Go to panel management > protocol and inbound settings and send the username of a sample config.',
+                        'panelConnection' => [
+                                'timeout' => '⏳ <b>The panel did not respond within %s seconds.</b>
+
+This is not a bot fault — the request reached your panel, but the panel did not answer in time.
+
+🔹 Check that the panel server is up and reachable.
+🔹 If your panel is under heavy load, raise <code>$request_exec_timeout</code> in <code>config.php</code> (in milliseconds, e.g. 25000).',
+                                'refused' => '🚫 <b>Could not connect to the panel.</b>
+
+This is not a bot fault — the panel server refused the connection.
+
+🔹 Check the panel address and port.
+🔹 Make sure the panel service is running and the firewall allows the port.',
+                                'dns' => '🌐 <b>The panel domain could not be resolved.</b>
+
+This is not a bot fault — the panel address did not resolve to an IP.
+
+🔹 Check the spelling of the panel address.
+🔹 Check the domain DNS records.',
+                                'ssl' => '🔐 <b>Secure connection to the panel failed.</b>
+
+This is not a bot fault — the panel SSL certificate was invalid or the handshake failed.
+
+🔹 Check the panel SSL certificate and its expiry date.',
+                                'generic' => '⚠️ <b>Could not reach the panel.</b>
+
+This is not a bot fault — the request to the panel failed.
+
+🔹 Check the status of the panel server.',
+                                'detail' => '
+
+<i>Technical detail:</i> <code>%s</code>',
+                        ],
                         'invalidUrl' => '❌ The panel link was sent incorrectly',
                         'notConnected' => 'Panel is not connected',
                         'askUserGroup' => '📌 Send the user type
@@ -2057,8 +2094,28 @@ User groups: f,n,n2
                         'userGroupChanged' => '📌 User group changed successfully',
                         'btnSubLinkDomain' => '🔗 Subscription link domain',
                         'askSubLinkSample' => '📌 If you use a Sanaei panel, copy a user\'s subscription link from the panel and send it in this section. For other panels, you must send it according to their structure.',
-                        'subLinkInactive' => 'The subscription link is not active',
-                        'subLinkInvalid' => 'The subscription link is invalid',
+                        'subLinkInactive' => '❌ Could not connect to the subscription link
+
+🔗 Link: <code>%s</code>
+⚠️ Error: <code>%s</code>
+
+Common causes:
+• The subscription service is disabled in the Sanaei panel (Panel settings → Subscription → Enable)
+• The sub port or path in the link is wrong
+• The server firewall blocks the sub port
+
+Fix the issue and send the subscription link again.',
+                        'subLinkInvalid' => '❌ The subscription link responded but no valid config was found
+
+🔗 Link: <code>%s</code>
+📄 Received response: <code>%s</code>
+
+Common causes:
+• The panel login URL was sent instead of a subscription link
+• The user whose link you sent is disabled or has no configs
+• The sub path in the link is wrong
+
+Copy a subscription link of an active user and send it again.',
                         'askAdminUuid' => '📌 Send the admin UUID',
                         'adminUuidSaved' => '✅ Admin UUID saved',
                         'askInboundId' => '📌 Send the inbound ID from which you want the config to be created. The inbound ID is a multi-digit number written in the id column on the inbounds page of the panel.
@@ -2076,7 +2133,6 @@ User groups: f,n,n2
                         'btnSetGroupName' => '🎛 Set group name',
                         'askGroupName' => '📌 Send the group name you want to be used by default.',
                         'askProtocolSetup' => '📌 To set up the inbound and protocol, you must create a config in your panel, activate the protocols and inbounds you want to be active inside the panel, and send the config\'s username',
-                        'userNotInPanel2' => '❌ The user does not exist in the panel.',
                         'groupNameSaved' => '✅ The group name was set successfully.',
                         'protocolSaved' => '✅ Your inbounds and protocols were set up successfully.',
                         'askHideUserId' => '📌 Send the numeric ID of the user for this panel.',
@@ -2106,10 +2162,9 @@ To hide a panel, select your panels from the list below, then send the /end_hide
                         'notFound' => '❌ The requested panel was not found.',
                         'errorCode' => '❌ An error occurred. Error code: %s',
                         'xuiErrorCode' => '❌ An error occurred. Error code:  ',
-                        'xuiErrorReason' => '❌ An error occurred. Reason:  ',
-                        'eylanErrorCode' => '❌  An error occurred. Error code:  %s',
-                        'eylanUserNotExist' => '❌ User does not exist in the panel.',
-                        'eylanPanelOutput' => 'Panel output: ',
+                        'ErrorCode' => '❌  An error occurred. Error code:  %s',
+                        'UserNotExist' => '❌ User does not exist in the panel.',
+                        'PanelOutput' => 'Panel output: ',
                 ],
                 'messageBulk' => [
                         'userMessage' => '📥 A reply to a message was received from the user. To reply, click the button below and send your message.
@@ -2145,7 +2200,6 @@ Send your number of days.',
 1 - Yes, they can reply 
 2 - No, they cannot reply
 Send the answer as a number',
-                        'btnForwardToUser' => '📤 Forward message to a user',
                         'confirmSummary' => '📌 You are performing a message-sending operation; by reviewing the information below and confirming the button below, the sending operation will start.
 ⚙️ Operation type: %s',
                         'inactiveDaysLabel' => 'Number of days the user has not messaged: %s',
@@ -2172,8 +2226,6 @@ Number of remaining people :  %s',
                         'ipSaved' => '✅ Node address saved successfully.',
                         'reconnected' => '✅ Node reconnection completed.',
                         'deleted' => '✅ Node deleted successfully',
-                        'btnSettings' => '⚙️ Node settings',
-                        'askSetup' => '📌 To set up a node, create a user in your panel, activate the nodes you want to be active inside the panel, and send the user\'s username',
                         'info' => '📌 Node information 
 
 🖥 Node name:  %s
@@ -2325,6 +2377,8 @@ Current amount: %s',
                         'reportCron' => '📝 Notification reports',
                         'reportNight' => '🌙 Nightly report',
                         'btnDontShowAgain' => 'Don\'t show again ⛓️‍💥',
+                        'btnDonate' => '💖 Support (donate)',
+                        'adminMenuHint' => '👇 Admin menu',
                         'msgHidden' => '
 
 ✅ This message will no longer be shown to you.',
@@ -2335,34 +2389,20 @@ Current amount: %s',
                         'btnErrors' => '❌ Error reports',
                         'btnFinancial' => '💰 Financial report',
                         'btnBackup' => '🤖 Bot backup ',
-                        'btnExport' => '🪪 Export data',
-                        'noDataToExport' => '❌ There is no data to export',
-                        'btnExportUsers' => '🪪 Export user data',
-                        'btnExportOrders' => '🪪 Export user orders',
-                        'btnExportPayments' => '🪪 Export user payments',
                         'btnOptimize' => '🗑 Optimize bot',
                         'optimizeWarning' => '❌❌❌❌❌❌❌ Read the text below carefully
 
 📌 By confirming the option below, the following operations will be performed and they are irreversible
 
 1 - Inactive orders will be deleted
-2 - Unpaid orders will be deleted.
+2 - Unpaid or failed orders older than 24 hours will be deleted.
 3 - Orders deleted by the admin 
 4- Deletion of inactive test services
 5 - Orders deleted by the user 
-6 - Orders whose time or volume has expired',
-                        'botReportIntro' => '💬 | Bot report
-
-🔹 | If you encounter a <b>bug or problem</b> in the bot\'s operation, please report it to us for review.
-➖➖➖➖➖➖➖➖➖➖➖
-🔹 | If you encounter a <b>serious bug</b> or abnormal behavior, report it faster so it can be fixed.
-➖➖➖➖➖➖➖➖➖➖➖
-🔹 | If you have a suggestion for <b>adding a new feature</b> or an idea to improve the bot\'s performance, we\'d be happy to hear it.
-➖➖➖➖➖➖➖➖➖➖➖
-🔹 | Also, if you need <b>guidance</b> or help, you can contact the support team via direct message.
-
-📩 | To send a report, suggestion, or request for guidance, leave a message in the <b>Mirza group</b>:
-<a href="https://t.me/mirzapanelgroup" rel="nofollow" target="_blank">Mirza Group</a>',
+6 - Orders whose time or volume has expired
+7 - Expired payments will be deleted
+8 - API logs older than 7 days will be deleted
+9 - Database tables will be optimized',
                         'aboutBot' => '💎 | Version Bot: %s
 📌 | Version Mini App: 0.1.1
 
@@ -2372,7 +2412,7 @@ Current amount: %s',
 
 <blockquote>🔹 | If you see any sale or charging of money, please track and reclaim your money.</blockquote>
 
-<blockquote>🐞 | If you encounter a bug or problem in the bot\'s operation, contact us via the **📬 Bot report** button in the admin panel.</blockquote>',
+<blockquote>🐞 | To report a problem, message the <a href="https://t.me/mirzapanel?direct">Mirza channel direct</a>.</blockquote>',
                         'gatewayRow' => '
 📌 Gateway name: <code>%s</code>
  - Number of successful payments: <code>%s</code>
@@ -2382,7 +2422,16 @@ Current amount: %s',
 ✅ %s unpaid orders were deleted
 ✅ %s inactive orders were deleted.
 ✅ %s admin-deleted orders were deleted
-✅ %s test orders were deleted.',
+✅ %s test orders were deleted.
+✅ %s user-deleted orders were deleted.
+✅ %s expired orders (time or volume) were deleted.
+✅ %s expired payments were deleted.
+✅ %s API logs were deleted.
+✅ Database tables were optimized.',
+                        'autoCleanup' => '🧹 Automatic bot cleanup
+
+🗑 Unpaid invoices removed: %s
+🗑 API logs removed: %s',
                         'backupCaption' => '📌 Main bot database export ',
                         'dailyBot' => '📌 Daily bot performance report :
 
@@ -2488,15 +2537,6 @@ Username of approving admin: @%s
 💰 Payment amount: %s
 Rejection reason: %s
 👤 User numeric ID: %s',
-                        'balanceDecreased' => '📌 An admin has reduced a user\'s balance:
-        
-🪪 Information of the admin who reduced the balance: 
-Username:@%s
-Numeric ID: %s
-👤 User information:
-User numeric ID: %s
-Balance amount: %s
-User balance after reduction: %s',
                         'balanceIncreased' => '📌 An admin has increased a user\'s balance:
         
 🪪 Information of the admin who increased the balance: 
@@ -2843,11 +2883,6 @@ User balance before purchase : %s
   - Referrer balance before gift : %s
  - Referrer balance after gift : %s
  ',
-                        'newPayment' => '💵 New payment
-                
-User numeric ID : %s
-Transaction amount : %s 
-Payment method : First Rial currency gateway',
                         'newPaymentAutoConfirm' => '💵 New payment
         
 User numeric ID : %s
@@ -3579,17 +3614,6 @@ Connection link:
 ‼️Responsibility for incorrect deposits is yours.
 🔝After payment, press the I have paid button, then send the receipt image
 💵After your payment is approved by the admin, your wallet will be charged, and if you have an order, it will be processed',
-                'cartAuto' => 'For immediate approval, please deposit exactly the amount below. Otherwise, the approval of your payment may be delayed.⚠️
-            To increase your balance, deposit the amount of <code>{price}</code>  Rials  to the account number below 👇🏻
-
-        ==================== 
-        <code>{card_number}</code>
-        {name_card}
-        ====================
-        
-💰Deposit exactly the amount mentioned above so it is approved instantly.
-‼️Withdrawing money from the wallet is not possible.
-🔝There is no need to send a receipt, but if your deposit is not approved after some time, send your receipt image.',
                 'cartToCart' => '💳 Card to card',
                 'channel' => '   
         ⚠️ Dear user; you are not a member of our channel
@@ -3642,7 +3666,8 @@ After joining, click the check membership button',
                 'help' => '📚 Tutorial',
                 'iranPay1' => '💸 Rial payment gateway',
                 'iranPay2' => '💸 Second Rial payment gateway',
-                'iranPay3' => '💸 Third Rial payment gateway',
+                'iranPay3' => '💸 CubePay',
+                'iranPay4' => '💳 AbanGateway (card to card)',
                 'manual' => '✅ Service was created successfully
 
 👤 Service username : {username}
@@ -3697,6 +3722,7 @@ We hope you had a good experience with the ease and speed of your service. If yo
 🧑‍🦯 You can get the connection method by pressing the button below and selecting your operating system',
                 'wheelLuck' => '🎲 Wheel of fortune',
                 'zarinPal' => '🟡 ZarinPal',
+                'variza' => '💳 Variza (auto card-to-card)',
         ],
         'keyboard' => [
                 'acceptRules' => '✅ I accept the rules',
@@ -3747,7 +3773,7 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'apiT' => 'API T',
                 'appDownloadLink' => '🔗 App download link',
                 'appDownloadLinkAlt' => '🔗App download link',
-                'aqayePardakhtGateway' => '🔵 Aghaye Pardakht',
+                'aqayePardakhtGateway' => 'Aghaye Pardakht',
                 'authWithLink' => '🔑 Identity verification with link',
                 'authenticate' => '🔒 Identity verification',
                 'authenticateUser' => 'User identity verification',
@@ -3769,7 +3795,6 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'backupError' => '❌❌❌❌❌❌ Error in backup ',
                 'baseTimePrice' => '⏳ Base time price',
                 'baseVolumePrice' => '🔋 Base volume price',
-                'botReport' => '📬 Bot report',
                 'botReports' => '📣 Bot reports',
                 'both' => 'Both',
                 'broadcastForward' => 'Broadcast forward',
@@ -3781,11 +3806,13 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'cancelGiftSend' => '❌ Cancel gift sending',
                 'cancelOperation' => 'Cancel operation',
                 'cancelPinnedMessages' => 'Cancel pinned messages',
-                'cartToCartGateway' => '🔌 Card to card',
+                'cartToCartGateway' => 'Card to card',
                 'cashbackAqayePardakht' => '💰 Aghaye Pardakht cashback',
                 'cashbackCartToCart' => '💰 Card-to-card cashback',
                 'cashbackIranPay1' => '💰 Rial currency cashback',
-                'cashbackIranPay2' => '💰 Second Rial currency cashback',
+                'cashbackIranPay2' => '💰 CubePay cashback',
+                'feeStatusIranPay2' => '🧾 CubePay fee (on/off)',
+                'feeAmountIranPay2' => '💵 CubePay fee value',
                 'cashbackIranPay3' => '💰 Third Rial currency cashback',
                 'cashbackNowPayment' => '💰 nowpayment cashback',
                 'cashbackPlisio' => '💰 plisio cashback',
@@ -3830,7 +3857,7 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'cronTest' => '🔓Test cron',
                 'cronTime' => '🕚 Time cron',
                 'cronVolume' => '🔋 Volume cron',
-                'cryptoOfflinePayment' => '💵Offline currency',
+                'cryptoOfflinePayment' => 'Offline currency',
                 'currentMonth' => '☀️ Current month ',
                 'customServiceGroupF' => '♻️ Custom service group f',
                 'customServiceGroupN' => '♻️ Custom service group n',
@@ -3854,9 +3881,7 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'deleteChannel' => 'Delete channel',
                 'deleteConfig' => '❌ Delete config ',
                 'deleteDepartment' => '🔽 Delete department',
-                'deleteDiscountCode' => '❌ Delete discount code',
                 'deleteEducation' => '❌ Delete tutorial',
-                'deleteGiftCode' => '❌ Delete gift code',
                 'deleteNode' => '❌ Delete node',
                 'deletePanel' => '❌ Delete panel',
                 'deleteProduct' => '❌ Delete product',
@@ -3864,7 +3889,6 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'deleteService' => '❌ Delete service',
                 'deleteServiceAlt' => '❌Delete service',
                 'deleteServiceFull' => '🗑 Completely delete service',
-                'deleteTime' => '⚙️ Deletion time',
                 'deleteUserAffiliates' => '🔄 Delete user\'s referrals',
                 'diamondPayment' => '💎 Payment',
                 'disableShowCard' => '💰  Deactivate card number display',
@@ -3884,21 +3908,16 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'editUsername' => '👤 Edit username',
                 'educationBtn' => 'Tutorial button',
                 'educationCategory' => '📗Tutorial category',
-                'educationFeature' => 'Tutorial feature',
                 'educationSection' => '📚 Tutorial section',
                 'enableShowCard' => '💰 Activate card number display',
                 'excludeUser' => '➕ Exempt user',
                 'excludeUserAutoConfirm' => '💳 Exempt user from automatic approval',
                 'exclusiveSubLink' => '💎 Dedicated subscription link',
                 'exportActiveCardUsers' => '📄 Export users with active card number',
-                'exportOrders' => 'Export orders',
-                'exportPayments' => 'Export payments',
-                'exportUsers' => 'Export users',
                 'extraTimePrice' => '⏳ Extra time price',
                 'extraVolumePrice' => '➕ Extra volume price',
                 'featureStatus' => '⚙️ Feature status',
                 'financial' => '💎 Financial',
-                'firstConnectTime' => '⚙️ First connection time',
                 'firstConnection' => '📊 First connection',
                 'firstConnectionTest' => '📊 Test account first connection',
                 'firstPurchaseBtn' => 'First purchase',
@@ -3924,9 +3943,19 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'increaseGroupPrice' => '⬆️ Bulk price increase',
                 'infoRefreshed' => '♻️ Information updated',
                 'infoUpdated' => 'Information was updated',
-                'iranPay1Label' => '📌 First Rial currency',
-                'iranPay2Label' => '📌 Second Rial currency',
-                'iranPay3Label' => '📌Third Rial currency',
+                'iranPay1Label' => 'First Rial currency',
+                'iranPay2Label' => 'CubePay',
+                'iranPay3Label' => 'Third Rial currency',
+                'iranPay4Label' => 'AbanGateway',
+                'apiIranPay4' => '🔑 AbanGateway API key',
+                'endpointIranPay4' => '🔗 AbanGateway endpoint',
+                'askEndpointIranPay4' => '🔗 Send the gateway endpoint.\n\nThe AbanGateway panel shows it next to the connection key. It must start with https://\n\nCurrent value: %s',
+                'endpointIranPay4Invalid' => '❌ Address rejected. It must start with <code>https://</code> and be a valid domain.',
+                'minAmountIranPay4' => '⬇️ AbanGateway minimum',
+                'maxAmountIranPay4' => '⬆️ AbanGateway maximum',
+                'dailyLimitIranPay4' => '⏳ AbanGateway daily cap',
+                'cashbackIranPay4' => '🎁 AbanGateway cashback',
+                'setEducationIranPay4' => '📚 AbanGateway guide',
                 'lastHourStats' => '⏱️ Last hour',
                 'lastMonth' => '⛅️ Previous month',
                 'locationChangeLimit' => '🌍 Location change limit',
@@ -3945,7 +3974,7 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'maxAmountCartToCart' => '⬆️ Maximum card-to-card amount',
                 'maxAmountCryptoOffline' => '⬆️ Maximum offline crypto amount',
                 'maxAmountIranPay1' => '⬆️ Maximum Rial currency amount',
-                'maxAmountIranPay2' => '⬆️ Maximum second Rial currency amount',
+                'maxAmountIranPay2' => '⬆️ Maximum CubePay amount',
                 'maxAmountIranPay3' => '⬆️ Maximum third Rial currency amount',
                 'maxAmountNowPayment' => '⬆️ Maximum nowpayment amount',
                 'maxAmountPlisio' => '⬆️ Maximum plisio amount',
@@ -3960,7 +3989,7 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'minAmountCartToCart' => '⬇️ Minimum card-to-card amount',
                 'minAmountCryptoOffline' => '⬇️ Minimum offline crypto amount',
                 'minAmountIranPay1' => '⬇️ Minimum Rial currency amount',
-                'minAmountIranPay2' => '⬇️ Minimum second Rial currency amount',
+                'minAmountIranPay2' => '⬇️ Minimum CubePay amount',
                 'minAmountIranPay3' => '⬇️ Minimum third Rial currency amount',
                 'minAmountNowPayment' => '⬇️ Minimum nowpayment amount',
                 'minAmountPlisio' => '⬇️ Minimum plisio amount',
@@ -3981,10 +4010,9 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'numericIdSequential' => 'Numeric ID+sequential number',
                 'offlineGatewayPv' => '💳 Offline gateway in PV',
                 'operation' => 'Operation',
-                'optimizeBot' => '🗑 Optimize bot ',
+                'optimizeBot' => '🗑 Optimize bot',
                 'paidSendReceipt' => '✅ I have paid | Send receipt.',
                 'panelFeatureStatus' => '⚙️ Panel feature status',
-                'panelFeatures' => '🛠 Panel features',
                 'panelName' => '✍️ Panel name',
                 'panelUptime' => '🎛 Panel uptime',
                 'passargadPanel' => 'Pasargard',
@@ -4003,6 +4031,8 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'quickSetVolumePrice' => '🔋 Quick volume price setting',
                 'rebecca' => 'Rebecca',
                 'reWebhookAgentBots' => '🔗 Re-webhook agent bots',
+                'setBotCommands' => '⛏ Bot commands',
+                'apiToken' => '🔑 API token',
                 'receiveMembershipGift' => '🎁 Receive membership gift',
                 'reconnectNode' => '♻️ Reconnect node',
                 'refresh' => '♻️ Update',
@@ -4053,7 +4083,7 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'setEducationCartToCart' => '📚 Set card-to-card tutorial',
                 'setEducationCryptoOffline' => '📚 Set offline currency tutorial ',
                 'setEducationIranPay1' => '📚 Set first Rial currency tutorial',
-                'setEducationIranPay2' => '📚 Set second Rial currency tutorial',
+                'setEducationIranPay2' => '📚 Set CubePay tutorial',
                 'setEducationIranPay3' => '📚 Set third Rial currency tutorial',
                 'setEducationNowPayment' => '📚 Set nowpayment tutorial',
                 'setEducationPlisio' => '📚 Set plisio tutorial',
@@ -4069,12 +4099,15 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'setThirdPrize' => '3️⃣ Set third place prize',
                 'settings' => '⚙️ Settings',
                 'settleDebt' => '💎 Settle debt',
+                'lowBalanceAlert' => '💰 Low balance',
                 'shareLink' => '🔗 Share link',
                 'shopFeatureStatus' => '🛒 Store feature status',
                 'shopSettings' => '🏬 Store settings',
                 'showCartAfterFirstPay' => '🔒 Show card-to-card after first payment',
-                'showDice' => '🎰 Show dice',
                 'showFirstPurchase' => 'Show for first purchase',
+                'productSaleStatus' => '🚦 Sale status',
+                'productAvailable' => '🟢 Available',
+                'productSoldOut' => '🔴 Sold out',
                 'showHiddenPanels' => '🗑 Show hidden panels',
                 'showPanel' => '🖥 Show panel',
                 'showProductPrice' => '💰 Show product price',
@@ -4089,12 +4122,10 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'supportInPv' => '👤 Support in PV',
                 'supportSection' => '🤙 Support section',
                 'testAccountBtn' => 'Test account button',
-                'testAccountFeature' => 'Test account feature',
                 'testAccountLimit' => '➕ Test account limit',
                 'testAccountVolume' => '💾 Test account volume',
                 'testServiceTime' => '⏳ Test service time',
                 'time' => 'Time',
-                'timeAlert' => '⚙️ Warning time',
                 'timeDuration' => '⏳ Time',
                 'today' => '⛅️ Today',
                 'totalStats' => '⏱️ Total statistics',
@@ -4119,30 +4150,98 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'usersWithBalance' => 'List of users who have a balance.',
                 'usersWithNegativeBalance' => 'List of users who have a negative balance',
                 'verifyChannelMembership' => '📑 Channel membership verification',
-                'viewAccountInfoFeature' => 'Account information viewing feature',
                 'viewInfo' => 'View information',
                 'viewTutorial' => '📚 View usage tutorial ',
                 'volume' => 'Volume',
                 'volume2' => '🔋 Volume',
-                'volumeAlert' => '⚙️ Warning volume',
                 'volumeResetType' => 'Volume reset type',
+                'apiNowPayment' => 'API NOWPAYMENT',
                 'walletAddress' => 'Wallet address',
+                'cronStatus' => '⏱ Cron status',
+                'wheelGameType' => '🎮 Game type',
+                'wheelModeDice' => '🎲 Dice',
+                'wheelModeSlot' => '🎰 Slot',
+                'featureCategoryGeneral' => '🤖 General',
+                'featureCategorySales' => '🛒 Sales & rewards',
+                'featureCategoryCron' => '⏱ Cron jobs',
+                'manageDiscountCode' => '🎁 Manage discount codes',
+                'purchaseAndRenew' => 'Purchase and renewal',
+                'allPanels' => '🌍 All panels',
+                'allProducts' => '📦 All products',
+                'manageGiftCode' => '🎁 Manage gift codes',
+                'deleteThisCode' => '❌ Delete this code',
+                'backToGateways' => '🔙 Back to gateways',
+                'gatewaysGeneralSettings' => '➖➖ General settings ➖➖',
                 'wheelOfLuck' => '🎲 Wheel of fortune',
                 'yes' => 'Yes',
                 'yesterday' => '☀️ Yesterday',
-                'zarinPalGateway' => '🟡 ZarinPal',
+                'zarinPalGateway' => 'ZarinPal',
+                'varizaGateway' => 'Variza',
                 'zarinPalMerchant' => 'ZarinPal merchant',
+                'varizaApiToken' => 'Variza API token',
+                'varizaWebhookSecret' => 'Variza webhook secret',
+                'cashbackVariza' => 'Variza cashback',
+                'minAmountVariza' => 'Variza min amount',
+                'maxAmountVariza' => 'Variza max amount',
+                'setEducationVariza' => 'Variza tutorial',
                 'zeroBalance' => '0️⃣ Reset balance to zero',
                 'panelSetting' => '🎛 Panel Settings',
                 'mirzaAgentPanel' => 'Mirza Agent',
                 'setGroupName' => '🎛 Set group name',
                 'subLinkDomain' => '🔗 Subscription link domain',
                 'panelTypeSanaei' => 'Sanaei single port',
-                'panelTypeAlireza' => 'Alireza single port',
-                'usernameMethodAgentCustom' => 'Custom agent text + sequential number',
                 'acceptRulesButton' => '✅ I accept the rules',
         ],
         'panel' => [
+                'categoryPageTitle' => 'Categories',
+                'categoryPageLede' => 'Manage and view product categories',
+                'categoryCreateBtn' => 'Add Category',
+                'categoryCreateTitle' => 'Add New Category',
+                'categoryEditTitle' => 'Edit Category',
+                'categoryNameLabel' => 'Category Name',
+                'categoryNamePlaceholder' => 'e.g. 2 Devices',
+                'categorySaveBtn' => 'Save Category',
+                'categoryCancelBtn' => 'Cancel',
+                'categorySaveChangeBtn' => 'Save Changes',
+                'bottextPageTitle' => 'Bot Texts',
+                'bottextPageLede' => 'Edit every bot text; changed texts are saved in lang/override',
+                'bottextLangLabel' => 'Language',
+                'bottextGroups' => [
+                        'bottext' => 'In-bot text editor',
+                        'language' => 'Language',
+                        'common' => 'Common',
+                        'users' => 'Users',
+                        'Admin' => 'Admin',
+                        'textbot' => 'Main texts & buttons',
+                        'keyboard' => 'Keyboards',
+                        'panel' => 'Web panel',
+                        'paymentGateway' => 'Payment gateways',
+                        'db_defaults' => 'Default values',
+                ],
+                'bottextAllGroups' => 'All sections',
+                'bottextSearchPlaceholder' => 'Search key or text...',
+                'bottextOnlyChanged' => 'Only changed',
+                'bottextFilterBtn' => 'Apply filter',
+                'bottextSaveBtn' => 'Save changes',
+                'bottextDefaultLabel' => 'Default:',
+                'bottextResetBtn' => 'Reset to default',
+                'bottextSaved' => 'Texts saved',
+                'bottextSaveError' => 'The bot is not allowed to save files in {path}. To fix it, run this command in the server terminal: {command}',
+                'bottextEmpty' => 'No texts found',
+                'bottextChangedLabel' => 'changed',
+                'bottextCountLabel' => 'texts',
+                'categoryNameRequired' => 'Category name is required.',
+                'categoryNameExists' => 'This category name already exists.',
+                'categoryAdded' => 'Category added successfully.',
+                'categoryEdited' => 'Category edited successfully.',
+                'categoryFieldPosition' => 'Display order',
+                'categoryDeleted' => 'Category deleted successfully.',
+                'categoryDeleteConfirm' => 'Are you sure you want to delete this category?',
+                'categoryEmpty' => 'No categories found.',
+                'categoryCount' => 'categories',
+                'categorySearchPlaceholder' => 'Search categories...',
+                'categoryColName' => 'Category Title',
+                'categoryColActions' => 'Actions',
                 'configInvalidRequest' => 'Invalid request.',
                 'configRoleAll' => 'Full access',
                 'configRoleDefault' => 'Regular user',
@@ -4175,6 +4274,19 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'dashStatusWarning' => 'Warning',
                 'dashTodaySpan' => ' Today</span>',
                 'dashTodayTransaction' => 'Today\'s transactions',
+                'dashChartSalesAmount' => 'Sales amount',
+                'dashChartSalesCount' => 'Orders',
+                'dashChartPayments' => 'Successful payments',
+                'dashChartNewUsers' => 'New users',
+                'dashChartTotal' => 'Total:',
+                'dashRangeToday' => 'Today',
+                'dashRangeWeek' => '7 days',
+                'dashRangeMonth' => '30 days',
+                'dashRangeQuarter' => '90 days',
+                'dashRangeYear' => '12 months',
+                'dashChartUnitToman' => 'Toman',
+                'dashChartUnitOrder' => 'orders',
+                'dashChartUnitUser' => 'users',
                 'dashTomanShort' => 'T',
                 'dashTomanShort2' => 'T',
                 'dashTotalRevenue' => 'Total revenue',
@@ -4308,6 +4420,7 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'paymentMethodRialGateway2' => 'Rial gateway 2',
                 'paymentMethodRialGateway3' => 'Rial gateway 3',
                 'paymentMethodTelegramStar' => 'Telegram Stars',
+                'paymentMethodVariza' => 'Variza',
                 'paymentMethodZarinpal' => 'ZarinPal',
                 'paymentSearchBtn' => 'Total count',
                 'paymentSearchTransactionPlaceholder' => 'User ID or transaction number...',
@@ -4343,6 +4456,7 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'productDbError' => 'Database error: ',
                 'productDeleteBtn' => 'Delete',
                 'productDeleted' => 'Product deleted.',
+                'productFieldPosition' => 'Display order',
                 'productDescriptionOptional' => 'Optional description',
                 'productDetailCategory' => 'Agency',
                 'productDetailDescription' => 'Regular user',
@@ -4377,7 +4491,6 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'productSearchPlaceholder' => 'Search...',
                 'productThirtyValue' => '۳۰',
                 'productTomanUnit' => 'Cancel',
-                'productTypeExample' => 'VPN, package, ...',
                 'productUnlimitedLabel' => 'Description',
                 'productVolumeGbSuffix' => 'Volume (GB)',
                 'productZeroValue' => '۰',
@@ -4437,6 +4550,13 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'settingsPasswordMinLength' => 'The password must be at least 6 characters.',
                 'settingsPasswordStrengthLabel' => 'Change password',
                 'settingsPhpMemory' => 'PHP memory',
+                'settingsReportIssue' => 'Report a problem',
+                'settingsReportIssueLink' => 'Mirza channel direct',
+                'settingsDonate' => 'Support',
+                'settingsDonateLink' => 'Donate',
+                'donatePopupTitle' => '💖 Support Mirza',
+                'donatePopupText' => 'This bot and panel are developed for free. If you find them useful, a small donation helps keep development and support going.',
+                'donatePopupLater' => 'Later',
                 'settingsSaveBtn' => 'Current password',
                 'settingsSecuritySection' => 'On',
                 'settingsServerTime' => 'Server time',
@@ -4648,7 +4768,6 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'statusFailed' => 'Failed',
                 'descThanks' => 'Thank you for completing the transaction!',
                 'giftReport' => '🎁 Dear user, the amount of %s Toman has been deposited into your account as a gift.',
-                'lowAmount' => '❌ The user deposited less than the specified amount.',
                 'reportZarinpal' => '💵 New payment
         
 User numeric ID : %s
@@ -4669,14 +4788,11 @@ User numeric ID : %s
 User username : %s
 Transaction amount %s
 Payment method : First Rial currency',
-                'reportCard' => 'A receipt was approved by the bot
-
-Information :
-💰 Payment amount : %s
-👤  User numeric ID : %s 
-👤 User username : @%s 
-User balance : %s Toman
-Payment tracking code : %s',
+                'reportAbanGateway' => '💵 New payment
+- 👤 Username : @%s
+- 🆔 User ID : %s
+- 💸 Amount %s
+- 💳 Method : AbanGateway',
                 'reportTronado' => '💵 New payment
 %s
 - 👤 User username : @%s
@@ -4685,12 +4801,24 @@ Payment tracking code : %s',
 - 🔗 <a href = "https://tronscan.org/#/transaction/%s">Payment link </a>
 - 📥 Deposited Tron amount. : %s
 - 💳 Payment method :  Tronado',
+                'reportCubePay' => '💵 New payment
+- 👤 Username : @%s
+- 🆔 User ID : %s
+- 💸 Amount %s
+- 💳 Payment method : CubePay',
                 'reportNowpayment' => '💵 New payment
 - 👤 User username : @%s
 - 🆔User numeric ID : %s
 - 💸 Transaction amount %s
 - 📥 Deposited Tron amount. : %s
 - 💳 Payment method :  nowpayment',
+                'reportVariza' => '💵 New payment
+- 👤 User username : @%s
+- 🆔 User numeric ID : %s
+- 💸 Transaction amount %s
+- 🧾 Order ID : %s
+- 🔗 Variza payment slug : %s
+- 💳 Payment method : Variza',
                 'invoiceTitle' => 'Payment invoice',
                 'invoiceTransactionNo' => 'Transaction number:',
                 'invoiceAmount' => 'Paid amount:',
@@ -4700,5 +4828,17 @@ Payment tracking code : %s',
         'db_defaults' => [
                 'namecardNotSet' => 'Not set',
                 'departmanGeneral' => '☎️ General section',
+        ],
+        'phpVersion' => [
+                'user' => '⚠️ The bot is currently unavailable and will be back soon.',
+                'admin' => '⚠️ <b>The server PHP version is outdated</b>
+
+Current version: <code>%s</code>
+Minimum required: <code>%s</code>
+
+The bot is disabled for all users until PHP is upgraded.
+
+🖥 <b>Server (VPS):</b> run <code>mirza update-php</code> or choose "Update PHP" in the <code>mirza</code> menu.
+🌐 <b>Shared hosting:</b> in the hosting control panel open Select PHP Version (or MultiPHP Manager / PHP Version) and choose PHP 8.5 for the bot domain. If the host does not offer %2$s or newer, ask the hosting support to upgrade PHP.',
         ],
 ];

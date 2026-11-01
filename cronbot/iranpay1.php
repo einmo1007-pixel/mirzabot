@@ -1,4 +1,5 @@
 <?php
+chdir(__DIR__);
 ini_set('error_log', 'error_log');
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../botapi.php';
@@ -13,8 +14,6 @@ $textbotlang = languagechange();
 $list_service = $pdo->prepare("SELECT * FROM Payment_report WHERE payment_Status = 'Unpaid' AND Payment_Method = 'Currency Rial 3' ORDER BY RAND() LIMIT 10");
 $list_service->execute();
 while ($Payment_report = ($list_service)->fetch(PDO::FETCH_ASSOC)) {
-    if ($Payment_report['payment_Status'] == "paid")
-        return;
     $StatusPayment = verifpay($Payment_report['dec_not_confirmed']);
     if (!is_string($StatusPayment))
         continue;
@@ -24,6 +23,8 @@ while ($Payment_report = ($list_service)->fetch(PDO::FETCH_ASSOC)) {
     if (!$StatusPayment['success'])
         continue;
     if ($StatusPayment['data']['status'] != "approved")
+        continue;
+    if (!claimPaymentPaid($Payment_report['id_order']))
         continue;
     update("Payment_report", "dec_not_confirmed", json_encode($StatusPayment['data']), "id_order", $Payment_report['id_order']);
     DirectPayment($Payment_report['id_order']);
@@ -46,6 +47,4 @@ while ($Payment_report = ($list_service)->fetch(PDO::FETCH_ASSOC)) {
         ]);
     }
     update("Payment_report", "dec_not_confirmed", json_encode($StatusPayment), "id_order", $Payment_report['id_order']);
-    update("Payment_report", "payment_Status", "paid", "id_order", $Payment_report['id_order']);
-
 }

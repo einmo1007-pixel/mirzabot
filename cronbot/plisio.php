@@ -1,4 +1,5 @@
 <?php
+chdir(__DIR__);
 ini_set('error_log', 'error_log');
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../botapi.php';
@@ -12,40 +13,49 @@ $paymentreports = select("topicid", "idreport", "report", "paymentreport", "sele
 
 function statusplisio($tx_id)
 {
-    global $pdo;
-    $apinowpayments = ($pdo->query("SELECT (ValuePay) FROM PaySetting WHERE NamePay = 'apinowpayment'"))->fetch(PDO::FETCH_ASSOC)['ValuePay'];
-    $api_key = $apinowpayments;
-    $url = 'https://api.plisio.net/api/v1/operations?';
-    $url .= '&api_key=' . urlencode($api_key);
-    $url .= '&search=' . $tx_id;
+    $api_key = getPaySettingValue('apinowpayment');
+    $url = 'https://api.plisio.net/api/v1/operations';
+    $url .= '?api_key=' . urlencode($api_key);
+    $url .= '&search=' . urlencode($tx_id);
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
     $response = curl_exec($ch);
+    if ($response === false) {
+        return null;
+    }
     return json_decode($response, true);
-    curl_close($ch);
-
 }
 $list_service = $pdo->prepare("SELECT * FROM Payment_report WHERE payment_Status = 'Unpaid' AND Payment_Method = 'plisio'");
 $list_service->execute();
-while ($row = ($list_service)->fetch(PDO::FETCH_ASSOC)) {
-    $__q17 = $pdo->prepare("SELECT * FROM Payment_report WHERE id_order = ? LIMIT 1");
-    $__q17->bindValue(1, $row['id_order'], PDO::PARAM_STR);
-    $__q17->execute();
-    $Payment_report = $__q17->fetch(PDO::FETCH_ASSOC);
-    $textbotlang = languagechange();
-    if ($Payment_report['payment_Status'] == "paid")
+$textbotlang = languagechange();
+$statusCheck = $pdo->prepare("SELECT payment_Status FROM Payment_report WHERE id_order = ? LIMIT 1");
+while ($Payment_report = ($list_service)->fetch(PDO::FETCH_ASSOC)) {
+    $statusCheck->execute([$Payment_report['id_order']]);
+    if ($statusCheck->fetchColumn() != "Unpaid")
         continue;
     if (!isset($Payment_report['dec_not_confirmed']) or $Payment_report['dec_not_confirmed'] == null)
         continue;
-    if ($Payment_report['dec_not_confirmed'] == null)
-        continue;
     $StatusPayment = statusplisio($Payment_report['id_order']);
-    if ($StatusPayment['data']['operations'][0]['status'] == null || $StatusPayment['data']['operations'][0]['status'] == "cancelled") {
+    if (!is_array($StatusPayment) || !isset($StatusPayment['data']['operations']) || !is_array($StatusPayment['data']['operations']))
+        continue;
+    $operation = [];
+    foreach ($StatusPayment['data']['operations'] as $op) {
+        if (in_array($Payment_report['dec_not_confirmed'], [$op['txn_id'] ?? null, $op['id'] ?? null], true)
+            || ($op['params']['order_number'] ?? $op['order_number'] ?? null) === $Payment_report['id_order']) {
+            $operation = $op;
+            break;
+        }
+    }
+    $operationStatus = $operation['status'] ?? null;
+    if (in_array($operationStatus, ["cancelled", "expired"], true)) {
         $textexpire = sprintf($textbotlang['users']['Balance']['plisioExpired'], $Payment_report['id_order'], $Payment_report['price']);
         sendmessage($Payment_report['id_user'], $textexpire, null, 'html');
         update("Payment_report", "payment_Status", "expire", "id_order", $Payment_report['id_order']);
     }
-    if (isset($StatusPayment['data']['operations'][0]['status']) && $StatusPayment['data']['operations'][0]['status'] == "completed") {
+    if ($operationStatus == "completed") {
+        if (!claimPaymentPaid($Payment_report['id_order']))
+            continue;
         DirectPayment($Payment_report['id_order'], "../images.jpg");
         $pricecashback = select("PaySetting", "ValuePay", "NamePay", "chashbackplisio", "select")['ValuePay'];
         $__q18 = $pdo->prepare("SELECT * FROM user WHERE id = ? LIMIT 1");
@@ -60,7 +70,7 @@ while ($row = ($list_service)->fetch(PDO::FETCH_ASSOC)) {
             $text_report = sprintf($textbotlang['users']['Balance']['giftDepositPlisio'], $result);
             sendmessage($Balance_id['id'], $text_report, null, 'HTML');
         }
-        $text_reportpayment = sprintf($textbotlang['Admin']['reportgroup']['newPaymentPlisio'], $Balance_id['username'], $Balance_id['id'], $Payment_report['price'], $StatusPayment['tx_url'][0], $StatusPayment['invoice_url'], $StatusPayment['invoice_total_sum']);
+        $text_reportpayment = sprintf($textbotlang['Admin']['reportgroup']['newPaymentPlisio'], $Balance_id['username'], $Balance_id['id'], $Payment_report['price'], $operation['tx_url'][0] ?? '', $operation['invoice_url'] ?? '', $operation['invoice_total_sum'] ?? '');
         if (strlen($setting['Channel_Report']) > 0) {
             telegram('sendmessage', [
                 'chat_id' => $setting['Channel_Report'],
@@ -69,6 +79,5 @@ while ($row = ($list_service)->fetch(PDO::FETCH_ASSOC)) {
                 'parse_mode' => "HTML"
             ]);
         }
-        update("Payment_report", "payment_Status", "paid", "id_order", $Payment_report['id_order']);
     }
 }

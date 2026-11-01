@@ -26,13 +26,10 @@ _fmt_secs() {
 
 # Filled/empty bar of WIDTH chars at PCT percent
 _bar() {
-    local pct=$1 width=${2:-14} filled i out=""
+    local pct=$1 width=${2:-14} filled
     [ "$pct" -gt 100 ] && pct=100; [ "$pct" -lt 0 ] && pct=0
     filled=$(( pct * width / 100 ))
-    for ((i = 0; i < width; i++)); do
-        if [ "$i" -lt "$filled" ]; then out+="█"; else out+="░"; fi
-    done
-    printf '%s' "$out"
+    printf '%s%s%s%s%s' "$C_BORDER" "$(_repeat "█" "$filled")" "$C_DIM" "$(_repeat "░" $(( width - filled )))" "$CR"
 }
 
 # Expected duration (seconds) for a step, matched by its label.
@@ -43,6 +40,7 @@ _step_eta() {
         "Adding PHP repository"*|"Retrying PHP repository"*) echo 15 ;;
         "Updating & upgrading"*|"Re-running system update"*) echo 120 ;;
         "Installing base tools"*)            echo 25 ;;
+        "Ensuring cron"*)                    echo 10 ;;
         "Installing PHP dependencies"*)      echo 60 ;;
         "Installing PHP "*)                  echo 30 ;;
         "Installing web stack"*)             echo 90 ;;
@@ -67,15 +65,53 @@ _step_eta() {
         "Configuring Apache virtual hosts"*) echo 6  ;;
         "Creating database & user"*)         echo 5  ;;
         "Setting Telegram webhook"*)         echo 5  ;;
+        "Backing up vpnbots"*)               echo 5  ;;
+        "Restoring vpnbots"*)                echo 5  ;;
+        "Setting vpnbot webhooks"*)          echo 10 ;;
         "Initializing database tables"*)     echo 15 ;;
         *)                                   echo 8  ;;
     esac
 }
 
 # Plan the run: count pending steps + total expected time (skips done phases).
+_phase_line() {
+    local names=(DEPS FILES DBROOT SSL VHOST DB CONFIG WEBHOOK) labels=(Packages Files MySQL SSL Apache Database Config Webhook)
+    local line="" sep=" " i
+    if [ "$UI_W" -lt 80 ]; then
+        for i in "${!names[@]}"; do
+            [ "${names[$i]}" = "$1" ] && printf " ${C_DIM}Phase %s of 8 ·${CR} ${C_KEY}%s${CR}\n" "$((i + 1))" "${labels[$i]}"
+        done
+        return
+    fi
+    for i in "${!names[@]}"; do
+        if phase_done "${names[$i]}" || [ "$1" = COMPLETE ]; then line+="${sep}${C_OK}✔ ${labels[$i]}${CR}"
+        elif [ "${names[$i]}" = "$1" ]; then line+="${sep}${C_KEY}◐ ${labels[$i]}${CR}"
+        else line+="${sep}${C_DIM}○ ${labels[$i]}${CR}"; fi
+        sep="  "
+    done
+    printf '%b\n' "$line"
+}
+
+phase_header() {
+    local pct=0 left=""
+    [ "$STEP_TOTAL" -gt 0 ] && pct=$(( STEP_NO * 100 / STEP_TOTAL ))
+    [ "$ETA_REMAINING" -gt 0 ] && left="${C_DIM}~$(_fmt_secs "$ETA_REMAINING") left${CR} "
+    echo ""
+    _phase_line "$1"
+    _lr " ${C_DIM}Overall${CR} $(_bar "$pct" 36) ${pct}%" "$left"
+    _rule
+    printf " ${C_BORDER}%s${CR}\n" "${2^^}"
+}
+
+install_banner() {
+    clear
+    banner "${C_DIM}Installing${CR} ${C_TITLE}$(state_get SRC_LABEL)${CR}" "${C_DIM}step${CR} ${C_TITLE}$((STEP_NO + 1))${CR} ${C_DIM}of ${STEP_TOTAL}${CR}"
+}
+
 plan_eta() {
     STEP_TOTAL=0; ETA_REMAINING=0; STEP_NO=0
     phase_done DEPS    || { STEP_TOTAL=$((STEP_TOTAL + 12)); ETA_REMAINING=$((ETA_REMAINING + 388)); }
+    STEP_TOTAL=$((STEP_TOTAL + 1)); ETA_REMAINING=$((ETA_REMAINING + 10));
     phase_done FILES   || { STEP_TOTAL=$((STEP_TOTAL + 3));  ETA_REMAINING=$((ETA_REMAINING + 85)); }
     phase_done DBROOT  || { STEP_TOTAL=$((STEP_TOTAL + 1));  ETA_REMAINING=$((ETA_REMAINING + 10)); }
     if ! phase_done SSL; then
@@ -90,86 +126,136 @@ plan_eta() {
     phase_done WEBHOOK || { STEP_TOTAL=$((STEP_TOTAL + 3)); ETA_REMAINING=$((ETA_REMAINING + 25)); }
 }
 
-print_header() {
-    echo ""
-    echo -e "\033[1;34m╭────────────────────────────────────────────────╮\033[0m"
-    printf  "\033[1;34m│\033[0m \033[1;36m%-46s\033[0m \033[1;34m│\033[0m\n" "$1"
-    echo -e "\033[1;34m╰────────────────────────────────────────────────╯\033[0m"
-}
-
 run_step() {
     local msg="$1"
     local cmd="$2"
     local eta="${3:-$(_step_eta "$msg")}"
     [ "$eta" -lt 1 ] && eta=1
     STEP_NO=$((STEP_NO + 1))
-    local counter="$STEP_NO"
-    [ "$STEP_TOTAL" -gt 0 ] && counter="$STEP_NO/$STEP_TOTAL"
+    LAST_STEP_MSG="$msg"
+    LAST_STEP_CMD="$cmd"
     : > "$INSTALL_LOG"
     local start; start=$(date +%s)
     bash -c "$cmd" >> "$INSTALL_LOG" 2>&1 &
     local pid=$!
     local frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
-    local n=${#frames[@]}
-    local i=0
-    tput civis 2>/dev/null
+    local n=${#frames[@]} i=0 live=0 el pct left lefttxt head bar logs
+    [ -t 1 ] && live=1
+    [ "$live" = 1 ] && tput civis 2>/dev/null
     while kill -0 "$pid" 2>/dev/null; do
-        local el=$(( $(date +%s) - start ))
-        local pct=$(( el * 100 / eta ))
-        [ "$pct" -gt 95 ] && pct=95          # don't show full until it really finishes
-        local left=$(( eta - el )) lefttxt
-        if [ "$left" -gt 0 ]; then lefttxt="~$(_fmt_secs $left) left"; else lefttxt="finishing…"; fi
-        local otxt=""
-        if [ "$ETA_REMAINING" -gt 0 ]; then
-            local orem=$(( ETA_REMAINING - el )); [ "$orem" -lt 0 ] && orem=0
-            otxt=" \033[0;37m· total ~$(_fmt_secs $orem)\033[0m"
+        if [ "$live" = 1 ]; then
+            el=$(( $(date +%s) - start ))
+            pct=$(( el * 100 / eta ))
+            [ "$pct" -gt 95 ] && pct=95          # don't show full until it really finishes
+            left=$(( eta - el ))
+            if [ "$left" -gt 0 ]; then lefttxt="~$(_fmt_secs $left) left"; else lefttxt="finishing…"; fi
+            head="$msg"
+            [ "${#head}" -gt $(( UI_W - 26 )) ] && head="${head:0:$(( UI_W - 27 ))}…"
+            bar=""
+            [ $(( ${#head} + 46 )) -le "$UI_W" ] && bar="  ${C_BORDER}▕${CR}$(_bar "$pct" 14)${C_BORDER}▏${CR}"
+            logs=$(tail -c 4000 "$INSTALL_LOG" 2>/dev/null | tr '\r\t' '\n ' | sed 's/\x1b\[[0-9;?]*[A-Za-z]//g' \
+                | grep -v '^[[:space:]]*$' | tail -n 2 | cut -c1-$(( UI_W - 6 )))
+            printf '\r\033[J%s\n' "$(_lr " ${C_KEY}${frames[$i]}${CR} ${C_TITLE}${head}${CR}${bar}" "${C_DIM}$(_fmt_secs $el) · ${lefttxt}${CR} ")"
+            printf "   ${C_DIM}│ %s${CR}\n   ${C_DIM}│ %s${CR}\033[2A\r" "$(sed -n 1p <<< "$logs")" "$(sed -n 2p <<< "$logs")"
+            i=$(( (i + 1) % n ))
         fi
-        printf "\r\033[K \033[1;33m%s\033[0m \033[0;37m[%s]\033[0m %s  \033[1;36m▕%s▏\033[0m \033[0;37m%s · %s\033[0m%b" \
-            "${frames[$i]}" "$counter" "$msg" "$(_bar "$pct" 14)" "$(_fmt_secs $el)" "$lefttxt" "$otxt"
-        i=$(( (i + 1) % n ))
         sleep 0.2
     done
     wait "$pid"
     local rc=$?
-    local el=$(( $(date +%s) - start ))
-    tput cnorm 2>/dev/null
+    LAST_STEP_RC=$rc
+    el=$(( $(date +%s) - start ))
+    if [ "$live" = 1 ]; then
+        tput cnorm 2>/dev/null
+        printf '\r\033[J'
+    fi
     if [ "$ETA_REMAINING" -gt 0 ]; then
         ETA_REMAINING=$(( ETA_REMAINING - eta )); [ "$ETA_REMAINING" -lt 0 ] && ETA_REMAINING=0
     fi
     if [ "$rc" -eq 0 ]; then
-        printf "\r\033[K \033[1;32m✔\033[0m \033[0;37m[%s]\033[0m %s \033[0;37m(%s)\033[0m\n" "$counter" "$msg" "$(_fmt_secs $el)"
+        _lr " ${C_OK}✔${CR} ${msg}" "${C_DIM}$(_fmt_secs $el)${CR} "
     else
-        printf "\r\033[K \033[1;31m✘\033[0m \033[0;37m[%s]\033[0m %s \033[0;37m(%s)\033[0m\n" "$counter" "$msg" "$(_fmt_secs $el)"
+        _lr " ${C_BAD}✘${CR} ${C_TITLE}${msg}${CR}" "${C_DIM}$(_fmt_secs $el)${CR} "
     fi
     return "$rc"
 }
 
 show_step_error() {
-    echo -e "\033[1;31m──────────────── Error details ─────────────────\033[0m"
-    tail -n 20 "$INSTALL_LOG" 2>/dev/null
-    echo -e "\033[1;31m─────────────────────────────────────────────────\033[0m"
+    local lines hint l
+    lines=$(tr '\r' '\n' < "$INSTALL_LOG" 2>/dev/null | sed 's/\x1b\[[0-9;?]*[A-Za-z]//g' \
+        | grep -iE '^(E:|W:|error|fatal|dpkg: error)|failed' | tail -n 4)
+    [ -z "$lines" ] && lines=$(tr '\r' '\n' < "$INSTALL_LOG" 2>/dev/null | grep -v '^[[:space:]]*$' | tail -n 4)
+    if grep -qiE 'Could not get lock|dpkg frontend lock|dpkg was interrupted' "$INSTALL_LOG" 2>/dev/null; then
+        hint="Another apt or dpkg process is running, or one was interrupted. Wait a minute and retry."
+    elif grep -qiE 'No space left on device' "$INSTALL_LOG" 2>/dev/null; then
+        hint="The disk is full. Free some space and retry."
+    elif grep -qiE 'Temporary failure resolving|Could not resolve|Network is unreachable|Connection timed out|Failed to connect' "$INSTALL_LOG" 2>/dev/null; then
+        hint="The server could not reach the internet or DNS failed. Check the network and retry."
+    elif grep -qiE 'Unable to locate package php|php[0-9.]+[^ ]* has no installation candidate' "$INSTALL_LOG" 2>/dev/null; then
+        hint="This PHP package is not available from apt on this server."
+    elif grep -qi 'mysql' "$INSTALL_LOG" 2>/dev/null && grep -qiE 'dpkg: error processing|Sub-process .* returned an error' "$INSTALL_LOG" 2>/dev/null; then
+        hint="A previous MySQL install may have left broken files behind."
+    elif grep -qiE 'too many certificates|DNS problem|Timeout during connect|Invalid response from' "$INSTALL_LOG" 2>/dev/null; then
+        hint="Let's Encrypt could not verify the domain. Check that it points to this server and ports 80 and 443 are open."
+    fi
+    echo ""
+    printf " ${C_BAD}┃ What went wrong${CR}\n"
+    while IFS= read -r l; do
+        printf " ${C_BAD}┃${CR} %s\n" "${l:0:$(( UI_W - 4 ))}"
+    done <<< "${lines:-No output was captured.}"
+    if [ -n "$hint" ]; then
+        printf " ${C_BAD}┃${CR}\n ${C_BAD}┃ Likely cause${CR}\n ${C_BAD}┃${CR} %s\n" "$hint"
+    fi
+    printf " ${C_BAD}┃${CR} ${C_DIM}Full log: %s${CR}\n" "$INSTALL_LOG"
 }
 
 # ── Menu UI helpers ──────────────────────────────────────────
+_measure() {
+    TERM_W=$(stty size 2>/dev/null < /dev/tty | awk '{print $2}')
+    [[ "$TERM_W" =~ ^[0-9]+$ ]] || TERM_W=$(tput cols 2>/dev/null)
+    [[ "$TERM_W" =~ ^[0-9]+$ ]] || TERM_W=80
+    [ "$TERM_W" -gt 80 ] && TERM_W=80
+    [ "$TERM_W" -lt 40 ] && TERM_W=40
+    UI_W=$TERM_W
+}
+
 C_BORDER=$'\033[1;36m'; C_TITLE=$'\033[1;37m'; C_DIM=$'\033[0;37m'
 C_KEY=$'\033[1;33m';    C_TXT=$'\033[0;37m';   C_OK=$'\033[1;32m'
 C_BAD=$'\033[1;31m';    C_WARN=$'\033[1;33m';  C_PROMPT=$'\033[1;36m'
 CR=$'\033[0m'
-UI_W=52   # width of horizontal rules (no right border = never misaligns)
+_measure
 
 _repeat() { local ch="$1" n="$2" out="" i; for ((i=0;i<n;i++)); do out+="$ch"; done; printf '%s' "$out"; }
 # Horizontal rules (left-aligned, no right edge to drift)
-_rule()   { printf "  ${C_BORDER}%s${CR}\n" "$(_repeat "─" "$UI_W")"; }
-_drule()  { printf "  ${C_BORDER}%s${CR}\n" "$(_repeat "━" "$UI_W")"; }
+_rule()   { printf "${C_BORDER}%s${CR}\n" "$(_repeat "─" "$UI_W")"; }
+_drule()  { printf "${C_BORDER}%s${CR}\n" "$(_repeat "━" "$UI_W")"; }
+_vlen()   { local LC_ALL=C.UTF-8 plain; plain=$(printf '%b' "$1" | sed 's/\x1b\[[0-9;]*m//g'); echo "${#plain}"; }
+_lr() {
+    local gap=$(( UI_W - $(_vlen "$1") - $(_vlen "$2") ))
+    [ "$gap" -lt 1 ] && gap=1
+    printf '%b%*s%b\n' "$1" "$gap" "" "$2"
+}
+_cols() {
+    local out="" pad
+    while [ $# -gt 1 ]; do
+        out+="$2"
+        if [ $# -gt 2 ]; then
+            pad=$(( $1 - $(_vlen "$2") ))
+            [ "$pad" -lt 1 ] && pad=1
+            out+="$(printf '%*s' "$pad" "")"
+        fi
+        shift 2
+    done
+    printf '%b\n' "$out"
+}
 # Banner: rules + left-aligned title (no full box)
-banner()  {
+banner() {
     echo
-    _drule
-    printf "  ${C_OK}▌${CR} ${C_TITLE}MIRZA${CR}  ${C_DIM}— VPN Subscription Management${CR}\n"
+    _lr " ${C_OK}▌${CR} ${C_TITLE}MIRZA PRO${CR}  ${1:-${C_DIM}VPN subscription bot${CR}}" "${2:-} "
     _drule
 }
 # Menu item row: [n] label  (left-aligned, no right border)
-_mi()     { printf "    ${C_KEY}[%s]${CR}  ${C_TXT}%b${CR}\n" "$1" "$2"; }
+_mi()     { printf " ${C_KEY}[%s]${CR} ${C_TXT}%b${CR}\n" "$1" "$2"; }
 
 # ── DNS auto-fix (used early, before any download) ───────────
 RESOLV="/etc/resolv.conf"
@@ -183,7 +269,7 @@ dns_works() {
 
 ensure_dns() {
     dns_works && return 0
-    echo -e "  ${C_WARN}!${CR} ${C_WARN}DNS resolution failed - configuring public DNS...${CR}"
+    echo -e " ${C_WARN}!${CR} ${C_WARN}DNS resolution failed - configuring public DNS...${CR}"
     if [ -L "$RESOLV" ]; then
         rm -f "$RESOLV" 2>/dev/null
     elif [ -f "$RESOLV" ] && [ ! -f "${RESOLV}.mirza.bak" ]; then
@@ -195,8 +281,8 @@ ensure_dns() {
         [ -n "$ifc" ] && resolvectl dns "$ifc" "${DNS_SERVERS[@]}" 2>/dev/null || true
     fi
     sleep 1
-    dns_works && { echo -e "  ${C_OK}●${CR} ${C_OK}DNS is now working.${CR}"; return 0; }
-    echo -e "  ${C_BAD}●${CR} ${C_BAD}DNS still failing after applying public resolvers.${CR}"
+    dns_works && { echo -e " ${C_OK}●${CR} ${C_OK}DNS is now working.${CR}"; return 0; }
+    echo -e " ${C_BAD}●${CR} ${C_BAD}DNS still failing after applying public resolvers.${CR}"
     return 1
 }
 
@@ -424,7 +510,8 @@ setup_php_repo() {
 }
 export -f setup_php_repo
 
-export PHP_VER_CANDIDATES="8.2 8.3 8.4 8.5"
+export PHP_TARGET_VER="8.5"
+export PHP_MIN_VERSION="8.5.12"
 
 # 0 when apt has an installable candidate for this package.
 _apt_has_candidate() {
@@ -434,23 +521,132 @@ _apt_has_candidate() {
 }
 export -f _apt_has_candidate
 
-resolve_php_ver() {
-    local v
-    for v in $PHP_VER_CANDIDATES; do
-        if _apt_has_candidate "php$v" && _apt_has_candidate "libapache2-mod-php$v"; then
-            echo "$v"; return 0
-        fi
-    done
-    echo "8.2"
-    return 1
+php_candidate_ok() {
+    local cand
+    cand=$(apt-cache policy "php$PHP_TARGET_VER" 2>/dev/null | awk '/Candidate:/{print $2; exit}')
+    echo "php$PHP_TARGET_VER candidate: ${cand:-none} (required >= $PHP_MIN_VERSION)"
+    [ -n "$cand" ] && [ "$cand" != "(none)" ] || return 1
+    _apt_has_candidate "libapache2-mod-php$PHP_TARGET_VER" || return 1
+    dpkg --compare-versions "${cand#*:}" ge "$PHP_MIN_VERSION"
 }
-export -f resolve_php_ver
+export -f php_candidate_ok
+
+php_version_ok() {
+    "php$PHP_TARGET_VER" -r 'echo PHP_VERSION, PHP_EOL; exit(version_compare(PHP_VERSION, getenv("PHP_MIN_VERSION"), ">=") ? 0 : 1);'
+}
+export -f php_version_ok
+
+_apache_php_ver() {
+    local mod
+    [ -d /etc/apache2/mods-enabled ] || return 0
+    mod=$(ls /etc/apache2/mods-enabled | sed -n 's/^php\([0-9.]*\)\.load$/\1/p' | head -1)
+    dpkg-query -W -f='${Version}' "libapache2-mod-php${mod:-none}" 2>/dev/null
+}
+export -f _apache_php_ver
+
+upgrade_php_if_needed() {
+    local V="$PHP_TARGET_VER" current apache_ver apache_short cand cand_short source="Ubuntu archive"
+    local old_pkgs old_vers old_count pma_installed _ans activate_cmd n=3 now_cli now_apache
+    current=$(php -r 'echo PHP_VERSION;' 2>/dev/null)
+    apache_ver=$(_apache_php_ver)
+    apache_short=${apache_ver#*:}; apache_short=${apache_short%%[-+~]*}
+    if [ -n "$current" ] && dpkg --compare-versions "$current" ge "$PHP_MIN_VERSION" \
+        && { [ ! -d /etc/apache2/mods-enabled ] || { [ -n "$apache_ver" ] && dpkg --compare-versions "${apache_ver#*:}" ge "$PHP_MIN_VERSION"; }; }; then
+        _kv "PHP" "${C_OK}●${CR} ${current} ${C_DIM}is up to date (${PHP_MIN_VERSION}+)${CR}"
+        return 0
+    fi
+
+    run_step "Adding PHP repository (ondrej/php)" \
+        "setup_php_repo && apt-get update --allow-releaseinfo-change -o DPkg::Lock::Timeout=180" \
+        || { show_step_error; return 1; }
+    cand=$(apt-cache policy "php$V" 2>/dev/null | awk '/Candidate:/{print $2; exit}')
+    [ "$cand" = "(none)" ] && cand=""
+    cand_short=${cand#*:}; cand_short=${cand_short%%[-+~]*}
+    apt-cache policy "php$V" 2>/dev/null | grep -q 'ondrej' && source="ondrej/php"
+    old_pkgs=$(dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 2>/dev/null \
+        | awk -v keep="$V" '$1 ~ /^.i/ && match($2, /php[0-9]+\.[0-9]+/) { if (substr($2, RSTART + 3, RLENGTH - 3) != keep) print $2 }')
+    old_vers=$(echo "$old_pkgs" | grep -oE 'php[0-9]+\.[0-9]+' | sort -u | tr '\n' ' ')
+    old_count=$(echo "$old_pkgs" | grep -c .)
+
+    now_cli="${C_BAD}${current:-none}${CR}"
+    [ -n "$current" ] && dpkg --compare-versions "$current" ge "$PHP_MIN_VERSION" && now_cli="${C_OK}${current}${CR}"
+    now_apache="${C_BAD}${apache_short:-none}${CR}"
+    [ -n "$apache_ver" ] && dpkg --compare-versions "${apache_ver#*:}" ge "$PHP_MIN_VERSION" && now_apache="${C_OK}${apache_short}${CR}"
+    echo ""
+    if [ "$UI_W" -ge 80 ]; then
+        _cols 41 " ${C_BORDER}NOW${CR}" 39 "${C_BORDER}AFTER${CR}"
+        _cols 41 " ${C_DIM}CLI     ${CR} ${now_cli}" 39 "${C_DIM}CLI     ${CR} ${C_OK}${cand_short:-none}${CR}"
+        _cols 41 " ${C_DIM}Apache  ${CR} ${now_apache}" 39 "${C_DIM}Apache  ${CR} ${C_OK}${cand_short:-none}${CR}"
+        _cols 41 "" 39 "${C_DIM}Source  ${CR} ${source}"
+    else
+        _kv "CLI now" "$now_cli"
+        _kv "Apache now" "$now_apache"
+        _kv "After" "${C_OK}${cand_short:-none}${CR} ${C_DIM}from ${source}${CR}"
+    fi
+    if [ -z "$cand" ] || ! _apt_has_candidate "libapache2-mod-php$V" || ! dpkg --compare-versions "${cand#*:}" ge "$PHP_MIN_VERSION"; then
+        echo ""
+        printf " ${C_BAD}▲ PHP %s+ is not available from apt on this server. Nothing was changed.${CR}\n" "$PHP_MIN_VERSION"
+        return 1
+    fi
+    _rule
+    printf " ${C_TITLE}This will${CR}\n"
+    printf "   ${C_KEY}1${CR}  Install PHP %s with the modules the bot uses\n" "$V"
+    printf "      ${C_DIM}mysql mbstring zip gd curl intl xml bcmath soap ssh2${CR}\n"
+    printf "   ${C_KEY}2${CR}  Switch Apache and the ${C_TITLE}php${CR} command to %s\n" "$V"
+    if [ -n "$old_pkgs" ]; then
+        printf "   ${C_KEY}3${CR}  Remove %s ${C_DIM}(%s packages). phpMyAdmin is kept.${CR}\n" "${old_vers% }" "$old_count"
+        n=4
+    fi
+    printf "   ${C_KEY}%s${CR}  Restart Apache. The bot is back in about a minute.\n" "$n"
+    echo ""
+    printf " ${C_DIM}Your bot files, config.php and database are not touched.${CR}\n"
+    _rule
+    printf " ${C_PROMPT}❯${CR} Upgrade PHP now? ${C_DIM}[y/N]${CR}: "
+    read -r _ans
+    if [[ ! "$_ans" =~ ^[Yy]$ ]]; then
+        printf " ${C_DIM}PHP was not changed.${CR}\n"
+        return 1
+    fi
+    echo ""
+
+    pma_installed=0
+    _pkg_installed phpmyadmin && pma_installed=1
+
+    run_step "Installing PHP ${V} and modules" \
+        "DEBIAN_FRONTEND=noninteractive apt-get install -y -o DPkg::Lock::Timeout=180 php${V} php${V}-cli php${V}-fpm php${V}-mysql libapache2-mod-php${V} php${V}-mbstring php${V}-zip php${V}-gd php${V}-curl php${V}-intl php${V}-xml php${V}-bcmath" \
+        || { show_step_error; return 1; }
+    run_step "Verifying installed PHP is ${PHP_MIN_VERSION}+" "php_version_ok" \
+        || { show_step_error; return 1; }
+    run_step "Installing extra modules (php-soap, php-ssh2)" \
+        "DEBIAN_FRONTEND=noninteractive apt-get install -y -o DPkg::Lock::Timeout=180 php${V}-soap php${V}-ssh2" \
+        || show_step_error
+
+    activate_cmd="a2dismod ${old_vers} mpm_event mpm_worker 2>/dev/null; a2enmod php${V} mpm_prefork && update-alternatives --set php /usr/bin/php${V} && systemctl restart apache2"
+    run_step "Setting PHP ${V} as the active version" "$activate_cmd" \
+        || { show_step_error; return 1; }
+
+    if [ -n "$old_pkgs" ]; then
+        run_step "Removing old PHP (${old_vers% })" \
+            "DEBIAN_FRONTEND=noninteractive apt-get remove -y -o DPkg::Lock::Timeout=180 $(echo $old_pkgs)" \
+            || show_step_error
+    fi
+    if [ "$pma_installed" = 1 ] && ! _pkg_installed phpmyadmin; then
+        run_step "Reinstalling phpMyAdmin" "DEBIAN_FRONTEND=noninteractive apt-get install -y phpmyadmin" \
+            || show_step_error
+        run_step "Re-applying PHP ${V} as the active version" "$activate_cmd" \
+            || { show_step_error; return 1; }
+    fi
+    echo ""
+    printf " ${C_OK}✔ PHP %s is now active.${CR}\n" "$(php -r 'echo PHP_VERSION;' 2>/dev/null)"
+    return 0
+}
 
 # Configure MySQL root login (all output captured by run_step's log).
 setup_mysql_root() {
     sudo mkdir -p /root/confmirza || return 1
+    sudo chmod 700 /root/confmirza || return 1
     touch /root/confmirza/dbrootmirza.txt || return 1
-    sudo chmod -R 777 /root/confmirza/dbrootmirza.txt || return 1
+    sudo chmod 600 /root/confmirza/dbrootmirza.txt || return 1
     local randomdbpasstxt passs userrr RANDOM_NUMBER
     randomdbpasstxt=$(openssl rand -base64 10 | tr -dc 'a-zA-Z0-9' | cut -c1-8)
     RANDOM_NUMBER=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | cut -c1-12)
@@ -530,6 +726,44 @@ ensure_composer() {
 }
 export -f ensure_composer
 
+# Detect the active CLI PHP major.minor (e.g. 8.5). Empty on failure.
+active_php_ver() {
+    php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null
+}
+export -f active_php_ver
+
+ensure_php_exts_for_composer() {
+    local ver pkgs
+    ver="$(active_php_ver)"
+    if [ -z "$ver" ]; then
+        echo "PHP CLI not found - cannot install required extensions." >&2
+        return 1
+    fi
+
+    if php -m 2>/dev/null | grep -qi '^mbstring$' \
+        && php -m 2>/dev/null | grep -qi '^dom$' \
+        && php -m 2>/dev/null | grep -qi '^pdo_mysql$'; then
+        return 0
+    fi
+
+    pkgs="php${ver}-mysql php${ver}-mbstring php${ver}-xml php${ver}-zip php${ver}-gd php${ver}-curl php${ver}-intl php${ver}-bcmath"
+    echo "Ensuring PHP ${ver} extensions for Composer: ${pkgs}"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y $pkgs || {
+        echo "Failed to install PHP ${ver} extensions required by Composer." >&2
+        return 1
+    }
+
+    if ! php -m 2>/dev/null | grep -qi '^mbstring$' \
+        || ! php -m 2>/dev/null | grep -qi '^dom$' \
+        || ! php -m 2>/dev/null | grep -qi '^pdo_mysql$'; then
+        echo "PHP ${ver} is missing mbstring, dom and/or pdo_mysql after package install." >&2
+        echo "Run: php -m | grep -E 'mbstring|dom|pdo_mysql'  and php --ini" >&2
+        return 1
+    fi
+    return 0
+}
+export -f ensure_php_exts_for_composer
+
 # Build vendor/ from composer.json + composer.lock. vendor/ is not shipped in the
 # release archive, so this must run on every install, update and migration.
 install_php_deps() {
@@ -540,6 +774,7 @@ install_php_deps() {
         return 0
     fi
 
+    ensure_php_exts_for_composer || return 1
     ensure_composer || return 1
 
     COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_NO_INTERACTION=1 \
@@ -563,6 +798,74 @@ _pkg_installed_glob() {
     dpkg-query -W -f='${Package} ${Status}\n' "$1" 2>/dev/null | grep -q 'install ok installed'
 }
 
+_crontab_present() {
+    command -v crontab >/dev/null 2>&1 || [ -x /usr/bin/crontab ] || [ -x /usr/sbin/crontab ]
+}
+
+_cron_unit_name() {
+    if [ -f /lib/systemd/system/cron.service ] || [ -f /usr/lib/systemd/system/cron.service ]; then
+        echo cron
+    elif [ -f /lib/systemd/system/crond.service ] || [ -f /usr/lib/systemd/system/crond.service ]; then
+        echo crond
+    fi
+}
+
+_cron_daemon_active() {
+    local unit
+    unit="$(_cron_unit_name)"
+    if [ -n "$unit" ] && systemctl is-active --quiet "$unit" 2>/dev/null; then
+        return 0
+    fi
+    pgrep -x cron >/dev/null 2>&1 || pgrep -x crond >/dev/null 2>&1
+}
+
+# Install cron when crontab/daemon is missing, then enable + start it and
+# allow www-data to register jobs (PHP activecron() uses crontab as www-data).
+ensure_cron() {
+    export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin${PATH:+:$PATH}"
+    hash -r 2>/dev/null || true
+
+    if ! _crontab_present; then
+        DEBIAN_FRONTEND=noninteractive apt-get install -y -o DPkg::Lock::Timeout=180 cron \
+            || DEBIAN_FRONTEND=noninteractive apt-get install -y -o DPkg::Lock::Timeout=180 cronie \
+            || return 1
+        hash -r 2>/dev/null || true
+        systemctl daemon-reload 2>/dev/null || true
+    elif ! _cron_daemon_active; then
+        if ! dpkg-query -W -f='${Status}' cron 2>/dev/null | grep -q 'install ok installed' \
+            && ! dpkg-query -W -f='${Status}' cronie 2>/dev/null | grep -q 'install ok installed'; then
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -o DPkg::Lock::Timeout=180 cron \
+                || DEBIAN_FRONTEND=noninteractive apt-get install -y -o DPkg::Lock::Timeout=180 cronie \
+                || return 1
+            hash -r 2>/dev/null || true
+            systemctl daemon-reload 2>/dev/null || true
+        fi
+    fi
+
+    if [ -f /etc/cron.allow ]; then
+        grep -qx 'www-data' /etc/cron.allow 2>/dev/null || echo 'www-data' >> /etc/cron.allow
+    fi
+
+    local unit
+    unit="$(_cron_unit_name)"
+    if [ -n "$unit" ]; then
+        systemctl unmask "$unit" >/dev/null 2>&1 || true
+        systemctl enable "$unit" >/dev/null 2>&1 || true
+        systemctl start "$unit" || return 1
+        if ! systemctl is-active --quiet "$unit"; then
+            sleep 1
+            systemctl start "$unit" || return 1
+            systemctl is-active --quiet "$unit" || return 1
+        fi
+    else
+        service cron start 2>/dev/null || service crond start 2>/dev/null || true
+        _cron_daemon_active || return 1
+    fi
+
+    _crontab_present || return 1
+}
+export -f _crontab_present _cron_unit_name _cron_daemon_active ensure_cron
+
 # Refuse to install on a server that already has conflicting software.
 # Only runs on a brand-new install (never on resume / Mirza's own partial state).
 precheck_fresh_server() {
@@ -580,13 +883,13 @@ precheck_fresh_server() {
         clear
         banner
         _sec "Server is not clean"
-        printf "    ${C_BAD}●${CR} ${C_BAD}This installer needs a fresh server with no other software installed.${CR}\n"
-        printf "    ${C_DIM}Detected conflicting components:${CR}\n"
+        printf " ${C_BAD}●${CR} ${C_BAD}This installer needs a fresh server with no other software installed.${CR}\n"
+        printf " ${C_DIM}Detected conflicting components:${CR}\n"
         local f
         for f in "${found[@]}"; do printf "      ${C_WARN}-${CR} ${C_TXT}%s${CR}\n" "$f"; done
         echo ""
-        printf "    ${C_TXT}Use a clean Ubuntu 22.04/24.04/26.04 server (no web server, database, or panel)${CR}\n"
-        printf "    ${C_TXT}or reinstall the OS, then run the installer again.${CR}\n"
+        printf " ${C_TXT}Use a clean Ubuntu 22.04/24.04/26.04 server (no web server, database, or panel)${CR}\n"
+        printf " ${C_TXT}or reinstall the OS, then run the installer again.${CR}\n"
         return 1
     fi
     return 0
@@ -614,16 +917,40 @@ export -f repair_mysql
 
 
 install_pause() {
-    local where="$1"
+    local where="$1" choice retry=0
+    [ "${LAST_STEP_RC:-0}" -ne 0 ] && [ -n "$LAST_STEP_CMD" ] && retry=1
+    while true; do
+        echo ""
+        printf " ${C_OK}●${CR} ${C_DIM}Completed steps are saved. Nothing has to run twice.${CR}\n\n"
+        if [ "$retry" = 1 ]; then
+            printf "   ${C_KEY}[R]${CR} Retry    ${C_KEY}[L]${CR} Show full log    ${C_KEY}[Q]${CR} Quit and resume later\n\n"
+            printf " ${C_PROMPT}❯${CR} Choose ${C_DIM}[R/l/q]${CR}: "
+        else
+            printf "   ${C_KEY}[L]${CR} Show full log    ${C_KEY}[Q]${CR} Quit and resume later\n\n"
+            printf " ${C_PROMPT}❯${CR} Choose ${C_DIM}[l/Q]${CR}: "
+        fi
+        read -r choice || choice=q
+        [ -z "$choice" ] && { [ "$retry" = 1 ] && choice=r || choice=q; }
+        case "$choice" in
+            [Rr])
+                [ "$retry" = 1 ] || continue
+                echo ""
+                STEP_NO=$((STEP_NO - 1))
+                run_step "$LAST_STEP_MSG" "$LAST_STEP_CMD" && return 0
+                show_step_error
+                ;;
+            [Ll])
+                if command -v less >/dev/null 2>&1; then less -R +G "$INSTALL_LOG"; else tail -n 60 "$INSTALL_LOG"; fi
+                ;;
+            *) break ;;
+        esac
+    done
     echo ""
-    echo -e "  ${C_WARN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${CR}"
-    echo -e "  ${C_WARN}● Installation paused${CR} ${C_DIM}(${where})${CR}"
-    echo -e "  ${C_DIM}This is usually caused by the server losing internet or a network error.${CR}"
-    echo ""
-    echo -e "  ${C_TXT}Completed steps are saved. Just run it again:${CR}"
-    echo -e "      ${C_KEY}mirza install${CR}"
-    echo -e "  ${C_DIM}It resumes from this step; values you already entered (domain/token/...) will not be asked again.${CR}"
-    echo -e "  ${C_WARN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${CR}"
+    _drule
+    printf " ${C_WARN}●${CR} ${C_TITLE}Installation paused${CR} ${C_DIM}(%s)${CR}\n" "$where"
+    printf " ${C_TXT}Run it again to continue from this step:${CR} ${C_KEY}mirza install${CR}\n"
+    printf " ${C_DIM}Values you already entered (domain, token, ...) will not be asked again.${CR}\n"
+    _drule
     echo ""
     exit 1
 }
@@ -639,8 +966,8 @@ _dot() {
 }
 
 # Dashboard section header + key/value row helpers
-_sec() { printf "\n  ${C_KEY}▌${CR} ${C_TITLE}%s${CR}\n" "$1"; _rule; }
-_kv()  { printf "    ${C_DIM}%-11s${CR}${C_BORDER}:${CR} %b${CR}\n" "$1" "$2"; }
+_sec() { printf "\n ${C_BORDER}%s${CR}\n" "${1^^}"; }
+_kv()  { printf " ${C_DIM}%-12s${CR} %b${CR}\n" "$1" "$2"; }
 
 # Read the installed version from the source 'version' file
 get_installed_version() {
@@ -698,8 +1025,8 @@ choose_source() {
         # Verify the requested tag actually exists (when the list is reachable)
         local _avail; _avail=$(list_tags_desc)
         if [ -n "$_avail" ] && ! echo "$_avail" | grep -qx "$ARG_VERSION"; then
-            echo -e "    ${C_BAD}●${CR} ${C_BAD}Version '${ARG_VERSION}' not found.${CR}"
-            echo -e "    ${C_DIM}Available:${CR} $(echo "$_avail" | tr '\n' ' ')"
+            echo -e " ${C_BAD}●${CR} ${C_BAD}Version '${ARG_VERSION}' not found.${CR}"
+            echo -e " ${C_DIM}Available:${CR} $(echo "$_avail" | tr '\n' ' ')"
             return 1
         fi
         SRC_ZIP_URL="${tagbase}/${ARG_VERSION}.zip"; SRC_LABEL="Release ${ARG_VERSION}"; return 0
@@ -712,7 +1039,7 @@ choose_source() {
                 if [ -n "$l" ]; then SRC_ZIP_URL="${tagbase}/${l}.zip"; SRC_LABEL="Release ${l}";
                 else SRC_ZIP_URL="$beta"; SRC_LABEL="Beta (main)"; fi
                 return 0 ;;
-            *) echo -e "    ${C_BAD}Unknown channel: ${ARG_CHANNEL}${CR}"; return 1 ;;
+            *) echo -e " ${C_BAD}Unknown channel: ${ARG_CHANNEL}${CR}"; return 1 ;;
         esac
     fi
 
@@ -723,7 +1050,7 @@ choose_source() {
     _mi "3" "Beta       ${C_DIM}(latest main branch - may be unstable)${CR}"
     _mi "0" "Back to menu"
     echo ""
-    printf "  ${C_PROMPT}❯${CR} Select ${C_DIM}[0-3]${CR}: "
+    printf " ${C_PROMPT}❯${CR} Select ${C_DIM}[0-3]${CR}: "
     local S; read -r S
     case "$S" in
         0) return 2 ;;
@@ -731,16 +1058,16 @@ choose_source() {
             local l; l=$(get_latest_version)
             if [ -n "$l" ]; then SRC_ZIP_URL="${tagbase}/${l}.zip"; SRC_LABEL="Release ${l}";
             else
-                echo -e "    ${C_WARN}Could not detect latest release; falling back to Beta.${CR}"
+                echo -e " ${C_WARN}Could not detect latest release; falling back to Beta.${CR}"
                 SRC_ZIP_URL="$beta"; SRC_LABEL="Beta (main)"
             fi
             return 0 ;;
         2)
             echo ""
-            echo -e "  ${C_DIM}Fetching available versions...${CR}"
+            echo -e " ${C_DIM}Fetching available versions...${CR}"
             local TAGS=(); mapfile -t TAGS < <(list_tags_desc)
             if [ "${#TAGS[@]}" -eq 0 ]; then
-                echo -e "    ${C_BAD}●${CR} ${C_BAD}Could not fetch release list (offline or rate-limited).${CR}"
+                echo -e " ${C_BAD}●${CR} ${C_BAD}Could not fetch release list (offline or rate-limited).${CR}"
                 return 1
             fi
             _sec "Available versions"
@@ -751,17 +1078,17 @@ choose_source() {
             done
             _mi "0" "Back to menu"
             echo ""
-            printf "  ${C_PROMPT}❯${CR} Select version ${C_DIM}[default: 1]${CR}: "
+            printf " ${C_PROMPT}❯${CR} Select version ${C_DIM}[default: 1]${CR}: "
             local V; read -r V; [ -z "$V" ] && V=1
             [ "$V" = "0" ] && return 2
             if ! [[ "$V" =~ ^[0-9]+$ ]] || [ "$V" -lt 1 ] || [ "$V" -gt "${#TAGS[@]}" ]; then
-                echo -e "    ${C_BAD}Invalid selection.${CR}"; return 1
+                echo -e " ${C_BAD}Invalid selection.${CR}"; return 1
             fi
             local c="${TAGS[$((V-1))]}"
             SRC_ZIP_URL="${tagbase}/${c}.zip"; SRC_LABEL="Release ${c}"
             return 0 ;;
         3) SRC_ZIP_URL="$beta"; SRC_LABEL="Beta (main)"; return 0 ;;
-        *) echo -e "    ${C_BAD}Invalid selection.${CR}"; return 1 ;;
+        *) echo -e " ${C_BAD}Invalid selection.${CR}"; return 1 ;;
     esac
 }
 
@@ -781,161 +1108,154 @@ get_server_ip() {
 }
 
 # ── Dashboard sections ───────────────────────────────────────
-version_section() {
-    local inst latest
+function show_logo() {
+    _measure
+    local inst latest installed=0 domain="" ssl_days="" token info="" ok="" url="" pending=0 err="" hook_state="" hook_bad=0
+    local php_v apache_ver apache_short php_txt apache_s mysql_s cron_s ip os mem_t mem_u mem_p mem_txt disk_u disk_t disk_p load cores up
+    local al_text=() al_key=() i
+    DASH_PHP_BAD=0; DASH_UPDATE=0; DASH_SSL=0
+
     inst=$(get_installed_version)
     latest=$(get_latest_version)
-    _sec "Version"
-    if [ -n "$inst" ]; then
-        _kv "Installed" "$(_dot ok) ${C_OK}${inst}${CR}"
-    else
-        _kv "Installed" "$(_dot bad) ${C_BAD}not installed${CR}"
-    fi
-    if [ -n "$latest" ]; then
-        if [ -n "$inst" ] && [ "$inst" = "$latest" ]; then
-            _kv "Latest" "$(_dot ok) ${C_OK}${latest}${CR} ${C_DIM}(up to date)${CR}"
-        elif [ -n "$inst" ]; then
-            _kv "Latest" "$(_dot warn) ${C_WARN}${latest}${CR} ${C_WARN}(update available!)${CR}"
-        else
-            _kv "Latest" "$(_dot warn) ${C_DIM}${latest}${CR}"
+    [ -f "$CONFIG_FILE_DEFAULT" ] && installed=1
+    if [ "$installed" = 1 ]; then
+        domain=$(grep '^\$domainhosts' "$CONFIG_FILE_DEFAULT" | cut -d"'" -f2 | cut -d'/' -f1)
+        if [ -n "$domain" ] && [ -f "/etc/letsencrypt/live/$domain/cert.pem" ]; then
+            ssl_days=$(( ( $(date -d "$(openssl x509 -enddate -noout -in "/etc/letsencrypt/live/$domain/cert.pem" 2>/dev/null | cut -d= -f2)" +%s 2>/dev/null || echo 0) - $(date +%s) ) / 86400 ))
         fi
-    else
-        _kv "Latest" "$(_dot warn) ${C_DIM}unknown (offline)${CR}"
-    fi
-    _kv "Channel" "${C_DIM}t.me/mirzapanel${CR}"
-    _kv "Group" "${C_DIM}t.me/mirzapanelgroup${CR}"
-}
-
-bot_section() {
-    SSL_DOMAIN=""
-    _sec "Bot Status"
-    if [ ! -f "$CONFIG_FILE_DEFAULT" ]; then
-        _kv "State" "$(_dot bad) ${C_BAD}not installed${CR}"
-        return
-    fi
-    _kv "State" "$(_dot ok) ${C_OK}installed${CR}"
-    SSL_DOMAIN=$(grep '^\$domainhosts' "$CONFIG_FILE_DEFAULT" | cut -d"'" -f2 | cut -d'/' -f1)
-    if [ -n "$SSL_DOMAIN" ] && [ -f "/etc/letsencrypt/live/$SSL_DOMAIN/cert.pem" ]; then
-        local expiry days
-        expiry=$(openssl x509 -enddate -noout -in "/etc/letsencrypt/live/$SSL_DOMAIN/cert.pem" 2>/dev/null | cut -d= -f2)
-        days=$(( ( $(date -d "$expiry" +%s 2>/dev/null || echo 0) - $(date +%s) ) / 86400 ))
-        if [ "$days" -gt 14 ]; then
-            _kv "SSL" "$(_dot ok) ${C_OK}valid${CR} ${C_DIM}(${days} days left)${CR}"
-        elif [ "$days" -gt 0 ]; then
-            _kv "SSL" "$(_dot warn) ${C_WARN}valid${CR} ${C_DIM}(${days} days left - renew soon)${CR}"
-        else
-            _kv "SSL" "$(_dot bad) ${C_BAD}expired${CR}"
+        token=$(grep '^\$APIKEY' "$CONFIG_FILE_DEFAULT" | cut -d"'" -f2)
+        [ -n "$token" ] && info=$(curl -fsSL --max-time 8 "https://api.telegram.org/bot${token}/getWebhookInfo" 2>/dev/null)
+        if [ -n "$info" ]; then
+            if command -v jq >/dev/null 2>&1; then
+                ok=$(echo "$info"     | jq -r '.ok')
+                url=$(echo "$info"    | jq -r '.result.url // empty')
+                pending=$(echo "$info"| jq -r '.result.pending_update_count // 0')
+                err=$(echo "$info"    | jq -r '.result.last_error_message // empty')
+            else
+                ok=$(echo "$info"     | grep -oE '"ok":[[:space:]]*(true|false)' | grep -oE '(true|false)')
+                url=$(echo "$info"    | grep -oE '"url":[[:space:]]*"[^"]*"' | sed -E 's/.*"url":[[:space:]]*"([^"]*)".*/\1/')
+                pending=$(echo "$info"| grep -oE '"pending_update_count":[[:space:]]*[0-9]+' | grep -oE '[0-9]+$')
+                err=$(echo "$info"    | grep -oE '"last_error_message":[[:space:]]*"[^"]*"' | sed -E 's/.*"last_error_message":[[:space:]]*"([^"]*)".*/\1/')
+                [ -z "$pending" ] && pending=0
+            fi
         fi
-    else
-        _kv "SSL" "$(_dot warn) ${C_WARN}certificate not found${CR}"
+        if [ -z "$token" ]; then hook_state="token missing"
+        elif [ -z "$info" ]; then hook_state="Telegram unreachable"
+        elif [ "$ok" != "true" ]; then hook_state="API error"
+        elif [ -z "$url" ]; then hook_state="not set"
+        fi
+        [ -n "$hook_state" ] && hook_bad=1
     fi
-    if [ -n "$SSL_DOMAIN" ]; then
-        _kv "Domain" "${C_DIM}https://${SSL_DOMAIN}${CR}"
-        _kv "phpMyAdmin" "${C_DIM}https://${SSL_DOMAIN}/phpmyadmin${CR}"
-    fi
-}
 
-# Read the Telegram webhook using the bot token from config.php.
-# Prints webhook URL / pending count, and surfaces any error message.
-webhook_section() {
-    _sec "Webhook"
-    if [ ! -f "$CONFIG_FILE_DEFAULT" ]; then
-        _kv "Status" "$(_dot warn) ${C_DIM}n/a (bot not installed)${CR}"
-        return
-    fi
-    local token info ok url pending err errdate apierr when
-    token=$(grep '^\$APIKEY' "$CONFIG_FILE_DEFAULT" | cut -d"'" -f2)
-    if [ -z "$token" ]; then
-        _kv "Status" "$(_dot bad) ${C_BAD}token not found in config.php${CR}"
-        return
-    fi
-    info=$(curl -fsSL --max-time 8 "https://api.telegram.org/bot${token}/getWebhookInfo" 2>/dev/null)
-    if [ -z "$info" ]; then
-        _kv "Status" "$(_dot bad) ${C_BAD}cannot reach Telegram API${CR}"
-        printf "    ${C_BAD}Error:${CR} request to api.telegram.org failed (network/timeout).\n"
-        return
-    fi
-    if command -v jq >/dev/null 2>&1; then
-        ok=$(echo "$info"     | jq -r '.ok')
-        url=$(echo "$info"    | jq -r '.result.url // empty')
-        pending=$(echo "$info"| jq -r '.result.pending_update_count // 0')
-        err=$(echo "$info"    | jq -r '.result.last_error_message // empty')
-        errdate=$(echo "$info"| jq -r '.result.last_error_date // empty')
-        apierr=$(echo "$info" | jq -r '.description // empty')
+    php_v=$(php -r 'echo PHP_VERSION;' 2>/dev/null)
+    apache_ver=$(_apache_php_ver)
+    apache_short=${apache_ver#*:}; apache_short=${apache_short%%[-+~]*}
+    if [ -z "$php_v" ] || ! dpkg --compare-versions "$php_v" ge "$PHP_MIN_VERSION"; then
+        DASH_PHP_BAD=1; php_txt="${C_BAD}▲ ${php_v:-none}${CR} ${C_DIM}(need ${PHP_MIN_VERSION}+)${CR}"
+    elif [ -d /etc/apache2/mods-enabled ] && { [ -z "$apache_ver" ] || ! dpkg --compare-versions "${apache_ver#*:}" ge "$PHP_MIN_VERSION"; }; then
+        DASH_PHP_BAD=1; php_txt="${C_BAD}▲ Apache ${apache_short:-none}${CR} ${C_DIM}(need ${PHP_MIN_VERSION}+)${CR}"
     else
-        ok=$(echo "$info"     | grep -oE '"ok":[[:space:]]*(true|false)' | grep -oE '(true|false)')
-        url=$(echo "$info"    | grep -oE '"url":[[:space:]]*"[^"]*"' | sed -E 's/.*"url":[[:space:]]*"([^"]*)".*/\1/')
-        pending=$(echo "$info"| grep -oE '"pending_update_count":[[:space:]]*[0-9]+' | grep -oE '[0-9]+$')
-        err=$(echo "$info"    | grep -oE '"last_error_message":[[:space:]]*"[^"]*"' | sed -E 's/.*"last_error_message":[[:space:]]*"([^"]*)".*/\1/')
-        errdate=$(echo "$info"| grep -oE '"last_error_date":[[:space:]]*[0-9]+' | grep -oE '[0-9]+$')
-        apierr=$(echo "$info" | grep -oE '"description":[[:space:]]*"[^"]*"' | sed -E 's/.*"description":[[:space:]]*"([^"]*)".*/\1/')
-        [ -z "$pending" ] && pending=0
+        php_txt="${C_OK}●${CR} ${php_v}"
     fi
-    # Telegram-level API failure (e.g. invalid/revoked token)
-    if [ "$ok" != "true" ]; then
-        _kv "Status" "$(_dot bad) ${C_BAD}API error${CR}"
-        [ -n "$apierr" ] && printf "    ${C_BAD}Error:${CR} %s\n" "$apierr"
-        return
-    fi
-    # Webhook URL
-    if [ -n "$url" ]; then
-        _kv "URL" "$(_dot ok) ${C_OK}set${CR} ${C_DIM}(${url})${CR}"
-    else
-        _kv "URL" "$(_dot bad) ${C_BAD}not set${CR}"
-    fi
-    _kv "Pending" "${C_DIM}${pending} update(s)${CR}"
-    # Last delivery error reported by Telegram
-    if [ -n "$err" ]; then
-        when=""
-        [ -n "$errdate" ] && when=$(date -d "@$errdate" '+%Y-%m-%d %H:%M' 2>/dev/null)
-        _kv "Last error" "$(_dot bad) ${C_BAD}${err}${CR}"
-        [ -n "$when" ] && _kv "Error time" "${C_DIM}${when}${CR}"
-    else
-        _kv "Last error" "$(_dot ok) ${C_OK}none${CR}"
-    fi
-}
-
-system_section() {
-    local php_v apache_s mysql_s ip os
-    php_v=$(php -r 'echo PHP_VERSION;' 2>/dev/null); [ -z "$php_v" ] && php_v="n/a"
-    apache_s=$(systemctl is-active apache2 2>/dev/null || echo "inactive")
-    mysql_s=$(systemctl is-active mysql 2>/dev/null || echo "inactive")
+    apache_s=$(systemctl is-active apache2 2>/dev/null); [ -z "$apache_s" ] && apache_s=inactive
+    mysql_s=$(systemctl is-active mysql 2>/dev/null); [ -z "$mysql_s" ] && mysql_s=inactive
+    cron_s=$(systemctl is-active "$(_cron_unit_name)" 2>/dev/null); [ -z "$cron_s" ] && cron_s=inactive
     ip=$(get_server_ip)
-    if [ -f /etc/os-release ]; then os=$(. /etc/os-release; echo "$PRETTY_NAME"); else os="Unknown"; fi
-    _svc_row() { if [ "$2" = "active" ]; then _kv "$1" "$(_dot ok) ${C_OK}active${CR}"; else _kv "$1" "$(_dot bad) ${C_BAD}$2${CR}"; fi; }
-    _sec "System"
-    _kv "OS" "${C_DIM}${os}${CR}"
-    _kv "PHP" "${C_DIM}${php_v}${CR}"
-    _svc_row "Apache" "$apache_s"
-    _svc_row "MySQL" "$mysql_s"
-    _kv "Server IP" "${C_DIM}${ip}${CR}"
-}
-
-resources_section() {
-    local mem_t mem_u mem_p disk load cores up
-    mem_t=$(free -m 2>/dev/null | awk '/^Mem:/{print $2}')
-    mem_u=$(free -m 2>/dev/null | awk '/^Mem:/{print $3}')
-    if [ -n "$mem_t" ] && [ "$mem_t" -gt 0 ] 2>/dev/null; then mem_p=$(( mem_u * 100 / mem_t )); else mem_p=0; fi
-    disk=$(df -h / 2>/dev/null | awk 'NR==2{print $3" / "$2"  ("$5")"}')
-    load=$(awk '{print $1", "$2", "$3}' /proc/loadavg 2>/dev/null)
+    if [ -f /etc/os-release ]; then os=$(. /etc/os-release; echo "${NAME} ${VERSION_ID}"); else os="Unknown"; fi
+    read -r mem_t mem_u < <(free -m 2>/dev/null | awk '/^Mem:/{print $2, $3}')
+    if [ -n "$mem_t" ] && [ "$mem_t" -gt 0 ] 2>/dev/null; then mem_p=$(( mem_u * 100 / mem_t )); else mem_p=0; mem_t=0; mem_u=0; fi
+    mem_txt=$(awk -v u="$mem_u" -v t="$mem_t" 'BEGIN{printf "%.1f/%.1fG", u/1024, t/1024}')
+    read -r disk_u disk_t disk_p < <(df -BG / 2>/dev/null | awk 'NR==2{gsub("G","",$2); gsub("G","",$3); gsub("%","",$5); print $3, $2, $5}')
+    [ -z "$disk_p" ] && disk_p=0
+    load=$(cut -d' ' -f1-3 /proc/loadavg 2>/dev/null)
     cores=$(nproc 2>/dev/null)
-    up=$(uptime -p 2>/dev/null | sed 's/^up //')
+    up=$(uptime -p 2>/dev/null | sed 's/^up //' | cut -d, -f1-2)
     [ -z "$up" ] && up="n/a"
-    _sec "Resources"
-    _kv "RAM" "${C_DIM}${mem_u}MB / ${mem_t}MB  (${mem_p}%)${CR}"
-    _kv "Disk" "${C_DIM}${disk}${CR}"
-    _kv "CPU load" "${C_DIM}${load}  (${cores} cores)${CR}"
-    _kv "Uptime" "${C_DIM}${up}${CR}"
-}
 
-function show_logo() {
+    if [ "$installed" = 1 ] && [ "$DASH_PHP_BAD" = 1 ]; then
+        al_text+=("${C_BAD}▲ PHP ${php_v:-none} is older than ${PHP_MIN_VERSION}. The bot is paused for all users.${CR}"); al_key+=("${C_KEY}[4] fix${CR}")
+    fi
+    if [ "$hook_bad" = 1 ]; then
+        al_text+=("${C_BAD}▲ Webhook: ${hook_state}.${CR}"); al_key+=("")
+    fi
+    if [ "$installed" = 1 ] && { [ "$apache_s" != active ] || [ "$mysql_s" != active ]; }; then
+        al_text+=("${C_BAD}▲ Apache is ${apache_s}, MySQL is ${mysql_s}.${CR}"); al_key+=("")
+    fi
+    if [ -n "$inst" ] && [ -n "$latest" ] && [ "$inst" != "$latest" ] && [ "$(printf '%s\n%s\n' "$inst" "$latest" | sort -V | tail -1)" = "$latest" ]; then
+        DASH_UPDATE=1
+        al_text+=("${C_KEY}●${CR} ${C_TITLE}Mirza ${latest} is available.${CR} ${C_DIM}You have ${inst}.${CR}"); al_key+=("${C_KEY}[2] update${CR}")
+    fi
+    if [ -n "$ssl_days" ] && [ "$ssl_days" -le 14 ]; then
+        DASH_SSL=1
+        if [ "$ssl_days" -gt 0 ]; then
+            al_text+=("${C_KEY}●${CR} ${C_TITLE}SSL certificate expires in ${ssl_days} days.${CR}")
+        else
+            al_text+=("${C_BAD}▲ SSL certificate has expired.${CR}")
+        fi
+        al_key+=("${C_KEY}[5] renew${CR}")
+    elif [ "$installed" = 1 ] && [ -n "$domain" ] && [ -z "$ssl_days" ]; then
+        DASH_SSL=1
+        al_text+=("${C_KEY}●${CR} ${C_TITLE}No SSL certificate found for ${domain}.${CR}"); al_key+=("${C_KEY}[5] renew${CR}")
+    fi
+    if [ "$installed" = 0 ]; then
+        al_text+=("${C_KEY}●${CR} ${C_TITLE}Mirza is not installed on this server.${CR}"); al_key+=("${C_KEY}[1] install${CR}")
+    fi
+    if [ "${#al_text[@]}" -eq 0 ]; then
+        al_text+=("${C_OK}● All good. Nothing needs attention.${CR}"); al_key+=("")
+    fi
+
+    local st_state st_hook st_err st_ssl svc_a svc_m svc_c
+    if [ "$installed" = 1 ]; then st_state="${C_OK}●${CR} installed"; else st_state="${C_DIM}○ not installed${CR}"; fi
+    if [ "$installed" = 0 ]; then st_hook="${C_DIM}-${CR}"
+    elif [ "$hook_bad" = 1 ]; then st_hook="${C_BAD}▲${CR} ${hook_state}"
+    else st_hook="${C_OK}●${CR} set ${C_DIM}· ${pending} pending${CR}"; fi
+    if [ "$installed" = 0 ] || [ "$hook_bad" = 1 ]; then st_err="${C_DIM}-${CR}"
+    elif [ -n "$err" ]; then st_err="${C_BAD}▲${CR} ${err:0:26}"
+    else st_err="${C_OK}●${CR} none"; fi
+    if [ -z "$ssl_days" ]; then st_ssl="${C_DIM}-${CR}"
+    elif [ "$ssl_days" -gt 14 ]; then st_ssl="${C_OK}●${CR} ${ssl_days} days left"
+    elif [ "$ssl_days" -gt 0 ]; then st_ssl="${C_KEY}●${CR} ${ssl_days} days left ${C_DIM}· renew soon${CR}"
+    else st_ssl="${C_BAD}▲${CR} expired"; fi
+    if [ "$apache_s" = active ]; then svc_a="${C_OK}●${CR} active"; else svc_a="${C_BAD}▲${CR} ${apache_s}"; fi
+    if [ "$mysql_s" = active ]; then svc_m="${C_OK}●${CR} active"; else svc_m="${C_BAD}▲${CR} ${mysql_s}"; fi
+    if [ "$cron_s" = active ]; then svc_c="${C_OK}●${CR} active"; else svc_c="${C_BAD}▲${CR} ${cron_s}"; fi
+
     clear
-    banner
-    version_section
-    bot_section
-    webhook_section
-    system_section
-    resources_section
+    echo
+    if [ "$UI_W" -ge 80 ]; then
+        _lr " ${C_OK}▌${CR} ${C_TITLE}MIRZA PRO${CR}  ${C_DIM}VPN subscription bot${CR}" "${inst:+${C_DIM}installed${CR} ${C_OK}${inst}${CR}  }${C_DIM}latest${CR} ${C_KEY}${latest:-unknown}${CR} "
+        _lr "   ${C_DIM}${domain:+https://$domain}${CR}" "${C_DIM}${os} · ${ip}${CR} "
+        _drule
+        for i in "${!al_text[@]}"; do
+            [ "$i" -ge 3 ] && break
+            _lr " ${al_text[$i]}" "${al_key[$i]} "
+        done
+        _rule
+        _cols 41 " ${C_BORDER}BOT${CR}" 39 "${C_BORDER}SERVER${CR}"
+        _cols 41 " ${C_DIM}State   ${CR} ${st_state}" 39 "${C_DIM}PHP     ${CR} ${php_txt}"
+        _cols 41 " ${C_DIM}Webhook ${CR} ${st_hook}" 39 "${C_DIM}Apache  ${CR} ${svc_a}"
+        _cols 41 " ${C_DIM}Errors  ${CR} ${st_err}" 39 "${C_DIM}MySQL   ${CR} ${svc_m}"
+        _cols 41 " ${C_DIM}SSL     ${CR} ${st_ssl}" 39 "${C_DIM}Cron    ${CR} ${svc_c}"
+        echo
+        _cols 41 " ${C_DIM}RAM   ${CR} $(_bar "$mem_p" 14) ${mem_p}% ${C_DIM}${mem_txt}${CR}" 39 "${C_DIM}Disk  ${CR} $(_bar "$disk_p" 14) ${disk_p}% ${C_DIM}${disk_u}/${disk_t}G${CR}"
+        _cols 41 " ${C_DIM}Load  ${CR} ${load} ${C_DIM}· ${cores} cores${CR}" 39 "${C_DIM}Up    ${CR} ${up}"
+    else
+        printf " ${C_OK}▌${CR} ${C_TITLE}MIRZA PRO${CR}  ${C_OK}%s${CR}\n" "${inst:-not installed}"
+        _drule
+        for i in "${!al_text[@]}"; do
+            [ "$i" -ge 3 ] && break
+            printf ' %b\n' "${al_text[$i]}"
+            [ -n "${al_key[$i]}" ] && printf '   %b\n' "${al_key[$i]}"
+        done
+        _rule
+        _kv "Bot" "$st_state"
+        _kv "Webhook" "$st_hook"
+        _kv "SSL" "$st_ssl"
+        _kv "PHP" "$php_txt"
+        printf " ${C_DIM}%-12s${CR} %b  ${C_DIM}MySQL${CR} %b\n" "Apache" "${svc_a%% *}" "${svc_m%% *}"
+        printf " ${C_DIM}RAM %s%%  Disk %s%%  Load %s${CR}\n" "$mem_p" "$disk_p" "${load%% *}"
+    fi
+    _rule
 }
 
 # Renew (or issue) the SSL certificate for the bot's domain.
@@ -952,17 +1272,17 @@ function renew_ssl() {
     fi
     [ -z "$domain" ] && domain="$(state_get DOMAIN)"
     if [ -z "$domain" ]; then
-        printf "  ${C_PROMPT}❯${CR} Enter the bot domain: "
+        printf " ${C_PROMPT}❯${CR} Enter the bot domain: "
         read -r domain
     fi
     if [ -z "$domain" ]; then
-        echo -e "  ${C_BAD}●${CR} ${C_BAD}No domain found. Aborting.${CR}"
+        echo -e " ${C_BAD}●${CR} ${C_BAD}No domain found. Aborting.${CR}"
         sleep 1; show_menu; return 1
     fi
     _kv "Domain" "${C_KEY}${domain}${CR}"
 
     if ! command -v certbot >/dev/null 2>&1; then
-        echo -e "  ${C_BAD}●${CR} ${C_BAD}certbot is not installed. Install Mirza first.${CR}"
+        echo -e " ${C_BAD}●${CR} ${C_BAD}certbot is not installed. Install Mirza first.${CR}"
         sleep 1; show_menu; return 1
     fi
 
@@ -973,12 +1293,12 @@ function renew_ssl() {
         exp=$(openssl x509 -enddate -noout -in "$certfile" 2>/dev/null | cut -d= -f2)
         [ -n "$exp" ] && _kv "Expires" "${C_DIM}${exp}${CR}"
     else
-        echo -e "  ${C_WARN}!${CR} ${C_WARN}No existing certificate found - a new one will be issued.${CR}"
+        echo -e " ${C_WARN}!${CR} ${C_WARN}No existing certificate found - a new one will be issued.${CR}"
     fi
     echo ""
 
     # 2) Optional force (Let's Encrypt normally renews only within ~30 days of expiry)
-    printf "  ${C_PROMPT}❯${CR} Force renewal now even if not near expiry? ${C_DIM}[y/N]${CR}: "
+    printf " ${C_PROMPT}❯${CR} Force renewal now even if not near expiry? ${C_DIM}[y/N]${CR}: "
     read -r _force
     local force_flag=""
     [[ "$_force" =~ ^[Yy]$ ]] && force_flag="--force-renewal"
@@ -988,7 +1308,7 @@ function renew_ssl() {
     # certonly updates the existing cert lineage in place; Apache already points at it.
     run_step "Renewing certificate for ${domain}" \
         "certbot certonly --apache --non-interactive --agree-tos --register-unsafely-without-email --keep-until-expiring --cert-name '${domain}' -d '${domain}' ${force_flag}" \
-        || { show_step_error; echo -e "\n  ${C_BAD}●${CR} ${C_BAD}Renewal failed. See the details above.${CR}"; echo ""; printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "; read -r _; show_menu; return 1; }
+        || { show_step_error; echo -e "\n ${C_BAD}●${CR} ${C_BAD}Renewal failed. See the details above.${CR}"; echo ""; printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "; read -r _; show_menu; return 1; }
 
     run_step "Reloading Apache" "systemctl reload apache2 2>/dev/null || systemctl restart apache2"
 
@@ -1000,7 +1320,7 @@ function renew_ssl() {
         [ -n "$newexp" ] && _kv "Valid until" "${C_OK}${newexp}${CR}"
     fi
     echo ""
-    printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+    printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
     read -r _
     show_menu
 }
@@ -1012,9 +1332,9 @@ function backup_bot() {
 
     CONFIG_PATH="/var/www/html/mirzaprobotconfig/config.php"
     if [ ! -f "$CONFIG_PATH" ]; then
-        printf "    ${C_BAD}●${CR} ${C_BAD}Mirza is not installed. config.php not found.${CR}\n"
+        printf " ${C_BAD}●${CR} ${C_BAD}Mirza is not installed. config.php not found.${CR}\n"
         echo ""
-        printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+        printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
         read -r _
         show_menu
         return 1
@@ -1030,9 +1350,9 @@ function backup_bot() {
     [ -z "$dbhost" ] && dbhost="localhost"
 
     if [ -z "$dbname" ] || [ -z "$dbuser" ] || [ -z "$dbpass" ]; then
-        printf "    ${C_BAD}●${CR} ${C_BAD}Could not read database credentials from config.php${CR}\n"
+        printf " ${C_BAD}●${CR} ${C_BAD}Could not read database credentials from config.php${CR}\n"
         echo ""
-        printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+        printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
         read -r _
         show_menu
         return 1
@@ -1049,7 +1369,7 @@ function backup_bot() {
 
     run_step "Exporting database (${dbname})" \
         "mysqldump -h '$dbhost' -u '$dbuser' -p'$dbpass' --no-tablespaces --ssl-mode=DISABLED '$dbname' > '$backup_file'" \
-        || { show_step_error; echo -e "\n  ${C_BAD}●${CR} ${C_BAD}Backup failed. See details above.${CR}"; echo ""; printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "; read -r _; show_menu; return 1; }
+        || { show_step_error; echo -e "\n ${C_BAD}●${CR} ${C_BAD}Backup failed. See details above.${CR}"; echo ""; printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "; read -r _; show_menu; return 1; }
 
     local file_size
     file_size=$(du -h "$backup_file" 2>/dev/null | awk '{print $1}')
@@ -1068,17 +1388,17 @@ function backup_bot() {
             _kv "Telegram" "$(_dot ok) ${C_OK}Backup sent to admin chat (${admin_id})${CR}"
         else
             _kv "Telegram" "$(_dot bad) ${C_BAD}Failed to send (HTTP ${send_result})${CR}"
-            printf "    ${C_DIM}Make sure the bot token and admin chat ID are correct.${CR}\n"
+            printf " ${C_DIM}Make sure the bot token and admin chat ID are correct.${CR}\n"
         fi
     else
         echo ""
-        printf "    ${C_WARN}!${CR} ${C_WARN}Bot token or admin ID not found in config - skipping Telegram send.${CR}\n"
+        printf " ${C_WARN}!${CR} ${C_WARN}Bot token or admin ID not found in config - skipping Telegram send.${CR}\n"
     fi
 
     echo ""
-    printf "    ${C_OK}✔${CR} ${C_OK}Backup saved to:${CR} ${C_KEY}${backup_file}${CR}\n"
+    printf " ${C_OK}✔${CR} ${C_OK}Backup saved to:${CR} ${C_KEY}${backup_file}${CR}\n"
     echo ""
-    printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+    printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
     read -r _
     show_menu
 }
@@ -1090,9 +1410,9 @@ function import_bot() {
 
     CONFIG_PATH="/var/www/html/mirzaprobotconfig/config.php"
     if [ ! -f "$CONFIG_PATH" ]; then
-        printf "    ${C_BAD}●${CR} ${C_BAD}Mirza is not installed. config.php not found.${CR}\n"
+        printf " ${C_BAD}●${CR} ${C_BAD}Mirza is not installed. config.php not found.${CR}\n"
         echo ""
-        printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+        printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
         read -r _
         show_menu
         return 1
@@ -1106,9 +1426,9 @@ function import_bot() {
     [ -z "$dbhost" ] && dbhost="localhost"
 
     if [ -z "$dbname" ] || [ -z "$dbuser" ] || [ -z "$dbpass" ]; then
-        printf "    ${C_BAD}●${CR} ${C_BAD}Could not read database credentials from config.php${CR}\n"
+        printf " ${C_BAD}●${CR} ${C_BAD}Could not read database credentials from config.php${CR}\n"
         echo ""
-        printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+        printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
         read -r _
         show_menu
         return 1
@@ -1119,32 +1439,32 @@ function import_bot() {
     _kv "DB Host" "${C_DIM}${dbhost}${CR}"
     echo ""
 
-    echo -e "  ${C_DIM}Available backup files in /root/:${CR}"
+    echo -e " ${C_DIM}Available backup files in /root/:${CR}"
     local files=()
     local i=1
     while IFS= read -r f; do
         files+=("$f")
         local sz
         sz=$(du -h "$f" 2>/dev/null | awk '{print $1}')
-        printf "    ${C_KEY}[%d]${CR}  ${C_TXT}%s${CR}  ${C_DIM}(%s)${CR}\n" "$i" "$(basename "$f")" "$sz"
+        printf " ${C_KEY}[%d]${CR}  ${C_TXT}%s${CR}  ${C_DIM}(%s)${CR}\n" "$i" "$(basename "$f")" "$sz"
         i=$((i + 1))
     done < <(find /root -maxdepth 1 -name 'mirza_backup_*.sql' -type f 2>/dev/null | sort -r)
 
     if [ "${#files[@]}" -eq 0 ]; then
-        printf "    ${C_WARN}!${CR} ${C_WARN}No backup files found in /root/${CR}\n"
+        printf " ${C_WARN}!${CR} ${C_WARN}No backup files found in /root/${CR}\n"
     fi
 
     echo ""
-    printf "    ${C_KEY}[0]${CR}  ${C_TXT}Enter a custom file path${CR}\n"
+    printf " ${C_KEY}[0]${CR}  ${C_TXT}Enter a custom file path${CR}\n"
     echo ""
-    printf "  ${C_PROMPT}❯${CR} Select a file ${C_DIM}[0-%d]${CR} or enter path: " "${#files[@]}"
+    printf " ${C_PROMPT}❯${CR} Select a file ${C_DIM}[0-%d]${CR} or enter path: " "${#files[@]}"
     read -r choice
 
     local sql_file=""
     if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#files[@]}" ]; then
         sql_file="${files[$((choice - 1))]}"
     elif [ "$choice" = "0" ] || [ -z "$choice" ]; then
-        printf "  ${C_PROMPT}❯${CR} Enter the full path to the .sql file: "
+        printf " ${C_PROMPT}❯${CR} Enter the full path to the .sql file: "
         read -r sql_file
     else
         sql_file="$choice"
@@ -1153,7 +1473,7 @@ function import_bot() {
     if [ -z "$sql_file" ] || [ ! -f "$sql_file" ]; then
         printf "\n    ${C_BAD}●${CR} ${C_BAD}File not found: %s${CR}\n" "$sql_file"
         echo ""
-        printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+        printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
         read -r _
         show_menu
         return 1
@@ -1165,13 +1485,13 @@ function import_bot() {
     _kv "Size" "${C_DIM}${file_size}${CR}"
     echo ""
 
-    printf "    ${C_WARN}!${CR} ${C_WARN}This will OVERWRITE the current database (${dbname}).${CR}\n"
-    printf "  ${C_PROMPT}❯${CR} Are you sure? ${C_DIM}[y/N]${CR}: "
+    printf " ${C_WARN}!${CR} ${C_WARN}This will OVERWRITE the current database (${dbname}).${CR}\n"
+    printf " ${C_PROMPT}❯${CR} Are you sure? ${C_DIM}[y/N]${CR}: "
     read -r confirm
     if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
         printf "\n    ${C_DIM}Import cancelled.${CR}\n"
         echo ""
-        printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+        printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
         read -r _
         show_menu
         return 0
@@ -1180,7 +1500,7 @@ function import_bot() {
 
     run_step "Importing database (${dbname})" \
         "mysql -h '$dbhost' -u '$dbuser' -p'$dbpass' '$dbname' < '$sql_file'" \
-        || { show_step_error; echo -e "\n  ${C_BAD}●${CR} ${C_BAD}Import failed. See details above.${CR}"; echo ""; printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "; read -r _; show_menu; return 1; }
+        || { show_step_error; echo -e "\n ${C_BAD}●${CR} ${C_BAD}Import failed. See details above.${CR}"; echo ""; printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "; read -r _; show_menu; return 1; }
 
     local DOMAIN_NAME=""
     if [ -f "$CONFIG_PATH" ]; then
@@ -1191,41 +1511,58 @@ function import_bot() {
     fi
 
     echo ""
-    printf "    ${C_OK}✔${CR} ${C_OK}Database imported successfully from:${CR} ${C_KEY}${sql_file}${CR}\n"
+    printf " ${C_OK}✔${CR} ${C_OK}Database imported successfully from:${CR} ${C_KEY}${sql_file}${CR}\n"
     echo ""
-    printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+    printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
     read -r _
     show_menu
 }
 
 function show_menu() {
     show_logo
-    _sec "Menu"
-    _mi "1" "Install Mirza"
-    _mi "2" "Update Mirza"
-    _mi "3" "Remove Mirza"
-    _mi "4" "Migrate: Free -> Pro (Beta)"
-    _mi "5" "Renew SSL certificate"
-    _mi "6" "Backup Database"
-    _mi "7" "Import Database  ${C_WARN}(Beta)${CR}"
-    _mi "8" "Help & Parameters"
-    _mi "9" "Exit"
+    local m2="" m4="" m5=""
+    [ "$DASH_UPDATE" = 1 ] && m2=" ${C_KEY}●${CR}"
+    [ "$DASH_PHP_BAD" = 1 ] && m4=" ${C_BAD}▲${CR}"
+    [ "$DASH_SSL" = 1 ] && m5=" ${C_KEY}●${CR}"
+    if [ "$UI_W" -ge 80 ]; then
+        _cols 22 " ${C_BORDER}BOT${CR}" 26 "${C_BORDER}MAINTENANCE${CR}" 32 "${C_BORDER}TOOLS${CR}"
+        _cols 22 " ${C_KEY}[1]${CR} Install" 26 "${C_KEY}[4]${CR} Update PHP${m4}" 32 "${C_KEY}[7]${CR} Migrate Free → Pro ${C_DIM}(Beta)${CR}"
+        _cols 22 " ${C_KEY}[2]${CR} Update${m2}" 26 "${C_KEY}[5]${CR} Renew SSL${m5}" 32 "${C_KEY}[8]${CR} Help & parameters"
+        _cols 22 " ${C_KEY}[3]${CR} Remove" 26 "${C_KEY}[6]${CR} Backup database" 32 "${C_KEY}[9]${CR} Import database ${C_DIM}(Beta)${CR}"
+        _cols 22 "" 26 "" 32 "${C_KEY}[0]${CR} Exit"
+    else
+        _cols 20 " ${C_KEY}[1]${CR} Install" 20 "${C_KEY}[6]${CR} Backup"
+        _cols 20 " ${C_KEY}[2]${CR} Update${m2}" 20 "${C_KEY}[7]${CR} Migrate"
+        _cols 20 " ${C_KEY}[3]${CR} Remove" 20 "${C_KEY}[8]${CR} Help"
+        _cols 20 " ${C_KEY}[4]${CR} PHP${m4}" 20 "${C_KEY}[9]${CR} Import"
+        _cols 20 " ${C_KEY}[5]${CR} SSL${m5}" 20 "${C_KEY}[0]${CR} Exit"
+    fi
     _rule
-    echo ""
-    printf  "  ${C_PROMPT}❯${CR} Select an option ${C_DIM}[1-9]${CR}: "
+    printf " ${C_PROMPT}❯${CR} Select ${C_DIM}[0-9]${CR}: "
     read -r option
     case $option in
         1) install_bot ;;
         2) update_bot ;;
         3) remove_bot ;;
-        4) migrate_to_pro ;;
+        4) update_php ;;
         5) renew_ssl ;;
         6) backup_bot ;;
-        7) import_bot ;;
+        7) migrate_to_pro ;;
         8) show_help_screen ;;
-        9) echo -e "\n${C_OK}Exiting...${CR}"; exit 0 ;;
+        9) import_bot ;;
+        0) echo -e "\n${C_OK}Exiting...${CR}"; exit 0 ;;
         *) echo -e "\n${C_BAD}Invalid option. Please try again.${CR}"; sleep 1; show_menu ;;
     esac
+}
+
+function update_php() {
+    clear
+    banner "Update PHP" "${C_DIM}mirza update-php${CR}"
+    upgrade_php_if_needed || printf " ${C_BAD}●${CR} ${C_BAD}PHP was not updated.${CR}\n"
+    echo ""
+    printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+    read -r _
+    show_menu
 }
 
 # Clean, styled guide of all commands and parameters
@@ -1241,10 +1578,10 @@ function show_help_screen() {
     _kv "renew" "${C_DIM}Renew the bot domain SSL certificate${CR}"
     _kv "backup" "${C_DIM}Backup database & send to Telegram${CR}"
     _kv "import" "${C_DIM}Import database from SQL file (Beta)${CR}"
+    _kv "update-php" "${C_DIM}Upgrade PHP to ${PHP_MIN_VERSION}+ and reconfigure Apache${CR}"
     _kv "menu" "${C_DIM}Open this interactive panel (default)${CR}"
 
     _sec "Install parameters"
-    _kv "--name" "${C_DIM}Bot username${CR}"
     _kv "--token" "${C_DIM}Telegram bot token${CR}"
     _kv "--admin" "${C_DIM}Admin chat id${CR}"
     _kv "--domain" "${C_DIM}Domain name (e.g. bot.example.com)${CR}"
@@ -1257,31 +1594,21 @@ function show_help_screen() {
     _kv "-h, --help" "${C_DIM}Show CLI help and exit${CR}"
 
     _sec "Examples"
-    printf "    ${C_KEY}mirza install --channel auto${CR}\n"
-    printf "    ${C_KEY}mirza install --name myvpnbot --token 123:ABC \\\\${CR}\n"
-    printf "    ${C_DIM}            --admin 111 --domain bot.example.com --version 0.1.7${CR}\n"
-    printf "    ${C_KEY}mirza update --version 0.1.6${CR}\n"
-    printf "    ${C_KEY}mirza update --channel release${CR}\n"
-    printf "    ${C_KEY}mirza remove${CR}\n"
-    printf "    ${C_KEY}mirza backup${CR}\n"
-    printf "    ${C_KEY}mirza import${CR}\n"
+    printf " ${C_KEY}mirza install --channel auto${CR}\n"
+    printf " ${C_KEY}mirza install --token 123:ABC \\\\${CR}\n"
+    printf " ${C_DIM}            --admin 111 --domain bot.example.com --version 0.1.7${CR}\n"
+    printf " ${C_KEY}mirza update --version 0.1.6${CR}\n"
+    printf " ${C_KEY}mirza update --channel release${CR}\n"
+    printf " ${C_KEY}mirza remove${CR}\n"
+    printf " ${C_KEY}mirza backup${CR}\n"
+    printf " ${C_KEY}mirza import${CR}\n"
 
     echo ""
     _rule
     echo ""
-    printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+    printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
     read -r _
     show_menu
-}
-function find_free_port() {
-    for port in {3300..3330}; do
-        if ! ss -tuln | grep -q ":$port "; then
-            echo "$port"
-            return 0
-        fi
-    done
-    echo -e "\033[31m[ERROR] No free port found between 3300 and 3330.\033[0m"
-    exit 1
 }
 function fix_update_issues() {
     echo -e "\e[33mTrying to fix update issues by changing mirrors...\033[0m"
@@ -1378,7 +1705,7 @@ net_works() {
 ensure_connectivity() {
     ensure_dns
     net_works && return 0
-    echo -e "  ${C_WARN}!${CR} ${C_WARN}No connectivity - resetting DNS and retrying...${CR}"
+    echo -e " ${C_WARN}!${CR} ${C_WARN}No connectivity - resetting DNS and retrying...${CR}"
     ensure_dns
     net_works && return 0
     return 1
@@ -1400,15 +1727,143 @@ domain_points_here() {
 
 # 0 = valid+live, 1 = bad format, 2 = format ok but token rejected/unreachable
 validate_token() {
+    TG_BOT_USERNAME=""
     [[ "$1" =~ ^[0-9]{8,10}:[a-zA-Z0-9_-]{35}$ ]] || return 1
     local r; r=$(curl -fsSL --max-time 8 "https://api.telegram.org/bot$1/getMe" 2>/dev/null)
-    echo "$r" | grep -q '"ok":true' && return 0
-    return 2
+    echo "$r" | grep -q '"ok":true' || return 2
+    TG_BOT_USERNAME=$(printf '%s' "$r" | sed -n 's/.*"username"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+    return 0
+}
+
+fetch_bot_username() {
+    local r; r=$(curl -fsSL --max-time 8 "https://api.telegram.org/bot$1/getMe" 2>/dev/null)
+    echo "$r" | grep -q '"ok":true' || return 1
+    local u; u=$(printf '%s' "$r" | sed -n 's/.*"username"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+    [ -n "$u" ] || return 1
+    printf '%s' "$u"
 }
 
 # Safe identifiers/passwords (no quotes/specials that break SQL or config.php)
 valid_db_ident() { [[ "$1" =~ ^[A-Za-z0-9_]{1,32}$ ]]; }
 valid_db_pass()  { [[ "$1" =~ ^[A-Za-z0-9_]{6,64}$ ]]; }
+
+purge_installer_dir() {
+    local target="$1"
+    [ -z "$target" ] && return 0
+    [ -e "$target/install" ] || return 0
+    rm -rf "$target/install" 2>/dev/null
+    [ -e "$target/install" ] && sudo rm -rf "$target/install" 2>/dev/null
+    if [ -e "$target/install" ]; then
+        printf " ${C_BAD}●${CR} ${C_BAD}Could not remove the web installer at %s/install.${CR}\n" "$target"
+        printf " ${C_BAD}●${CR} ${C_BAD}Delete it manually - the bot refuses to answer users while it exists.${CR}\n"
+        return 1
+    fi
+    return 0
+}
+
+move_extracted_files() {
+    local src="$1" dest="$2"
+    [ -d "$src" ] && [ -d "$dest" ] || return 1
+    find "$src" -mindepth 1 -maxdepth 1 -exec mv -f -t "$dest/" {} +
+}
+
+# vpnbot instance dirs (not Default/update). update_bot wipes BOT_DIR.
+VPNBOT_BACKUP="/tmp/mirza_vpnbot_backup"
+
+vpnbot_instance_count() {
+    local dir="$1" n=0 d
+    [ -d "$dir" ] || { echo 0; return 0; }
+    for d in "$dir"/*; do
+        [ -d "$d" ] || continue
+        case "$(basename "$d")" in Default|update) continue ;; esac
+        n=$((n + 1))
+    done
+    echo "$n"
+}
+export -f vpnbot_instance_count
+
+backup_vpnbots() {
+    local bot_dir="$1"
+    local src="$bot_dir/vpnbot"
+    local d name count=0
+    mkdir -p "$VPNBOT_BACKUP" || return 1
+    [ -d "$src" ] || { echo "Backed up 0 vpnbot(s)"; return 0; }
+    for d in "$src"/*; do
+        [ -d "$d" ] || continue
+        name=$(basename "$d")
+        case "$name" in Default|update) continue ;; esac
+        rm -rf "$VPNBOT_BACKUP/$name"
+        cp -a "$d" "$VPNBOT_BACKUP/$name" || return 1
+        count=$((count + 1))
+    done
+    echo "Backed up $count vpnbot(s)"
+    return 0
+}
+export -f backup_vpnbots
+export VPNBOT_BACKUP
+
+restore_vpnbots() {
+    local bot_dir="$1"
+    local dest="$bot_dir/vpnbot"
+    local update_dir="$bot_dir/vpnbot/update"
+    local d name count=0
+    [ -d "$VPNBOT_BACKUP" ] || { echo "No vpnbot backup to restore"; return 0; }
+    mkdir -p "$dest" || return 1
+    shopt -s nullglob
+    for d in "$VPNBOT_BACKUP"/*; do
+        [ -d "$d" ] || continue
+        name=$(basename "$d")
+        case "$name" in Default|update) continue ;; esac
+        rm -rf "$dest/$name"
+        cp -a "$d" "$dest/$name" || { shopt -u nullglob; return 1; }
+        if [ -d "$update_dir" ]; then
+            find "$update_dir" -mindepth 1 -maxdepth 1 \
+                ! -name config.php ! -name product.json ! -name product_name.json ! -name data \
+                -exec cp -a {} "$dest/$name/" \;
+        fi
+        count=$((count + 1))
+    done
+    shopt -u nullglob
+    echo "Restored $count vpnbot(s)"
+    return 0
+}
+export -f restore_vpnbots
+
+set_vpnbot_webhooks() {
+    local config="$1"
+    [ -f "$config" ] || return 0
+    local dbhost dbname dbuser dbpass domain rows id user token secret hook_url fail=0
+    dbhost=$(grep '^\$dbhost' "$config" | cut -d"'" -f2)
+    dbname=$(grep '^\$dbname' "$config" | cut -d"'" -f2)
+    dbuser=$(grep '^\$usernamedb' "$config" | cut -d"'" -f2)
+    dbpass=$(grep '^\$passworddb' "$config" | cut -d"'" -f2)
+    domain=$(grep '^\$domainhosts' "$config" | cut -d"'" -f2 | cut -d'/' -f1)
+    [ -z "$dbhost" ] && dbhost="localhost"
+    [ -n "$dbname" ] && [ -n "$dbuser" ] && [ -n "$domain" ] || return 0
+    command -v mysql >/dev/null 2>&1 || return 0
+    rows=$(mysql -h "$dbhost" -u "$dbuser" -p"$dbpass" -N -B \
+        -e "SELECT id_user, username, bot_token, IFNULL(webhook_secret, '') FROM botsaz;" "$dbname" 2>/dev/null) \
+        || rows=$(mysql -h "$dbhost" -u "$dbuser" -p"$dbpass" -N -B \
+            -e "SELECT id_user, username, bot_token, '' FROM botsaz;" "$dbname" 2>/dev/null) \
+        || return 0
+    [ -n "$rows" ] || return 0
+    while IFS=$'\t' read -r id user token secret; do
+        [ -n "$id" ] && [ -n "$user" ] && [ -n "$token" ] || continue
+        if [ -z "$secret" ] || [ "$secret" = "NULL" ]; then
+            secret=$(openssl rand -hex 24)
+            mysql -h "$dbhost" -u "$dbuser" -p"$dbpass" \
+                -e "UPDATE botsaz SET webhook_secret = '$secret' WHERE bot_token = '$token';" "$dbname" >/dev/null 2>&1 \
+                || secret=""
+        fi
+        hook_url="https://${domain}/vpnbot/${id}${user}/index.php"
+        [ -n "$secret" ] && hook_url="${hook_url}?secret=${secret}"
+        curl -s --max-time 15 -o /dev/null \
+            -F "url=${hook_url}" \
+            "https://api.telegram.org/bot${token}/setWebhook" || fail=$((fail + 1))
+    done <<< "$rows"
+    [ "$fail" -eq 0 ]
+}
+export -f set_vpnbot_webhooks
 
 # Whole-server pre-flight before installing
 preflight() {
@@ -1483,7 +1938,7 @@ preflight() {
 
     if [ "$ok" -ne 1 ]; then
         echo ""
-        echo -e "  ${C_BAD}●${CR} ${C_BAD}Pre-flight checks failed. Aborting to avoid a broken install.${CR}"
+        echo -e " ${C_BAD}●${CR} ${C_BAD}Pre-flight checks failed. Aborting to avoid a broken install.${CR}"
         return 1
     fi
     return 0
@@ -1491,21 +1946,22 @@ preflight() {
 
 function install_bot() {
     BOT_DIR="/var/www/html/mirzaprobotconfig"
+    INSTALL_STARTED=$(date +%s)
     PHP_VER="$(state_get PHP_VER)"
-    [ -z "$PHP_VER" ] && PHP_VER="8.2"
+    [ -z "$PHP_VER" ] && PHP_VER="$PHP_TARGET_VER"
 
     # ── Guard: only block when a PREVIOUS install fully COMPLETED ──
     if [ -f "$CONFIG_FILE_DEFAULT" ] && ! has_resumable_state; then
         clear
         banner
         _sec "Install blocked"
-        printf "    ${C_BAD}●${CR} ${C_BAD}Mirza is already installed on this server.${CR}\n"
-        printf "    ${C_DIM}Path:${CR} %s\n" "$BOT_DIR_DEFAULT"
+        printf " ${C_BAD}●${CR} ${C_BAD}Mirza is already installed on this server.${CR}\n"
+        printf " ${C_DIM}Path:${CR} %s\n" "$BOT_DIR_DEFAULT"
         echo ""
-        printf "    ${C_DIM}To upgrade, use option ${CR}${C_KEY}2 (Update)${CR}${C_DIM}.${CR}\n"
-        printf "    ${C_DIM}To reinstall, first remove it with option ${CR}${C_KEY}3 (Remove)${CR}${C_DIM}.${CR}\n"
+        printf " ${C_DIM}To upgrade, use option ${CR}${C_KEY}2 (Update)${CR}${C_DIM}.${CR}\n"
+        printf " ${C_DIM}To reinstall, first remove it with option ${CR}${C_KEY}3 (Remove)${CR}${C_DIM}.${CR}\n"
         echo ""
-        printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+        printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
         read -r _
         show_menu
         return 1
@@ -1514,7 +1970,7 @@ function install_bot() {
     if ! has_resumable_state && [ ! -f "$CONFIG_FILE_DEFAULT" ]; then
         if ! precheck_fresh_server; then
             echo ""
-            printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+            printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
             read -r _
             show_menu
             return 1
@@ -1529,22 +1985,22 @@ function install_bot() {
         local _last
         _last="$(grep '^PHASE:' "$STATE_FILE" 2>/dev/null | tail -1 | cut -d: -f2)"
         [ -z "$_last" ] && _last="dependencies"
-        printf "    ${C_WARN}●${CR} ${C_WARN}An unfinished installation was found.${CR}\n"
-        printf "    ${C_DIM}Last completed step:${CR} ${C_KEY}%s${CR}\n" "$_last"
+        printf " ${C_WARN}●${CR} ${C_WARN}An unfinished installation was found.${CR}\n"
+        printf " ${C_DIM}Last completed step:${CR} ${C_KEY}%s${CR}\n" "$_last"
         echo ""
-        printf "    ${C_KEY}[1]${CR} ${C_TXT}Resume from where it stopped${CR}\n"
-        printf "    ${C_KEY}[2]${CR} ${C_TXT}Start fresh from the beginning${CR}\n"
-        printf "    ${C_KEY}[0]${CR} ${C_TXT}Back to menu${CR}\n"
+        printf " ${C_KEY}[1]${CR} ${C_TXT}Resume from where it stopped${CR}\n"
+        printf " ${C_KEY}[2]${CR} ${C_TXT}Start fresh from the beginning${CR}\n"
+        printf " ${C_KEY}[0]${CR} ${C_TXT}Back to menu${CR}\n"
         echo ""
-        printf "  ${C_PROMPT}❯${CR} Your choice: "
+        printf " ${C_PROMPT}❯${CR} Your choice: "
         read -r _resume_choice
         case "$_resume_choice" in
             2)
                 state_clear
                 [ -d "$BOT_DIR" ] && sudo rm -rf "$BOT_DIR"
-                echo -e "  ${C_DIM}Starting from scratch...${CR}"; sleep 1 ;;
+                echo -e " ${C_DIM}Starting from scratch...${CR}"; sleep 1 ;;
             0) show_menu; return 0 ;;
-            *) echo -e "  ${C_OK}●${CR} ${C_OK}Resuming installation from the last step...${CR}"; sleep 1 ;;
+            *) echo -e " ${C_OK}●${CR} ${C_OK}Resuming installation from the last step...${CR}"; sleep 1 ;;
         esac
     fi
     state_init
@@ -1556,10 +2012,16 @@ function install_bot() {
     banner
     if ! preflight; then
         echo ""
-        printf "  ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
+        printf " ${C_PROMPT}❯${CR} Press Enter to return to the menu... "
         read -r _
         show_menu
         return 1
+    fi
+
+    if phase_done DEPS && [ "$PHP_VER" != "$PHP_TARGET_VER" ]; then
+        upgrade_php_if_needed || { LAST_STEP_RC=0; install_pause "PHP ${PHP_MIN_VERSION}+ required"; }
+        PHP_VER="$PHP_TARGET_VER"
+        state_set PHP_VER "$PHP_VER"
     fi
 
     # ╭──────────────────────── PHASE: DEPS ────────────────────────╮
@@ -1573,10 +2035,11 @@ function install_bot() {
         state_set SRC_ZIP_URL "$SRC_ZIP_URL"
         state_set SRC_LABEL "$SRC_LABEL"
         echo ""
-        echo -e "  ${C_DIM}Install target:${CR} ${C_KEY}${SRC_LABEL}${CR}"
+        echo -e " ${C_DIM}Install target:${CR} ${C_KEY}${SRC_LABEL}${CR}"
         sleep 1
 
-        print_header "Installing Dependencies"
+        install_banner
+        phase_header DEPS "Packages"
 
         run_step "Preparing package manager (clearing stale apt locks)" "apt_recover" \
             || { show_step_error; install_pause "Preparing package manager"; }
@@ -1604,20 +2067,28 @@ function install_bot() {
             "apt-get install -y software-properties-common git unzip curl wget jq" \
             || { show_step_error; install_pause "Installing base tools"; }
 
-        PHP_VER="$(resolve_php_ver)"; [ -z "$PHP_VER" ] && PHP_VER="8.2"
+        PHP_VER="$PHP_TARGET_VER"
         state_set PHP_VER "$PHP_VER"
-        echo -e "  ${C_DIM}Selected PHP version:${CR} ${C_KEY}${PHP_VER}${CR}"
+        echo -e " ${C_DIM}Selected PHP version:${CR} ${C_KEY}${PHP_VER} (>= ${PHP_MIN_VERSION})${CR}"
+
+        if ! run_step "Checking PHP ${PHP_MIN_VERSION}+ availability" "php_candidate_ok"; then
+            show_step_error
+            echo -e " ${C_BAD}●${CR} ${C_BAD}PHP ${PHP_MIN_VERSION} or newer is not available from apt on this server; lower versions are not installed.${CR}"
+            install_pause "PHP ${PHP_MIN_VERSION}+ not available"
+        fi
 
         run_step "Installing PHP ${PHP_VER} (fpm + mysql)" \
             "DEBIAN_FRONTEND=noninteractive apt install -y php${PHP_VER} php${PHP_VER}-cli php${PHP_VER}-fpm php${PHP_VER}-mysql" \
             || { show_step_error; install_pause "Installing PHP ${PHP_VER}"; }
 
-        # Versioned packages only: unversioned (php-*, lamp-server^) would pull the
-        # newest PHP available as default and break the bot's mysqli/curl.
+        if ! run_step "Verifying installed PHP is ${PHP_MIN_VERSION}+" "php_version_ok"; then
+            show_step_error
+            echo -e " ${C_BAD}●${CR} ${C_BAD}Installed PHP is older than ${PHP_MIN_VERSION}.${CR}"
+            install_pause "PHP version below ${PHP_MIN_VERSION}"
+        fi
+
         WEBSTACK_CMD="DEBIAN_FRONTEND=noninteractive apt install -y mysql-server apache2 libapache2-mod-php${PHP_VER} php${PHP_VER}-mbstring php${PHP_VER}-zip php${PHP_VER}-gd php${PHP_VER}-curl php${PHP_VER}-intl php${PHP_VER}-xml php${PHP_VER}-bcmath"
         if ! run_step "Installing web stack (Apache, MySQL, PHP modules)" "$WEBSTACK_CMD"; then
-            # Most common cause: a broken/half-configured MySQL from an interrupted run.
-            # Safe to repair here because the fresh-server check ran and no DB exists yet.
             run_step "Repairing broken MySQL installation" "repair_mysql" \
                 || { show_step_error; install_pause "Repairing MySQL"; }
             run_step "Re-installing web stack" "$WEBSTACK_CMD" \
@@ -1633,9 +2104,11 @@ function install_bot() {
             || { show_step_error; install_pause "Setting PHP ${PHP_VER} as default"; }
 
         echo 'phpmyadmin phpmyadmin/dbconfig-install boolean true' | sudo debconf-set-selections
-        echo 'phpmyadmin phpmyadmin/app-password-confirm password mirzahipass' | sudo debconf-set-selections
-        echo 'phpmyadmin phpmyadmin/mysql/admin-pass password mirzahipass' | sudo debconf-set-selections
-        echo 'phpmyadmin phpmyadmin/mysql/app-pass password mirzahipass' | sudo debconf-set-selections
+        local pma_pass
+        pma_pass=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-16)
+        echo "phpmyadmin phpmyadmin/app-password-confirm password ${pma_pass}" | sudo debconf-set-selections
+        echo "phpmyadmin phpmyadmin/mysql/admin-pass password ${pma_pass}" | sudo debconf-set-selections
+        echo "phpmyadmin phpmyadmin/mysql/app-pass password ${pma_pass}" | sudo debconf-set-selections
         echo 'phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2' | sudo debconf-set-selections
         run_step "Installing phpMyAdmin" \
             "DEBIAN_FRONTEND=noninteractive apt-get install -y phpmyadmin" \
@@ -1665,13 +2138,16 @@ function install_bot() {
 
         mark_phase DEPS
     else
-        echo -e "  ${C_OK}●${CR} ${C_DIM}Dependencies already installed - skipping.${CR}"
+        echo -e " ${C_OK}●${CR} ${C_DIM}Dependencies already installed - skipping.${CR}"
     fi
+
+    run_step "Ensuring cron is installed and running" "ensure_cron" \
+        || { show_step_error; install_pause "Installing cron"; }
     # ╰─────────────────────────────────────────────────────────────╯
 
     # ╭──────────────────────── PHASE: FILES ───────────────────────╮
     if ! phase_done FILES; then
-        print_header "Downloading Bot Files"
+        phase_header FILES "Files"
         ZIP_URL="$(state_get SRC_ZIP_URL)"; [ -z "$ZIP_URL" ] && ZIP_URL="$SRC_ZIP_URL"
         SRC_LABEL_RESUME="$(state_get SRC_LABEL)"; [ -z "$SRC_LABEL_RESUME" ] && SRC_LABEL_RESUME="$SRC_LABEL"
         if [ -d "$BOT_DIR" ]; then
@@ -1698,10 +2174,12 @@ function install_bot() {
             echo -e "\e[91mError: Extracted source folder not found (bad or empty download).\033[0m"
             install_pause "Locating extracted files"
         fi
-        mv "$EXTRACTED_DIR"/* "$BOT_DIR" || {
+        purge_installer_dir "$EXTRACTED_DIR"
+        move_extracted_files "$EXTRACTED_DIR" "$BOT_DIR" || {
             echo -e "\e[91mError: Failed to move extracted files.\033[0m"
             install_pause "Moving bot files"
         }
+        purge_installer_dir "$BOT_DIR"
         rm -rf "$TEMP_DIR"
         sudo chown -R www-data:www-data "$BOT_DIR"
         sudo chmod -R 755 "$BOT_DIR"
@@ -1710,7 +2188,7 @@ function install_bot() {
             || { show_step_error; install_pause "Installing PHP dependencies"; }
         mark_phase FILES
     else
-        echo -e "  ${C_OK}●${CR} ${C_DIM}Bot files already downloaded - skipping.${CR}"
+        echo -e " ${C_OK}●${CR} ${C_DIM}Bot files already downloaded - skipping.${CR}"
     fi
     # ╰─────────────────────────────────────────────────────────────╯
 
@@ -1725,15 +2203,15 @@ function install_bot() {
     # ╰─────────────────────────────────────────────────────────────╯
 
     # ── Domain capture (needed for SSL, VHost, config & webhook) ──
-    clear
-    print_header "SSL Certificate Setup"
+    install_banner
+    phase_header SSL "SSL certificate"
     domainname="$(state_get DOMAIN)"
     if [ -n "$domainname" ]; then
-        echo -e "  ${C_DIM}Domain (resumed):${CR} ${C_KEY}${domainname}${CR}"
+        echo -e " ${C_DIM}Domain (resumed):${CR} ${C_KEY}${domainname}${CR}"
     else
         if [ -n "$ARG_DOMAIN" ]; then
             domainname="$ARG_DOMAIN"
-            echo -e "  ${C_DIM}Domain (from --domain):${CR} ${C_KEY}${domainname}${CR}"
+            echo -e " ${C_DIM}Domain (from --domain):${CR} ${C_KEY}${domainname}${CR}"
         else
             read -p "Enter the domain: " domainname
         fi
@@ -1744,16 +2222,16 @@ function install_bot() {
         # Verify the domain actually points to this server (certbot needs this)
         domain_points_here "$domainname"
         case $? in
-            0) echo -e "  ${C_OK}●${CR} ${C_OK}Domain resolves to this server.${CR}" ;;
-            1) echo -e "  ${C_WARN}!${CR} ${C_WARN}Domain does NOT point to this server's IP ($(get_server_ip)).${CR}"
-               echo -e "  ${C_DIM}Let's Encrypt will fail until the DNS A record points here.${CR}"
-               printf "  ${C_PROMPT}❯${CR} Continue anyway? ${C_DIM}[y/N]${CR}: "
+            0) echo -e " ${C_OK}●${CR} ${C_OK}Domain resolves to this server.${CR}" ;;
+            1) echo -e " ${C_WARN}!${CR} ${C_WARN}Domain does NOT point to this server's IP ($(get_server_ip)).${CR}"
+               echo -e " ${C_DIM}Let's Encrypt will fail until the DNS A record points here.${CR}"
+               printf " ${C_PROMPT}❯${CR} Continue anyway? ${C_DIM}[y/N]${CR}: "
                read -r _gd
-               if [[ ! "$_gd" =~ ^[Yy]$ ]]; then echo -e "  ${C_BAD}Aborted. Fix the DNS A record and retry.${CR}"; sleep 1; show_menu; return 1; fi ;;
-            2) echo -e "  ${C_WARN}!${CR} ${C_WARN}Could not resolve the domain yet (DNS may still be propagating).${CR}"
-               printf "  ${C_PROMPT}❯${CR} Continue anyway? ${C_DIM}[y/N]${CR}: "
+               if [[ ! "$_gd" =~ ^[Yy]$ ]]; then echo -e " ${C_BAD}Aborted. Fix the DNS A record and retry.${CR}"; sleep 1; show_menu; return 1; fi ;;
+            2) echo -e " ${C_WARN}!${CR} ${C_WARN}Could not resolve the domain yet (DNS may still be propagating).${CR}"
+               printf " ${C_PROMPT}❯${CR} Continue anyway? ${C_DIM}[y/N]${CR}: "
                read -r _gd
-               if [[ ! "$_gd" =~ ^[Yy]$ ]]; then echo -e "  ${C_BAD}Aborted.${CR}"; sleep 1; show_menu; return 1; fi ;;
+               if [[ ! "$_gd" =~ ^[Yy]$ ]]; then echo -e " ${C_BAD}Aborted.${CR}"; sleep 1; show_menu; return 1; fi ;;
         esac
         state_set DOMAIN "$domainname"
     fi
@@ -1763,7 +2241,7 @@ function install_bot() {
     # ╭──────────────────────── PHASE: SSL ─────────────────────────╮
     if ! phase_done SSL; then
         if [ -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ]; then
-            echo -e "  ${C_OK}●${CR} ${C_DIM}SSL certificate for ${DOMAIN_NAME} already exists - skipping issuance.${CR}"
+            echo -e " ${C_OK}●${CR} ${C_DIM}SSL certificate for ${DOMAIN_NAME} already exists - skipping issuance.${CR}"
         else
             run_step "Opening firewall ports 80 & 443" "ufw allow 80 && ufw allow 443" \
                 || { show_step_error; install_pause "Opening firewall ports"; }
@@ -1780,7 +2258,7 @@ function install_bot() {
             || { show_step_error; install_pause "Starting Apache"; }
         mark_phase SSL
     else
-        echo -e "  ${C_OK}●${CR} ${C_DIM}SSL certificate already configured - skipping.${CR}"
+        echo -e " ${C_OK}●${CR} ${C_DIM}SSL certificate already configured - skipping.${CR}"
     fi
     # ╰─────────────────────────────────────────────────────────────╯
 
@@ -1824,13 +2302,13 @@ EOF
             || { show_step_error; install_pause "Configuring Apache virtual hosts"; }
         mark_phase VHOST
     else
-        echo -e "  ${C_OK}●${CR} ${C_DIM}Apache virtual hosts already configured - skipping.${CR}"
+        echo -e " ${C_OK}●${CR} ${C_DIM}Apache virtual hosts already configured - skipping.${CR}"
     fi
     # ╰─────────────────────────────────────────────────────────────╯
 
     # ── Bot configuration inputs (token / chat id / botname) ──
-    clear
-    print_header "Bot Configuration"
+    install_banner
+    phase_header DB "Bot configuration"
     YOUR_BOT_TOKEN="$(state_get BOT_TOKEN)"
     if [ -n "$YOUR_BOT_TOKEN" ]; then
         echo -e "\e[33m[+] \e[36mBot Token (resumed):\e[0m ${YOUR_BOT_TOKEN:0:10}..."
@@ -1851,14 +2329,14 @@ EOF
         while true; do
             validate_token "$YOUR_BOT_TOKEN"
             case $? in
-                0) echo -e "  ${C_OK}●${CR} ${C_OK}Token verified with Telegram.${CR}"; break ;;
-                2) echo -e "  ${C_BAD}●${CR} ${C_BAD}Telegram rejected this token (or API unreachable).${CR}"
-                   printf "  ${C_PROMPT}❯${CR} Re-enter token, or press Enter to keep it anyway: "
+                0) echo -e " ${C_OK}●${CR} ${C_OK}Token verified with Telegram.${CR}"; break ;;
+                2) echo -e " ${C_BAD}●${CR} ${C_BAD}Telegram rejected this token (or API unreachable).${CR}"
+                   printf " ${C_PROMPT}❯${CR} Re-enter token, or press Enter to keep it anyway: "
                    read -r _t
                    if [ -z "$_t" ]; then break; fi
                    YOUR_BOT_TOKEN="$_t"
                    while [[ ! "$YOUR_BOT_TOKEN" =~ ^[0-9]{8,10}:[a-zA-Z0-9_-]{35}$ ]]; do
-                       echo -e "\e[91mInvalid format.\033[0m"; printf "  ${C_PROMPT}❯${CR} Bot Token: "; read -r YOUR_BOT_TOKEN
+                       echo -e "\e[91mInvalid format.\033[0m"; printf " ${C_PROMPT}❯${CR} Bot Token: "; read -r YOUR_BOT_TOKEN
                    done ;;
                 *) break ;;
             esac
@@ -1889,11 +2367,16 @@ EOF
     YOUR_BOTNAME="$(state_get BOTNAME)"
     if [ -n "$YOUR_BOTNAME" ]; then
         echo -e "\e[33m[+] \e[36musernamebot (resumed):\e[0m ${YOUR_BOTNAME}"
+    elif [ -n "$ARG_NAME" ]; then
+        YOUR_BOTNAME="$ARG_NAME"
+        echo -e "\e[33m[+] \e[36musernamebot (from --name):\e[0m ${YOUR_BOTNAME}"
     else
-        if [ -n "$ARG_NAME" ]; then
-            YOUR_BOTNAME="$ARG_NAME"
-            echo -e "\e[33m[+] \e[36musernamebot (from --name):\e[0m ${YOUR_BOTNAME}"
+        YOUR_BOTNAME="$TG_BOT_USERNAME"
+        [ -z "$YOUR_BOTNAME" ] && YOUR_BOTNAME="$(fetch_bot_username "$YOUR_BOT_TOKEN")"
+        if [ -n "$YOUR_BOTNAME" ]; then
+            echo -e "\e[33m[+] \e[36musernamebot (from token):\e[0m @${YOUR_BOTNAME}"
         else
+            echo -e " ${C_BAD}●${CR} ${C_BAD}Could not read the bot username from Telegram.${CR}"
             while true; do
                 printf "\e[33m[+] \e[36musernamebot: \033[0m"
                 read YOUR_BOTNAME
@@ -1915,6 +2398,13 @@ EOF
         echo -e "\e[91mError: MySQL connection failed.\033[0m"
         install_pause "MySQL connection"
     }
+
+    MYSQL_AUTH_PLUGIN="mysql_native_password"
+    if ! mysql -u"$ROOT_USER" -p"$ROOT_PASSWORD" -N -B -e \
+        "SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='mysql_native_password';" 2>/dev/null \
+        | grep -qi ACTIVE; then
+        MYSQL_AUTH_PLUGIN="caching_sha2_password"
+    fi
 
     randomdbpass=$(openssl rand -base64 10 | tr -dc 'a-zA-Z0-9' | cut -c1-8)
     randomdbdb=$(openssl rand -base64 10 | tr -dc 'a-zA-Z' | cut -c1-8)
@@ -1938,7 +2428,7 @@ EOF
                 dbuser=$randomdbdb
             fi
             if ! valid_db_ident "$dbuser"; then
-                echo -e "  ${C_WARN}!${CR} ${C_WARN}Invalid DB username (use only A-Z a-z 0-9 _). Using generated name.${CR}"
+                echo -e " ${C_WARN}!${CR} ${C_WARN}Invalid DB username (use only A-Z a-z 0-9 _). Using generated name.${CR}"
                 dbuser=$randomdbdb
             fi
             if [ -n "$ARG_DBPASS" ]; then
@@ -1953,23 +2443,23 @@ EOF
                 dbpass=$randomdbpass
             fi
             if ! valid_db_pass "$dbpass"; then
-                echo -e "  ${C_WARN}!${CR} ${C_WARN}Password has unsafe characters or is too short (need 6+, A-Z a-z 0-9 _). Using generated password.${CR}"
+                echo -e " ${C_WARN}!${CR} ${C_WARN}Password has unsafe characters or is too short (need 6+, A-Z a-z 0-9 _). Using generated password.${CR}"
                 dbpass=$randomdbpass
             fi
             state_set DBUSER "$dbuser"
             state_set DBPASS "$dbpass"
         else
-            echo -e "  ${C_OK}●${CR} ${C_DIM}Database credentials resumed.${CR}"
+            echo -e " ${C_OK}●${CR} ${C_DIM}Database credentials resumed.${CR}"
         fi
         # Idempotent: safe to re-run (IF NOT EXISTS), so a resumed install never breaks here
         run_step "Creating database & user" \
-            "mysql -u root -p$ROOT_PASSWORD -e \"CREATE DATABASE IF NOT EXISTS $dbname;\" && mysql -u root -p$ROOT_PASSWORD -e \"CREATE USER IF NOT EXISTS '$dbuser'@'%' IDENTIFIED WITH mysql_native_password BY '$dbpass'; GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'%'; FLUSH PRIVILEGES;\" && mysql -u root -p$ROOT_PASSWORD -e \"CREATE USER IF NOT EXISTS '$dbuser'@'localhost' IDENTIFIED WITH mysql_native_password BY '$dbpass'; GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'localhost'; FLUSH PRIVILEGES;\"" \
+            "mysql -u root -p$ROOT_PASSWORD -e \"CREATE DATABASE IF NOT EXISTS $dbname;\" && mysql -u root -p$ROOT_PASSWORD -e \"CREATE USER IF NOT EXISTS '$dbuser'@'%' IDENTIFIED WITH $MYSQL_AUTH_PLUGIN BY '$dbpass'; GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'%'; FLUSH PRIVILEGES;\" && mysql -u root -p$ROOT_PASSWORD -e \"CREATE USER IF NOT EXISTS '$dbuser'@'localhost' IDENTIFIED WITH $MYSQL_AUTH_PLUGIN BY '$dbpass'; GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'localhost'; FLUSH PRIVILEGES;\"" \
             || { show_step_error; install_pause "Creating database/user"; }
         mark_phase DB
     else
         dbuser="$(state_get DBUSER)"
         dbpass="$(state_get DBPASS)"
-        echo -e "  ${C_OK}●${CR} ${C_DIM}Database already created - skipping.${CR}"
+        echo -e " ${C_OK}●${CR} ${C_DIM}Database already created - skipping.${CR}"
     fi
     # ╰─────────────────────────────────────────────────────────────╯
 
@@ -1985,11 +2475,6 @@ EOF
             }
         fi
         sleep 1
-        secrettoken="$(state_get SECRET)"
-        if [ -z "$secrettoken" ]; then
-            secrettoken=$(openssl rand -base64 10 | tr -dc 'a-zA-Z0-9' | cut -c1-8)
-            state_set SECRET "$secrettoken"
-        fi
         cat <<EOF > /var/www/html/mirzaprobotconfig/config.php
 <?php
 // This variable added for high load panels which their response time is long and bot can't communicate with online panel!
@@ -1999,12 +2484,9 @@ EOF
 \$dbname = '$dbname';
 \$usernamedb = '$dbuser';
 \$passworddb = '$dbpass';
-\$connect = mysqli_connect(\$dbhost, \$usernamedb, \$passworddb, \$dbname);
-if (\$connect->connect_error) { die("error" . \$connect->connect_error); }
-mysqli_set_charset(\$connect, "utf8mb4");
 \$options = [ PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_EMULATE_PREPARES => false, ];
 \$dsn = "mysql:host=\$dbhost;dbname=\$dbname;charset=utf8mb4";
-try { \$pdo = new PDO(\$dsn, \$usernamedb, \$passworddb, \$options); } catch (\PDOException \$e) { error_log("Database connection failed: " . \$e->getMessage()); }
+try { \$pdo = new PDO(\$dsn, \$usernamedb, \$passworddb, \$options); \$pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"); } catch (\PDOException \$e) { error_log("Database connection failed: " . \$e->getMessage()); die("error: database connection failed"); }
 \$APIKEY = '${YOUR_BOT_TOKEN}';
 \$adminnumber = '${YOUR_CHAT_ID}';
 \$domainhosts = '${YOUR_DOMAIN}';
@@ -2012,10 +2494,10 @@ try { \$pdo = new PDO(\$dsn, \$usernamedb, \$passworddb, \$options); } catch (\P
 ?>
 EOF
         sudo chown www-data:www-data /var/www/html/mirzaprobotconfig/config.php 2>/dev/null
+        sudo chmod 640 /var/www/html/mirzaprobotconfig/config.php 2>/dev/null
         mark_phase CONFIG
     else
-        secrettoken="$(state_get SECRET)"
-        echo -e "  ${C_OK}●${CR} ${C_DIM}config.php already written - skipping.${CR}"
+        echo -e " ${C_OK}●${CR} ${C_DIM}config.php already written - skipping.${CR}"
     fi
     # ╰─────────────────────────────────────────────────────────────╯
 
@@ -2023,7 +2505,7 @@ EOF
     if ! phase_done WEBHOOK; then
         sleep 1
         run_step "Setting Telegram webhook" \
-            "curl -s -F \"url=https://${YOUR_DOMAIN}/index.php\" -F \"secret_token=${secrettoken}\" \"https://api.telegram.org/bot${YOUR_BOT_TOKEN}/setWebhook\"" \
+            "curl -s -F \"url=https://${YOUR_DOMAIN}/index.php\" \"https://api.telegram.org/bot${YOUR_BOT_TOKEN}/setWebhook\"" \
             || { show_step_error; install_pause "Setting Telegram webhook"; }
 
         MESSAGE="✅ The Mirza bot is installed! for start the bot send /start command."
@@ -2041,23 +2523,23 @@ EOF
     # ── Done ──
     mark_phase COMPLETE
     clear
-    banner
-    _sec "Installation complete"
-    printf "    ${C_OK}●${CR} ${C_OK}Mirza is installed and the webhook is set.${CR}\n"
-    printf "    ${C_DIM}Open Telegram and send ${CR}${C_KEY}/start${CR}${C_DIM} to your bot.${CR}\n"
-
-    _sec "Access"
-    _kv "Bot URL" "${C_DIM}https://${YOUR_DOMAIN}${CR}"
-    _kv "phpMyAdmin" "${C_DIM}https://${YOUR_DOMAIN}/phpmyadmin${CR}"
-
-    _sec "Database"
-    _kv "Name" "${C_KEY}${dbname}${CR}"
-    _kv "Username" "${C_KEY}${dbuser}${CR}"
-    _kv "Password" "${C_KEY}${dbpass}${CR}"
-    printf "    ${C_WARN}!${CR} ${C_DIM}Save these credentials somewhere safe.${CR}\n"
-
-    _sec "Manage"
-    _kv "Command" "${C_DIM}run ${CR}${C_KEY}mirza${CR}${C_DIM} anytime to open this panel${CR}"
+    banner "${C_OK}Installed${CR}" "${C_DIM}took $(_fmt_secs $(( $(date +%s) - INSTALL_STARTED )))${CR}"
+    _phase_line COMPLETE
+    _rule
+    printf " ${C_OK}✔${CR} ${C_TITLE}Mirza %s is running. Send /start to %s to open the admin panel.${CR}\n" \
+        "$(get_installed_version)" "$([ -n "$YOUR_BOTNAME" ] && echo "@${YOUR_BOTNAME#@}" || echo "your bot")"
+    _sec "Open"
+    [ -n "$YOUR_BOTNAME" ] && _kv "Bot" "https://t.me/${YOUR_BOTNAME#@}"
+    _kv "Admin" "${YOUR_CHAT_ID}"
+    _kv "Website" "https://${YOUR_DOMAIN}"
+    _kv "phpMyAdmin" "https://${YOUR_DOMAIN}/phpmyadmin"
+    _sec "Saved on this server"
+    _kv "Database" "${dbname} ${C_DIM}· user${CR} ${dbuser} ${C_DIM}· password in config.php${CR}"
+    _kv "DB root" "/root/confmirza/dbrootmirza.txt"
+    _kv "Config" "${BOT_DIR}/config.php"
+    _sec "Next"
+    printf " ${C_KEY}%-14s${CR} %s\n" "mirza" "open the menu any time"
+    printf " ${C_KEY}%-14s${CR} %s\n" "mirza backup" "send a database backup to Telegram"
     echo ""
     _rule
     echo ""
@@ -2072,7 +2554,7 @@ function update_bot() {
     BOT_DIR="/var/www/html/mirzaprobotconfig"
     if [ ! -d "$BOT_DIR" ]; then
         _sec "Update"
-        printf "    ${C_BAD}●${CR} ${C_BAD}Mirza is not installed. Install it first.${CR}\n"
+        printf " ${C_BAD}●${CR} ${C_BAD}Mirza is not installed. Install it first.${CR}\n"
         sleep 2
         show_menu
         return 1
@@ -2082,9 +2564,9 @@ function update_bot() {
     local current
     current=$(get_installed_version); [ -z "$current" ] && current="unknown"
     _sec "Update"
-    printf "    ${C_DIM}Currently installed:${CR} ${C_OK}%s${CR}\n" "$current"
+    printf " ${C_DIM}Currently installed:${CR} ${C_OK}%s${CR}\n" "$current"
     if ! ensure_connectivity; then
-        printf "    ${C_BAD}●${CR} ${C_BAD}No internet connection (even after DNS reset). Try again later.${CR}\n"
+        printf " ${C_BAD}●${CR} ${C_BAD}No internet connection (even after DNS reset). Try again later.${CR}\n"
         sleep 2; show_menu; return 1
     fi
     choose_source
@@ -2094,11 +2576,17 @@ function update_bot() {
     local ZIP_URL="$SRC_ZIP_URL" TARGET_LABEL="$SRC_LABEL"
 
     echo ""
-    echo -e "  ${C_DIM}Update target:${CR} ${C_KEY}${TARGET_LABEL}${CR}"
-    print_header "Updating Mirza Bot"
+    echo -e " ${C_DIM}Update target:${CR} ${C_KEY}${TARGET_LABEL}${CR}"
+    _sec "Updating Mirza"
     run_step "Updating system packages" "apt update --allow-releaseinfo-change && apt upgrade -y" \
         || { show_step_error; echo -e "\e[91mError updating the server. Exiting...\033[0m"; exit 1; }
+    run_step "Ensuring cron is installed and running" "ensure_cron" \
+        || { show_step_error; echo -e "\e[91mError: Failed to install or start cron.\033[0m"; exit 1; }
     echo -e "\e[92mServer packages updated successfully...\033[0m\n"
+    if ! upgrade_php_if_needed; then
+        echo -e "\e[91mError: this version of Mirza requires PHP ${PHP_MIN_VERSION}+. The update was aborted and your bot files were left untouched.\033[0m"
+        sleep 2; show_menu; return 1
+    fi
     TEMP_DIR="/tmp/mirzaprobot_update"
     rm -rf "$TEMP_DIR"; mkdir -p "$TEMP_DIR"
     run_step "Downloading ${TARGET_LABEL}" "wget -q -O '$TEMP_DIR/bot.zip' '$ZIP_URL'" \
@@ -2127,20 +2615,57 @@ function update_bot() {
     else
         echo -e "\e[93mWarning: config.php not found. Proceeding without backup.\033[0m"
     fi
+    LANG_OVERRIDE_BACKUP="/root/mirzapro_lang_override_backup"
+    rm -rf "$LANG_OVERRIDE_BACKUP"
+    [ -d "$BOT_DIR/lang/override" ] && cp -a "$BOT_DIR/lang/override" "$LANG_OVERRIDE_BACKUP"
+    run_step "Backing up vpnbots" "backup_vpnbots '$BOT_DIR'" \
+        || { show_step_error
+             echo -e "\e[91mError: Failed to backup vpnbots.\033[0m"
+             rm -rf "$TEMP_DIR"; sleep 2; show_menu; return 1; }
+    _vpnbot_live=$(vpnbot_instance_count "$BOT_DIR/vpnbot")
+    _vpnbot_bak=$(vpnbot_instance_count "$VPNBOT_BACKUP")
+    if [ "$_vpnbot_live" -gt 0 ] && [ "$_vpnbot_bak" -lt "$_vpnbot_live" ]; then
+        echo -e "\e[91mError: vpnbot backup incomplete ($_vpnbot_bak/$_vpnbot_live). Update aborted.\033[0m"
+        rm -rf "$TEMP_DIR"; sleep 2; show_menu; return 1
+    fi
     sudo rm -rf "$BOT_DIR" || {
         echo -e "\e[91mFailed to remove old bot files!\033[0m"
+        echo -e "\e[93mvpnbot backup: ${VPNBOT_BACKUP}\033[0m"
         exit 1
     }
     sudo mkdir -p "$BOT_DIR"
-    sudo mv "$EXTRACTED_DIR"/* "$BOT_DIR/" || {
+    purge_installer_dir "$EXTRACTED_DIR"
+    purge_installer_dir "$BOT_DIR"
+    move_extracted_files "$EXTRACTED_DIR" "$BOT_DIR" || {
         echo -e "\e[91mFile transfer failed!\033[0m"
+        echo -e "\e[93mvpnbot backup: ${VPNBOT_BACKUP}\033[0m"
         exit 1
     }
+    purge_installer_dir "$BOT_DIR"
     if [ -f "$TEMP_CONFIG" ]; then
         sudo mv "$TEMP_CONFIG" "$CONFIG_PATH" || {
             echo -e "\e[91mConfig file restore failed!\033[0m"
+            echo -e "\e[93mvpnbot backup: ${VPNBOT_BACKUP}\033[0m"
             exit 1
         }
+    fi
+    if [ -f "$CONFIG_PATH" ] && grep -q 'PDO::MYSQL_ATTR_INIT_COMMAND' "$CONFIG_PATH"; then
+        sed -E '/^[[:space:]]*PDO::MYSQL_ATTR_INIT_COMMAND => "[^"]*",[[:space:]]*$/d; s/ PDO::MYSQL_ATTR_INIT_COMMAND => "[^"]*",//; s/(\$pdo = new PDO\(\$dsn, \$usernamedb, \$passworddb, \$options\);)/\1 $pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");/' \
+            "$CONFIG_PATH" > "$CONFIG_PATH.new" && php -l "$CONFIG_PATH.new" >/dev/null 2>&1 \
+            && sudo mv "$CONFIG_PATH.new" "$CONFIG_PATH" || sudo rm -f "$CONFIG_PATH.new"
+    fi
+    if [ -d "$LANG_OVERRIDE_BACKUP" ]; then
+        sudo rm -rf "$BOT_DIR/lang/override"
+        sudo mv "$LANG_OVERRIDE_BACKUP" "$BOT_DIR/lang/override"
+    fi
+    run_step "Restoring vpnbots" "restore_vpnbots '$BOT_DIR'" \
+        || { show_step_error
+             echo -e "\e[91mError: Failed to restore vpnbots. Backup: ${VPNBOT_BACKUP}\033[0m"; }
+    _vpnbot_restored=$(vpnbot_instance_count "$BOT_DIR/vpnbot")
+    if [ "$_vpnbot_bak" -gt 0 ] && [ "$_vpnbot_restored" -lt "$_vpnbot_bak" ]; then
+        echo -e "\e[91mError: vpnbot restore incomplete ($_vpnbot_restored/$_vpnbot_bak). Backup kept at ${VPNBOT_BACKUP}\033[0m"
+    else
+        rm -rf "$VPNBOT_BACKUP"
     fi
     if [ -f "$BOT_DIR/install.sh" ]; then
         sed -i 's/\r$//' "$BOT_DIR/install.sh"
@@ -2227,6 +2752,8 @@ EOF
             run_step "Updating database tables" "curl -s 'https://$URL_PATH/table.php' > /dev/null" \
                 || echo -e "\e[91mSetup script execution failed! Check logs.\033[0m"
         fi
+        run_step "Setting vpnbot webhooks" "set_vpnbot_webhooks '$CONFIG_PATH'" \
+            || echo -e "\e[93mWarning: vpnbot webhook update failed.\033[0m"
     fi
     rm -rf "$TEMP_DIR"
     echo -e "\n\e[92mMirza Bot updated to latest version successfully!\033[0m"
@@ -2255,6 +2782,15 @@ function remove_bot() {
         exit 0
     fi
     echo "Removing Mirza Bot..." | tee -a "$LOG_FILE"
+    if command -v crontab >/dev/null 2>&1 || [ -x /usr/bin/crontab ]; then
+        local _cb
+        _cb="$(command -v crontab || echo /usr/bin/crontab)"
+        if id www-data >/dev/null 2>&1; then
+            "$_cb" -u www-data -l 2>/dev/null | grep -v '/cronbot/' | "$_cb" -u www-data - 2>/dev/null || true
+        fi
+        "$_cb" -l 2>/dev/null | grep -v '/cronbot/' | "$_cb" - 2>/dev/null || true
+        echo -e "\e[92mRemoved Mirza cron jobs.\033[0m" | tee -a "$LOG_FILE"
+    fi
     CONFIG_PATH="/var/www/html/mirzaprobotconfig/config.php"
     if [ -f "$CONFIG_PATH" ]; then
         sudo shred -u -n 5 "$CONFIG_PATH" && echo -e "\e[92mConfig file securely removed: $CONFIG_PATH\033[0m" | tee -a "$LOG_FILE" || {
@@ -2279,7 +2815,7 @@ function remove_bot() {
     sudo dpkg --remove --force-remove-reinstreq mysql-server mysql-server-8.0 mysql-server-8.4
     sudo find /etc/systemd /lib/systemd /usr/lib/systemd -name "*mysql*" -exec rm -f {} \;
     sudo apt-get purge -y 'mysql-server*' 'mysql-client*'
-    sudo apt-get purge -y mysql-common php-mysql php8.2-mysql php8.3-mysql php8.4-mysql php-mariadb-mysql-kbs
+    sudo apt-get purge -y mysql-common php-mysql php8.2-mysql php8.3-mysql php8.4-mysql php8.5-mysql php-mariadb-mysql-kbs
     sudo apt-get autoremove --purge -y
     sudo apt-get clean
     sudo apt-get update --allow-releaseinfo-change
@@ -2322,7 +2858,7 @@ function migrate_to_pro() {
     clear
     echo -e "\033[1;33mStarting Migration from Free to Pro Version...\033[0m"
     if ! ensure_connectivity; then
-        echo -e "  ${C_BAD}●${CR} ${C_BAD}No internet connection (even after DNS reset). Aborting.${CR}"
+        echo -e " ${C_BAD}●${CR} ${C_BAD}No internet connection (even after DNS reset). Aborting.${CR}"
         sleep 2; show_menu; return 1
     fi
     OLD_BOT_DIR="/var/www/html/mirzabotconfig"
@@ -2387,6 +2923,14 @@ function migrate_to_pro() {
         echo -e "\033[31m[ERROR] Incorrect MySQL root password. Migration stopped.\033[0m"
         exit 1
     fi
+    # MySQL 8.4+ disables mysql_native_password by default; fall back to the server
+    # default plugin when it is not ACTIVE so CREATE USER does not fail.
+    MYSQL_AUTH_PLUGIN="mysql_native_password"
+    if ! mysql -u "$ROOT_USER" -p"$ROOT_PASS" -N -B -e \
+        "SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='mysql_native_password';" 2>/dev/null \
+        | grep -qi ACTIVE; then
+        MYSQL_AUTH_PLUGIN="caching_sha2_password"
+    fi
     echo -e "\033[32mDatabase connection successful.\033[0m"
     OLD_DB="mirzabot"
     NEW_DB="mirzaprobot"
@@ -2418,9 +2962,9 @@ function migrate_to_pro() {
     NEW_DB_USER=$(openssl rand -base64 10 | tr -dc 'a-zA-Z' | cut -c1-8)
     NEW_DB_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | cut -c1-10)
     echo -e "\033[33mCreating new database user...\033[0m"
-    mysql -u "$ROOT_USER" -p"$ROOT_PASS" -e "CREATE USER '$NEW_DB_USER'@'localhost' IDENTIFIED WITH mysql_native_password BY '$NEW_DB_PASS';"
+    mysql -u "$ROOT_USER" -p"$ROOT_PASS" -e "CREATE USER '$NEW_DB_USER'@'localhost' IDENTIFIED WITH $MYSQL_AUTH_PLUGIN BY '$NEW_DB_PASS';"
     mysql -u "$ROOT_USER" -p"$ROOT_PASS" -e "GRANT ALL PRIVILEGES ON $NEW_DB.* TO '$NEW_DB_USER'@'localhost';"
-    mysql -u "$ROOT_USER" -p"$ROOT_PASS" -e "CREATE USER '$NEW_DB_USER'@'%' IDENTIFIED WITH mysql_native_password BY '$NEW_DB_PASS';"
+    mysql -u "$ROOT_USER" -p"$ROOT_PASS" -e "CREATE USER '$NEW_DB_USER'@'%' IDENTIFIED WITH $MYSQL_AUTH_PLUGIN BY '$NEW_DB_PASS';"
     mysql -u "$ROOT_USER" -p"$ROOT_PASS" -e "GRANT ALL PRIVILEGES ON $NEW_DB.* TO '$NEW_DB_USER'@'%';"
     mysql -u "$ROOT_USER" -p"$ROOT_PASS" -e "FLUSH PRIVILEGES;"
     echo -e "\033[33mReading old configuration...\033[0m"
@@ -2445,9 +2989,10 @@ function migrate_to_pro() {
         echo -e "\033[31mError: Extracted source folder not found. Aborting migration.\033[0m"
         rm -rf "$TEMP_DIR"; exit 1
     fi
-    mv "$EXTRACTED_DIR"/* "$NEW_BOT_DIR"
+    purge_installer_dir "$EXTRACTED_DIR"
+    move_extracted_files "$EXTRACTED_DIR" "$NEW_BOT_DIR"
+    purge_installer_dir "$NEW_BOT_DIR"
     rm -rf "$TEMP_DIR"
-    NEW_SECRET_TOKEN=$(openssl rand -base64 10 | tr -dc 'a-zA-Z0-9' | cut -c1-8)
     cat <<EOF > "$NEW_BOT_DIR/config.php"
 <?php
 // This variable added for high load panels which their response time is long and bot can't communicate with online panel!
@@ -2457,12 +3002,9 @@ function migrate_to_pro() {
 \$dbname = '$NEW_DB';
 \$usernamedb = '$NEW_DB_USER';
 \$passworddb = '$NEW_DB_PASS';
-\$connect = mysqli_connect(\$dbhost, \$usernamedb, \$passworddb, \$dbname);
-if (\$connect->connect_error) { die("error" . \$connect->connect_error); }
-mysqli_set_charset(\$connect, "utf8mb4");
 \$options = [ PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_EMULATE_PREPARES => false, ];
 \$dsn = "mysql:host=\$dbhost;dbname=\$dbname;charset=utf8mb4";
-try { \$pdo = new PDO(\$dsn, \$usernamedb, \$passworddb, \$options); } catch (\PDOException \$e) { error_log("Database connection failed: " . \$e->getMessage()); }
+try { \$pdo = new PDO(\$dsn, \$usernamedb, \$passworddb, \$options); \$pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"); } catch (\PDOException \$e) { error_log("Database connection failed: " . \$e->getMessage()); die("error: database connection failed"); }
 \$APIKEY = '${OLD_API_KEY}';
 \$adminnumber = '${OLD_ADMIN_ID}';
 \$domainhosts = '${DOMAIN_NAME}';
@@ -2518,10 +3060,10 @@ EOF
     systemctl restart apache2
     echo -e "\033[33mUpdating Webhook and Tables...\033[0m"
     curl -F "url=https://${DOMAIN_NAME}/index.php" \
-         -F "secret_token=${NEW_SECRET_TOKEN}" \
          "https://api.telegram.org/bot${OLD_API_KEY}/setWebhook"
     sleep 2
     curl -k "https://${DOMAIN_NAME}/table.php" > /dev/null 2>&1
+    ensure_cron || echo -e "\033[33mWarning: cron is not installed or not running.\033[0m"
     sed -i 's/\r$//' /root/install.sh
     chmod +x /root/install.sh
     rm -f /usr/local/bin/mirza
@@ -2559,10 +3101,11 @@ print_usage() {
     renew              Renew the bot domain SSL certificate
     backup             Backup database & send to Telegram
     import             Import database from SQL file (Beta)
+    update-php         Upgrade PHP to the required version (${PHP_MIN_VERSION}+)
     menu               Show interactive menu (default)
 
   Options:
-    --name   <user>    Bot username
+    --name   <name>    Telegram bot username
     --token  <token>   Telegram bot token
     --admin  <id>      Admin chat id
     --domain <domain>  Domain name (e.g. bot.example.com)
@@ -2574,7 +3117,7 @@ print_usage() {
 
   Examples:
     mirza install --channel auto
-    mirza install --name myvpnbot --token 123:ABC --admin 111 --domain bot.example.com --version 0.1.7
+    mirza install --token 123:ABC --admin 111 --domain bot.example.com --version 0.1.7
     mirza update --channel release
     mirza update --version 0.1.6
 
@@ -2585,7 +3128,7 @@ process_arguments() {
     local cmd="menu"
     # First non-flag token is the command
     case "$1" in
-        install|update|remove|migrate|renew|backup|import|menu) cmd="$1"; shift ;;
+        install|update|remove|migrate|renew|backup|import|update-php|menu) cmd="$1"; shift ;;
         -h|--help) print_usage; exit 0 ;;
         "") cmd="menu" ;;
         --*) cmd="menu" ;;            # only flags given -> menu, but still parse flags
@@ -2616,6 +3159,7 @@ process_arguments() {
         renew)   renew_ssl ;;
         backup)  backup_bot ;;
         import)  import_bot ;;
+        update-php) update_php ;;
         menu|*)  show_menu ;;
     esac
 }

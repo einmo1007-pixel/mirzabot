@@ -68,6 +68,18 @@ if (!$usercheck || !is_string($usercheck['token']) || !hash_equals($usercheck['t
     return;
 }
 $data['user_id'] = $usercheck['id'];
+if ($method !== "GET") {
+    $userLock = $pdo->prepare("SELECT GET_LOCK(?, 0)");
+    $userLock->execute(["mirza_user_" . $usercheck['id']]);
+    if ((int) $userLock->fetchColumn() !== 1) {
+        http_response_code(429);
+        echo json_encode([
+            'status' => false,
+            'msg' => "Too many requests",
+        ]);
+        return;
+    }
+}
 
 if ($usercheck['User_Status'] == "block") {
     http_response_code(402);
@@ -76,6 +88,20 @@ if ($usercheck['User_Status'] == "block") {
         'msg' => "user blocked",
     ]);
     return;
+}
+
+if (!in_array($usercheck['id'], select("admin", "id_admin", null, null, "FETCH_COLUMN"))) {
+    if ($setting['Bot_Status'] == "botstatusoff"
+        || ($setting['verifystart'] == "onverify" && intval($usercheck['verify']) == 0)
+        || ($setting['roll_Status'] == "rolleon" && $usercheck['roll_Status'] == 0)
+        || ($setting['get_number'] == "onAuthenticationphone" && $usercheck['number'] == "none")) {
+        http_response_code(403);
+        echo json_encode([
+            'status' => false,
+            'msg' => "access denied",
+        ]);
+        return;
+    }
 }
 
 $errorreport = topicId('errorreport');
@@ -201,7 +227,7 @@ function mini_service(array $data, string $method): void
         $used_Traffic = $used_traffic_bytes / pow(1024, 3);
         $remaining_traffic = $remaining_traffic_bytes / pow(1024, 3);
         $config = [];
-        if (in_array($panel['type'], ['marzban', 'marzneshin', 'alireza_single', 'x-ui_single', 'hiddify'])) {
+        if (in_array($panel['type'], ['marzban', 'marzneshin', 'x-ui_single', 'hiddify'])) {
             if ($panel['sublink'] == "onsublink" && !empty($DataUserOut['subscription_url'])) {
                 $config[] = [
                     'type' => "link",
@@ -303,16 +329,16 @@ function mini_user_info(array $data, string $method): void
         if ($user_info['number'] == "confrim number by admin") {
             $numberphone = $textbotlang['common']['labels']['confirmedByAdmin'];
         }
-        $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = :id_user AND name_product != :name_product AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold')");
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM invoice WHERE id_user = :id_user AND name_product != :name_product AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold')");
         $stmt->bindValue(':name_product', $textbotlang['common']['labels']['testServiceName'], PDO::PARAM_STR);
         $stmt->bindValue(':id_user', $user_info['id'], PDO::PARAM_INT);
         $stmt->execute();
-        $countorder = $stmt->rowCount();
-        $stmt = $pdo->prepare("SELECT * FROM Payment_report WHERE id_user = :from_id AND payment_Status = 'paid'");
+        $countorder = (int) $stmt->fetchColumn();
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM Payment_report WHERE id_user = :from_id AND payment_Status = 'paid'");
         $stmt->execute([
             ':from_id' => $user_info['id']
         ]);
-        $countpayment = $stmt->rowCount();
+        $countpayment = (int) $stmt->fetchColumn();
         $groupuser = [
             'f' => $textbotlang['common']['roles']['normal'],
             'n' => $textbotlang['common']['roles']['agent'],
@@ -356,7 +382,7 @@ function mini_countries(array $data, string $method): void
     }
     $user_info = select("user", "*", "token", $tokencheck, "select");
     if ($user_info) {
-        $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = :agent OR agent = 'all') AND type != 'Manualsale'");
+        $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = :agent OR agent = 'all') AND type != 'Manualsale' ORDER BY display_order, id");
         $stmt->bindParam(':agent', $user_info['agent']);
         $stmt->execute();
         $panel_list = [];
@@ -368,7 +394,7 @@ function mini_countries(array $data, string $method): void
         if ($setting['statusnoteforf'] == "0" && $user_info['agent'] == "f")
             $is_note = false;
         while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            if ($result['MethodUsername'] == $textbotlang['users']['customusername'] || $result['MethodUsername'] == $textbotlang['keyboard']['customUsernameRandom']) {
+            if (in_array(usernameMethodKey($result['MethodUsername']), ['customUsername', 'customUsernameRandom'], true)) {
                 $is_username = true;
             } else {
                 $is_username = false;
@@ -426,7 +452,7 @@ function mini_categories(array $data, string $method): void
             ));
             return;
         }
-        $stmt = $pdo->prepare("SELECT * FROM category");
+        $stmt = $pdo->prepare("SELECT * FROM category ORDER BY display_order, id");
         $stmt->execute();
         $category_list = [];
         $panel = select("marzban_panel", "*", "code_panel", $data['id_panel'], "select");
@@ -438,7 +464,7 @@ function mini_categories(array $data, string $method): void
             return;
         }
         while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $stmts = $pdo->prepare("SELECT * FROM product WHERE (Location = :location OR Location = '/all') AND category = :category AND agent = :agent");
+            $stmts = $pdo->prepare("SELECT * FROM product WHERE (Location = :location OR Location = '/all') AND category = :category AND agent = :agent AND status_product != 'disable'");
             $stmts->bindParam(':location', $panel['name_panel'], PDO::PARAM_STR);
             $stmts->bindParam(':category', $result['remark'], PDO::PARAM_STR);
             $stmts->bindParam(':agent', $user_info['agent']);
@@ -656,9 +682,10 @@ function mini_services(array $data, string $method): void
             $time_range_day = "AND Service_time = :trd";
             $queryParams[':trd'] = $data['time_range_day'];
         }
-        $stmt = $pdo->prepare("SELECT * FROM product WHERE (Location = :loc OR Location = '/all')AND agent= :ag $category_remarks $time_range_day");
+        $stmt = $pdo->prepare("SELECT * FROM product WHERE (Location = :loc OR Location = '/all')AND agent= :ag AND status_product != 'disable' $category_remarks $time_range_day ORDER BY display_order, id");
         $stmt->execute($queryParams);
         $product_list = [];
+        $countorder = null;
         while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $hide_panel = json_decode($result['hide_panel'], true);
             if (!is_array($hide_panel)) {
@@ -666,11 +693,15 @@ function mini_services(array $data, string $method): void
             }
             if (in_array($panel['name_panel'], $hide_panel))
                 continue;
-            $stmts2 = $pdo->prepare("SELECT * FROM invoice WHERE Status != 'Unpaid' AND id_user = :mp4");
-            $stmts2->execute([':mp4' => $user_info['id']]);
-            $countorder = $stmts2->rowCount();
-            if ($result['one_buy_status'] == "1" && $countorder != 0)
-                continue;
+            if ($result['one_buy_status'] == "1") {
+                if ($countorder === null) {
+                    $stmts2 = $pdo->prepare("SELECT COUNT(*) FROM invoice WHERE Status != 'Unpaid' AND id_user = :mp4");
+                    $stmts2->execute([':mp4' => $user_info['id']]);
+                    $countorder = (int) $stmts2->fetchColumn();
+                }
+                if ($countorder != 0)
+                    continue;
+            }
             if (intval($user_info['pricediscount']) != 0) {
                 $resultper = ($result['price_product'] * $user_info['pricediscount']) / 100;
                 $result['price_product'] = $result['price_product'] - $resultper;
@@ -767,6 +798,14 @@ function mini_purchase(array $data, string $method): void
         ]);
         return;
     }
+    if (!empty($data['custom_username']) && !preg_match('~(?!_)^[a-z][a-z\d_]{2,32}(?<!_)$~i', (string) $data['custom_username'])) {
+        http_response_code(400);
+        echo json_encode(array(
+            'status' => false,
+            'msg' => strip_tags($textbotlang['users']['invalidusername'])
+        ));
+        return;
+    }
     $panel = select("marzban_panel", "*", "code_panel", $data['country_id'] ?? '', "select");
     if (empty($panel)) {
         http_response_code(500);
@@ -776,7 +815,8 @@ function mini_purchase(array $data, string $method): void
         ));
         return;
     }
-    if ($panel['status'] == "disable") {
+    $hidden_users = json_decode($panel['hide_user'] ?? '', true);
+    if ($panel['status'] != "active" || !in_array($panel['agent'], [$usercheck['agent'], 'all']) || $panel['type'] == "Manualsale" || (is_array($hidden_users) && in_array($usercheck['id'], $hidden_users))) {
         http_response_code(500);
         echo json_encode(array(
             'status' => false,
@@ -784,15 +824,58 @@ function mini_purchase(array $data, string $method): void
         ));
         return;
     }
-    $user_info = $usercheck;
-    $usernameinvoice = select("invoice", "username", null, null, "FETCH_COLUMN");
-    if (!is_array($usernameinvoice)) {
-        $usernameinvoice = [];
+    if (is_numeric($panel['limit_panel'])) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM invoice WHERE Status IN ('active', 'end_of_time', 'end_of_volume', 'sendedwarn', 'send_on_hold') AND Service_location = ?");
+        $stmt->execute([$panel['name_panel']]);
+        if ((int) $stmt->fetchColumn() >= intval($panel['limit_panel'])) {
+            http_response_code(500);
+            echo json_encode(array(
+                'status' => false,
+                'msg' => strip_tags($textbotlang['users']['sell']['panelCapacityFull'])
+            ));
+            return;
+        }
     }
+    $user_info = $usercheck;
     if (empty($data['custom_service'])) {
         $product = select("product", "*", "code_product", $data['service_id'] ?? '', "select");
+        if (!empty($product)) {
+            $productLocation = $product['Location'] ?? '';
+            $allowedLocation = ($productLocation === $panel['name_panel'] || $productLocation === '/all');
+            $hide_panel = json_decode($product['hide_panel'] ?? '', true);
+            if (!is_array($hide_panel)) {
+                $hide_panel = [];
+            }
+            $blocked = !$allowedLocation
+                || ($product['agent'] ?? null) !== $user_info['agent']
+                || ($product['status_product'] ?? '') == "disable"
+                || in_array($panel['name_panel'], $hide_panel);
+            if (!$blocked && ($product['one_buy_status'] ?? null) == "1") {
+                $stmtOneBuy = $pdo->prepare("SELECT COUNT(*) FROM invoice WHERE Status != 'Unpaid' AND id_user = :uid");
+                $stmtOneBuy->execute([':uid' => $user_info['id']]);
+                if ((int) $stmtOneBuy->fetchColumn() != 0) {
+                    $blocked = true;
+                }
+            }
+            if ($blocked) {
+                http_response_code(403);
+                echo json_encode(array(
+                    'status' => false,
+                    'msg' => $textbotlang['users']['sell']['productNotFound']
+                ));
+                return;
+            }
+        }
     } else {
         $agentKey = $user_info['agent'];
+        if (intval(panelAgentValue($panel['customvolume'], $agentKey)) !== 1 || $panel['type'] == "Manualsale") {
+            http_response_code(403);
+            echo json_encode(array(
+                'status' => false,
+                'msg' => $textbotlang['users']['sell']['invalidVolumeRestart']
+            ));
+            return;
+        }
         $mainvolume = panelAgentValue($panel['mainvolume'], $agentKey);
         $maxvolume = panelAgentValue($panel['maxvolume'], $agentKey);
         $maintime = panelAgentValue($panel['maintime'], $agentKey);
@@ -834,6 +917,14 @@ function mini_purchase(array $data, string $method): void
             ));
             return;
         }
+        if ($product['price_product'] <= 0) {
+            http_response_code(403);
+            echo json_encode(array(
+                'status' => false,
+                'msg' => $textbotlang['users']['sell']['invalidVolumeRestart']
+            ));
+            return;
+        }
     }
     if (empty($product)) {
         http_response_code(500);
@@ -852,13 +943,20 @@ function mini_purchase(array $data, string $method): void
 
     $charged = false;
     if ($price_product > 0) {
-        $stmt = $pdo->prepare("UPDATE user SET Balance = Balance - :price WHERE id = :id AND Balance >= :price_check");
-        $stmt->execute([':price' => $price_product, ':id' => $user_info['id'], ':price_check' => $price_product]);
+        if ($user_info['agent'] == "n2") {
+            $min_balance = intval($user_info['maxbuyagent']) != 0 ? -intval($user_info['maxbuyagent']) : PHP_INT_MIN;
+            $error_msg = $textbotlang['users']['Balance']['maxpurchasereached'];
+        } else {
+            $min_balance = 0;
+            $error_msg = $textbotlang['users']['Balance']['lessThanPrice'];
+        }
+        $stmt = $pdo->prepare("UPDATE user SET Balance = Balance - :price WHERE id = :id AND Balance - :price_check >= :min_balance");
+        $stmt->execute([':price' => $price_product, ':id' => $user_info['id'], ':price_check' => $price_product, ':min_balance' => $min_balance]);
         if ($stmt->rowCount() === 0) {
             http_response_code(500);
             echo json_encode(array(
                 'status' => false,
-                'msg' => $textbotlang['users']['Balance']['lessThanPrice']
+                'msg' => $error_msg
             ));
             return;
         }
@@ -898,7 +996,7 @@ function mini_purchase(array $data, string $method): void
         $username_ac = generateUsername($user_info['id'], $panel['MethodUsername'], $user_info['username'], $randomString, $data['custom_username'] ?? null, $panel['namecustom'], $user_info['namecustom']);
         $username_ac = strtolower($username_ac);
         $DataUserOut = $ManagePanel->DataUser($panel['name_panel'], $username_ac);
-        if (isset($DataUserOut['username']) || in_array($username_ac, $usernameinvoice)) {
+        if (isset($DataUserOut['username']) || rowExists("invoice", "username", $username_ac)) {
             $refundOnFailure();
             http_response_code(500);
             echo json_encode(array(
@@ -978,25 +1076,25 @@ function mini_purchase(array $data, string $method): void
     $textcreatuser = str_replace('{config}', "<code>{$output_config_link}</code>", $textcreatuser);
     $textcreatuser = str_replace('{links}', $config, $textcreatuser);
     $textcreatuser = str_replace('{links2}', $output_config_link, $textcreatuser);
-    sendMessageService($panel, $dataoutput['configs'] ?? null, $output_config_link, $user_info['username'], null, $textcreatuser, $randomString, $user_info['id'], $image = __DIR__ . '/../images.jpg');
-    if ($panel['MethodUsername'] == $textbotlang['keyboard']['customTextSequential'] || $panel['MethodUsername'] == $textbotlang['keyboard']['usernameSequential'] || $panel['MethodUsername'] == $textbotlang['keyboard']['numericIdSequential'] || $panel['MethodUsername'] == $textbotlang['keyboard']['agentCustomTextSequential']) {
+    sendMessageService($panel, $dataoutput['configs'] ?? null, $output_config_link, $user_info['username'], null, $textcreatuser, $randomString, $user_info['id'], __DIR__ . '/../images.jpg', wireguard: $dataoutput['wireguard'] ?? []);
+    if (in_array(usernameMethodKey($panel['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
         $value = intval($user_info['number_username']) + 1;
         update("user", "number_username", $value, "id", $user_info['id']);
-        if ($panel['MethodUsername'] == $textbotlang['keyboard']['customTextSequential'] || $panel['MethodUsername'] == $textbotlang['keyboard']['agentCustomTextSequential']) {
+        if (in_array(usernameMethodKey($panel['MethodUsername']), ['customTextSequential', 'agentCustomTextSequential'], true)) {
             $value = intval($setting['numbercount']) + 1;
             update("setting", "numbercount", $value);
         }
     }
     $affiliatescommission = select("affiliates", "*", null, null, "select");
     $marzbanporsant_one_buy = select("affiliates", "*", null, null, "select");
-    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE name_product != :name_product AND id_user = :id_user");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM invoice WHERE name_product != :name_product AND id_user = :id_user");
     $stmt->bindParam(':id_user', $user_info['id']);
     $stmt->bindParam(':name_product', $textbotlang['common']['labels']['testServiceName']);
     $stmt->execute();
-    $countinvoice = $stmt->rowCount();
+    $countinvoice = (int) $stmt->fetchColumn();
     if ($affiliatescommission['status_commission'] == "oncommission" && ($user_info['affiliates'] != null && intval($user_info['affiliates']) != 0)) {
         if ($marzbanporsant_one_buy['porsant_one_buy'] == "on_buy_porsant") {
-            if ($countinvoice == 1) {
+            if ($countinvoice <= 1) {
                 $result = ($product['price_product'] * $setting['affiliatespercentage']) / 100;
                 $user_Balance = select("user", "*", "id", $user_info['affiliates'], "select");
                 $Balance_prim = $user_Balance['Balance'] + $result;
@@ -1019,31 +1117,30 @@ function mini_purchase(array $data, string $method): void
                     ]);
                 }
                 sendmessage($user_info['affiliates'], $textadd, null, 'HTML');
-            } else {
-
-                $result = ($product['price_product'] * $setting['affiliatespercentage']) / 100;
-                $user_Balance = select("user", "*", "id", $user_info['affiliates'], "select");
-                $Balance_prim = $user_Balance['Balance'] + $result;
-                if (intval($setting['scorestatus']) == 1) {
-                    sendmessage($user_info['affiliates'], $textbotlang['users']['affiliates']['pointsEarned2b'], null, 'html');
-                    $scorenew = $user_Balance['score'] + 2;
-                    update("user", "score", $scorenew, "id", $user_info['affiliates']);
-                }
-                update("user", "Balance", $Balance_prim, "id", $user_info['affiliates']);
-                $result = number_format($result);
-                $dateacc = date('Y/m/d H:i:s');
-                $textadd = sprintf($textbotlang['users']['affiliates']['commissionPaidMiniapp2'], $result);
-                $textreportport = sprintf($textbotlang['Admin']['reportgroup']['commissionPaidMiniapp2'], $result, $user_info['affiliates'], $user_info['id'], $dateacc);
-                if (strlen($setting['Channel_Report']) > 0) {
-                    telegram('sendmessage', [
-                        'chat_id' => $setting['Channel_Report'],
-                        'message_thread_id' => $porsantreport,
-                        'text' => $textreportport,
-                        'parse_mode' => "HTML"
-                    ]);
-                }
-                sendmessage($user_info['affiliates'], $textadd, null, 'HTML');
             }
+        } else {
+            $result = ($product['price_product'] * $setting['affiliatespercentage']) / 100;
+            $user_Balance = select("user", "*", "id", $user_info['affiliates'], "select");
+            $Balance_prim = $user_Balance['Balance'] + $result;
+            if (intval($setting['scorestatus']) == 1) {
+                sendmessage($user_info['affiliates'], $textbotlang['users']['affiliates']['pointsEarned2b'], null, 'html');
+                $scorenew = $user_Balance['score'] + 2;
+                update("user", "score", $scorenew, "id", $user_info['affiliates']);
+            }
+            update("user", "Balance", $Balance_prim, "id", $user_info['affiliates']);
+            $result = number_format($result);
+            $dateacc = date('Y/m/d H:i:s');
+            $textadd = sprintf($textbotlang['users']['affiliates']['commissionPaidMiniapp2'], $result);
+            $textreportport = sprintf($textbotlang['Admin']['reportgroup']['commissionPaidMiniapp2'], $result, $user_info['affiliates'], $user_info['id'], $dateacc);
+            if (strlen($setting['Channel_Report']) > 0) {
+                telegram('sendmessage', [
+                    'chat_id' => $setting['Channel_Report'],
+                    'message_thread_id' => $porsantreport,
+                    'text' => $textreportport,
+                    'parse_mode' => "HTML"
+                ]);
+            }
+            sendmessage($user_info['affiliates'], $textadd, null, 'HTML');
         }
     }
     if (intval($setting['scorestatus']) == 1) {

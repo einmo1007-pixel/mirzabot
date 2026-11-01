@@ -25,6 +25,26 @@ if (!checktelegramip())
 
 $textbotlang = languagechange();
 $dataBase = select("botsaz", "*", "bot_token", $ApiToken, "select");
+$agentWebhookSecret = ensureAgentWebhookSecret($dataBase);
+if (!$agentWebhookSecret['created'] && $agentWebhookSecret['secret'] !== '' && !webhookSecretMatches($agentWebhookSecret['secret']))
+    die("Unauthorized access");
+if (version_compare(PHP_VERSION, MIN_PHP_VERSION, '<')) {
+    if ($callback_query_id)
+        telegram('answerCallbackQuery', ['callback_query_id' => $callback_query_id]);
+    if (intval($from_id) != 0 && $Chat_type == "private")
+        sendmessage($from_id, $textbotlang['phpVersion']['user'], null, 'html');
+    return;
+}
+if (intval($from_id) != 0) {
+    $userLock = $pdo->prepare("SELECT GET_LOCK(?, 0)");
+    $userLock->execute(["mirza_user_" . $from_id]);
+    if ((int) $userLock->fetchColumn() !== 1) {
+        if ($callback_query_id) {
+            telegram('answerCallbackQuery', ['callback_query_id' => $callback_query_id]);
+        }
+        return;
+    }
+}
 $admin_ids = json_decode($dataBase['admin_ids']);
 $setting = json_decode($dataBase['setting'], true);
 if (!empty($setting['channel'])) {
@@ -66,7 +86,7 @@ if (!is_dir('data')) {
 }
 if (!in_array($from_id, $users_ids) && $settingmain['statusnewuser'] == "onnewuser" && $from_id != 0) {
 
-    $newuser = sprintf($textbotlang['Admin']['reportgroup']['newUser'], $first_name, $username, "<a href = \"tg://user?id=$from_id\">$from_id</a>");
+    $newuser = sprintf($textbotlang['Admin']['reportgroup']['newUser'], htmlspecialchars($first_name), $username, "<a href = \"tg://user?id=$from_id\">$from_id</a>");
     foreach ($admin_ids as $admin) {
         sendmessage($admin, $newuser, null, 'HTML');
     }
@@ -106,7 +126,7 @@ $reportcron = select("topicid", "idreport", "report", "reportcron", "select")['i
 $otherservice = select("topicid", "idreport", "report", "otherservice", "select")['idreport'];
 
 $paymentreports = select("topicid", "idreport", "report", "paymentreport", "select")['idreport'];
-$admin_idsmain = select("admin", "id_admin", null, null, "FETCH_COLUMN");
+$admin_idsmain = select("admin", "id_admin", "rule", "administrator", "FETCH_COLUMN");
 $id_invoice = select("invoice", "id_invoice", null, null, "FETCH_COLUMN");
 $userbot = select("user", "*", "id", $dataBase['id_user'], "select");
 if ($user['bottype'] != $ApiToken) {
@@ -116,7 +136,7 @@ if ($user['username'] != $username) {
     update("user", "username", $username, "id", $from_id);
 }
 if ($text == "/start") {
-    $textstart = "✋سلام $first_name عزیز به ربات ما خوش اومدی.
+    $textstart = "✋سلام " . htmlspecialchars($first_name) . " عزیز به ربات ما خوش اومدی.
 
 برای ادامه  یک بخش را انتخاب کنید:";
     if (!in_array($from_id, $admin_ids)) {
@@ -378,7 +398,7 @@ if ($user['step'] == "createusertest" || preg_match('/locationtest_(.*)/', $data
         }
     }
     $marzban_list_get = select("marzban_panel", "*", "code_panel", $location, "select");
-    if ($marzban_list_get['MethodUsername'] == $textbotlang['users']['customusername'] || $marzban_list_get['MethodUsername'] == "نام کاربری دلخواه + عدد رندوم") {
+    if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customUsername', 'customUsernameRandom'], true)) {
         if ($user['step'] != "createusertest") {
             step('createusertest', $from_id);
             update("user", "Processing_value_one", $location, "id", $from_id);
@@ -552,10 +572,10 @@ if ($user['step'] == "createusertest" || preg_match('/locationtest_(.*)/', $data
     }
     sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
     step('home', $from_id);
-    if ($marzban_list_get['MethodUsername'] == "متن دلخواه + عدد ترتیبی" || $marzban_list_get['MethodUsername'] == "نام کاربری + عدد به ترتیب" || $marzban_list_get['MethodUsername'] == "آیدی عددی+عدد ترتیبی" || $marzban_list_get['MethodUsername'] == "متن دلخواه نماینده + عدد ترتیبی") {
+    if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
         $value = intval($user['number_username']) + 1;
         update("user", "number_username", $value, "id", $from_id);
-        if ($marzban_list_get['MethodUsername'] == "متن دلخواه + عدد ترتیبی" || $marzban_list_get['MethodUsername'] == "متن دلخواه نماینده + عدد ترتیبی") {
+        if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'agentCustomTextSequential'], true)) {
             $value = intval($settingmain['numbercount']) + 1;
             update("setting", "numbercount", $value);
         }
@@ -587,7 +607,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     step("statusnamecustom", $from_id);
     return;
 } elseif ($text == $text_bot_var['btn_keyboard']['buy'] || $user['step'] == "statusnamecustom") {
-    $locationproduct = $pdo->prepare("SELECT * FROM marzban_panel  WHERE status = 'active' AND (agent = ? OR agent = 'all')");
+    $locationproduct = $pdo->prepare("SELECT * FROM marzban_panel  WHERE status = 'active' AND (agent = ? OR agent = 'all') ORDER BY display_order, id");
     $locationproduct->bindValue(1, $userbot['agent'], PDO::PARAM_STR);
     $locationproduct->execute();
     if (($locationproduct)->rowCount() == 0) {
@@ -597,7 +617,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     if (($locationproduct)->rowCount() == 1) {
         $location = ($locationproduct)->fetch(PDO::FETCH_ASSOC)['name_panel'];
         $locationproduct = select("marzban_panel", "*", "name_panel", $location, "select");
-        $query = "SELECT * FROM product WHERE (Location = '{$locationproduct['name_panel']}' OR Location = '/all')AND agent= '{$userbot['agent']}'";
+        $query = "SELECT * FROM product WHERE (Location = '{$locationproduct['name_panel']}' OR Location = '/all')AND agent= '{$userbot['agent']}' AND status_product != 'disable' ORDER BY display_order, id";
         $stmt = $pdo->prepare($query);
         $stmt->execute();
         $productnotexits = $stmt->rowCount();
@@ -633,7 +653,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
                 } else {
                     $statuscustom = false;
                 }
-                if ($marzban_list_get['MethodUsername'] == $textbotlang['users']['customusername'] || $marzban_list_get['MethodUsername'] == "نام کاربری دلخواه + عدد رندوم") {
+                if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customUsername', 'customUsernameRandom'], true)) {
                     $keyboarddata = "selectproductbuyy_";
                 } else {
                     $keyboarddata = "selectproductbuy_";
@@ -700,7 +720,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
             return;
         }
     }
-    $query = "SELECT * FROM product WHERE (Location = '{$locationproduct['name_panel']}' OR Location = '/all')AND agent= '{$userbot['agent']}'";
+    $query = "SELECT * FROM product WHERE (Location = '{$locationproduct['name_panel']}' OR Location = '/all')AND agent= '{$userbot['agent']}' AND status_product != 'disable' ORDER BY display_order, id";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
     $productnotexits = $stmt->rowCount();
@@ -712,7 +732,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
             } else {
                 $statuscustom = false;
             }
-            if ($locationproduct['MethodUsername'] == $textbotlang['users']['customusername'] || $locationproduct['MethodUsername'] == "نام کاربری دلخواه + عدد رندوم") {
+            if (in_array(usernameMethodKey($locationproduct['MethodUsername']), ['customUsername', 'customUsernameRandom'], true)) {
                 $keyboarddata = "selectproductbuyy_";
             } else {
                 $keyboarddata = "selectproductbuy_";
@@ -747,14 +767,14 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     $categorynames = select("category", "remark", "id", $categorynames, "select")['remark'];
     $userdate = json_decode($user['Processing_value'], true);
     $locationproduct = select("marzban_panel", "*", "name_panel", $userdate['name_panel'], "seelct");
-    $query = "SELECT * FROM product WHERE (Location = '{$locationproduct['name_panel']}' OR Location = '/all') AND category = '$categorynames' AND agent= '{$userbot['agent']}' ";
+    $query = "SELECT * FROM product WHERE (Location = '{$locationproduct['name_panel']}' OR Location = '/all') AND category = '$categorynames' AND agent= '{$userbot['agent']}' AND status_product != 'disable' ORDER BY display_order, id";
     $statuscustomvolume = json_decode($locationproduct['customvolume'], true)[$userbot['agent']];
     if ($statuscustomvolume == "1" && $locationproduct['type'] != "Manualsale") {
         $statuscustom = true;
     } else {
         $statuscustom = false;
     }
-    if ($locationproduct['MethodUsername'] == $textbotlang['users']['customusername'] || $locationproduct['MethodUsername'] == "نام کاربری دلخواه + عدد رندوم") {
+    if (in_array(usernameMethodKey($locationproduct['MethodUsername']), ['customUsername', 'customUsernameRandom'], true)) {
         $keyboarddata = "selectproductbuyy_";
     } else {
         $keyboarddata = "selectproductbuy_";
@@ -787,7 +807,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
 📌 تعرفه هر روز  : $customtimevalueprice  تومان
 ⚠️ حداقل زمان $maintime روز  و حداکثر $maxtime روز  می توانید تهیه کنید";
     sendmessage($from_id, $textcustom, $backuser, 'html');
-    if ($marzban_list_get['MethodUsername'] == $textbotlang['users']['customusername'] || $marzban_list_get['MethodUsername'] == "نام کاربری دلخواه + عدد رندوم") {
+    if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customUsername', 'customUsernameRandom'], true)) {
         step('getvolumecustomusername', $from_id);
     } else {
         step('getvolumecustomuser', $from_id);
@@ -843,7 +863,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
         step("home", $from_id);
         return;
     }
-    if ($marzban_list_get['MethodUsername'] == $textbotlang['users']['customusername'] || $marzban_list_get['MethodUsername'] == "نام کاربری دلخواه + عدد رندوم") {
+    if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customUsername', 'customUsernameRandom'], true)) {
         if (!preg_match('~(?!_)^[a-z][a-z\d_]{2,32}(?<!_)$~i', $text)) {
             sendmessage($from_id, $textbotlang['users']['invalidusername'], $backuser, 'HTML');
             return;
@@ -856,7 +876,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     }
     if (!in_array($user['step'], ["endstepuserscustom", "getvolumecustomuser"])) {
         $product = select("product", "*", "code_product", $code_product);
-        if ($product == false) {
+        if ($product == false || ($product['status_product'] ?? '') == "disable") {
             sendmessage($from_id, "❌ خطایی در هنگام خرید رخ داده لطفا مراحل را از اول طی کنید", $keyboard, 'html');
             step("home", $from_id);
             return;
@@ -918,7 +938,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     if (intval($datapish['Volume_constraint']) == 0) {
         $textin = str_replace('گیگ', "", $textin);
     }
-    if ($user['step'] != "getvolumecustomuser" && !in_array($marzban_list_get['MethodUsername'], [$textbotlang['users']['customusername'], "نام کاربری دلخواه + عدد رندوم"])) {
+    if ($user['step'] != "getvolumecustomuser" && !in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customUsername', 'customUsernameRandom'], true)) {
         Editmessagetext($from_id, $message_id, $textin, $payment);
     } else {
         sendmessage($from_id, $textin, $payment, 'HTML');
@@ -946,7 +966,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     if (isset($userdate['code_product'])) {
         $product = $userdate['code_product'];
         $product = select("product", "*", "code_product", $product);
-        if ($product == false) {
+        if ($product == false || ($product['status_product'] ?? '') == "disable" || ($product['Location'] != $marzban_list_get['name_panel'] && $product['Location'] != "/all")) {
             sendmessage($from_id, "❌ خطایی رخ داده است مراحل خرید را از اول انجام دهید", $keyboard, 'html');
             step("home", $from_id);
             return;
@@ -995,6 +1015,20 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
             sendmessage($admin, "❌ ادمین عزیز موجودی شما به پایان رسید برای فعالسازی به ربات اصلی مراجعه و ربات خود را شارژ نمایید.", null, 'HTML');
         }
         return;
+    }
+    if (intval($userbotbalance['maxbuyagent']) != 0 and $userbotbalance['agent'] == "n2") {
+        $pricecapcheck = $datafactor['price_productMain'];
+        if (intval($userbotbalance['pricediscount']) != 0) {
+            $pricecapcheck = $pricecapcheck - (($pricecapcheck * $userbotbalance['pricediscount']) / 100);
+        }
+        if (($userbotbalance['Balance'] - $pricecapcheck) < -intval($userbotbalance['maxbuyagent'])) {
+            sendmessage($from_id, "❌ خطایی در خرید رخ داده است برای رفع مشکل با پشتیبانی در ارتباط باشید", $keyboard, 'HTML');
+            step("home", $from_id);
+            foreach ($admin_ids as $admin) {
+                sendmessage($admin, "❌ ادمین عزیز شما به حداکثر سقف خرید خود رسیده اید برای ادامه فروش ابتدا حساب خود را در ربات اصلی شارژ نمایید.", null, 'HTML');
+            }
+            return;
+        }
     }
     $username_ac = strtolower($userdate['username']);
     $DataUserOut = $ManagePanel->DataUser($marzban_list_get['name_panel'], $username_ac);
@@ -1202,11 +1236,12 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
         file_put_contents("data/$from_id/$from_id.json", json_encode($userbalance));
     }
     $Balancebot = $userbotbalance['Balance'] - $datafactor['price_productMain'];
-    update("user", "Balance", $Balancebot, "id", $userbotbalance['id']);
-    if ($marzban_list_get['MethodUsername'] == "متن دلخواه + عدد ترتیبی" || $marzban_list_get['MethodUsername'] == "نام کاربری + عدد به ترتیب" || $marzban_list_get['MethodUsername'] == "آیدی عددی+عدد ترتیبی" || $marzban_list_get['MethodUsername'] == "متن دلخواه نماینده + عدد ترتیبی") {
+    $stmt = $pdo->prepare("UPDATE user SET Balance = Balance - :price WHERE id = :id");
+    $stmt->execute([':price' => $datafactor['price_productMain'], ':id' => $userbotbalance['id']]);
+    if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
         $value = intval($user['number_username']) + 1;
         update("user", "number_username", $value, "id", $from_id);
-        if ($marzban_list_get['MethodUsername'] == "متن دلخواه + عدد ترتیبی" || $marzban_list_get['MethodUsername'] == "متن دلخواه نماینده + عدد ترتیبی") {
+        if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'agentCustomTextSequential'], true)) {
             $value = intval($settingmain['numbercount']) + 1;
             update("setting", "numbercount", $value);
         }
@@ -1299,7 +1334,7 @@ $textonebuy
 ⚜️ نام کاربری: @$username
 💸 مبلغ پرداختی: $format_price_cart تومان
                 
-توضیحات: $caption $text
+توضیحات: " . htmlspecialchars("$caption $text") . "
 ✍️ در صورت درست بودن رسید پرداخت را تایید نمایید.";
     foreach ($admin_ids as $id_admin) {
         if ($photo) {
@@ -1545,7 +1580,9 @@ $output
 } elseif (preg_match('/extend_(\w+)/', $datain, $dataget)) {
     $id_invoice = $dataget[1];
     savedata("clear", "id_invoice", $id_invoice);
-    $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
+    $stmt->execute([$id_invoice, $from_id, $ApiToken]);
+    $nameloc = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($nameloc == false) {
         sendmessage($from_id, "❌ تمدید با خطا مواجه گردید مراحل تمدید را مجددا انجام دهید.", null, 'HTML');
         return;
@@ -1567,7 +1604,7 @@ $output
     savedata("save", "name_panel", $nameloc['Service_location']);
     deletemessage($from_id, $message_id);
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
-    $query = "SELECT * FROM product WHERE (Location = '{$nameloc['Service_location']}' OR Location = '/all')AND agent= '{$userbot['agent']}'";
+    $query = "SELECT * FROM product WHERE (Location = '{$nameloc['Service_location']}' OR Location = '/all')AND agent= '{$userbot['agent']}' ORDER BY display_order, id";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
     $productnotexits = $stmt->rowCount();
@@ -1578,7 +1615,7 @@ $output
         } else {
             $statuscustom = false;
         }
-        $query = "SELECT * FROM product WHERE (Location = '{$marzban_list_get['name_panel']}' OR Location = '/all')AND agent= '{$userbot['agent']}'";
+        $query = "SELECT * FROM product WHERE (Location = '{$marzban_list_get['name_panel']}' OR Location = '/all')AND agent= '{$userbot['agent']}' ORDER BY display_order, id";
         $prodcut = KeyboardProduct($marzban_list_get['name_panel'], $query, 0, "selectproductextends_", $statuscustom, "backuser", null, $customvolume = "customvolumeextend");
         sendmessage($from_id, "🛍️ لطفاً سرویسی که می‌خواهید تمدید کنید را انتخاب کنید!", $prodcut, 'HTML');
     } else {
@@ -1607,9 +1644,10 @@ $output
     sendmessage($from_id, $textcustom, $backuser, 'html');
     step('gettimecustomvolextend', $from_id);
 } elseif ($user['step'] == "gettimecustomvolextend") {
-    savedata("save", "volume", $text);
     $userdate = json_decode($user['Processing_value'], true);
-    $nameloc = select("invoice", "*", "id_invoice", $userdate['id_invoice'], "select");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
+    $stmt->execute([$userdate['id_invoice'], $from_id, $ApiToken]);
+    $nameloc = $stmt->fetch(PDO::FETCH_ASSOC);
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
     $mainvolume = json_decode($marzban_list_get['mainvolume'], true);
     $mainvolume = $mainvolume[$userbot['agent']];
@@ -1628,8 +1666,9 @@ $output
         sendmessage($from_id, $textbotlang['common']['invalidVolume'], $backuser, 'HTML');
         return;
     }
+    savedata("save", "volume", $text);
     $customtimevalueprice = $setting['pricetime'];
-    $textcustom = "⌛️ زمان سرویس خود را انتخاب نمایید 
+    $textcustom = "⌛️ زمان سرویس خود را انتخاب نمایید
     📌 تعرفه هر روز  : $customtimevalueprice  تومان
     ⚠️ حداقل زمان $maintime روز  و حداکثر $maxtime روز  می توانید تهیه کنید";
     sendmessage($from_id, $textcustom, $backuser, 'html');
@@ -1642,7 +1681,9 @@ $output
         }
     }
     $userdate = json_decode($user['Processing_value'], true);
-    $nameloc = select("invoice", "*", "id_invoice", $userdate['id_invoice'], "select");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
+    $stmt->execute([$userdate['id_invoice'], $from_id, $ApiToken]);
+    $nameloc = $stmt->fetch(PDO::FETCH_ASSOC);
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
     if ($user['step'] == "gettimecustomextend") {
         $maintime = json_decode($marzban_list_get['maintime'], true);
@@ -1707,7 +1748,12 @@ $output
     Editmessagetext($from_id, $message_id, $text_inline, json_encode(['inline_keyboard' => []]));
     $id_invoice = $dataget[1];
     $userdate = json_decode($user['Processing_value'], true);
-    $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
+    $stmt->execute([$id_invoice, $from_id, $ApiToken]);
+    $nameloc = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$nameloc) {
+        return;
+    }
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
     if ($marzban_list_get['status_extend'] == "off_extend") {
         sendmessage($from_id, "❌ امکان تمدید در این پنل وجود ندارد", null, 'html');
@@ -1730,6 +1776,9 @@ $output
             "price_productMain" => $priceproductmain,
         );
     } else {
+        if (!ctype_digit((string) ($userdate['volume'] ?? '')) || !ctype_digit((string) ($userdate['time'] ?? ''))) {
+            return;
+        }
         $custompricevalue = $setting['pricevolume'];
         $customtimevalueprice = $setting['pricetime'];
         $custompricevalueBot = $setting['minpricevolume'];
@@ -1755,6 +1804,20 @@ $output
             sendmessage($admin, "❌ ادمین عزیز موجودی شما به پایان رسید برای فعالسازی به ربات اصلی مراجعه و ربات خود را شارژ نمایید.", null, 'HTML');
         }
         return;
+    }
+    if (intval($userbotbalance['maxbuyagent']) != 0 and $userbotbalance['agent'] == "n2") {
+        $pricecapcheck = $datafactor['price_productMain'];
+        if (intval($userbotbalance['pricediscount']) != 0) {
+            $pricecapcheck = $pricecapcheck - (($pricecapcheck * $userbotbalance['pricediscount']) / 100);
+        }
+        if (($userbotbalance['Balance'] - $pricecapcheck) < -intval($userbotbalance['maxbuyagent'])) {
+            sendmessage($from_id, "❌ خطایی در خرید رخ داده است برای رفع مشکل با پشتیبانی در ارتباط باشید", $keyboard, 'HTML');
+            step("home", $from_id);
+            foreach ($admin_ids as $admin) {
+                sendmessage($admin, "❌ ادمین عزیز شما به حداکثر سقف خرید خود رسیده اید برای ادامه فروش ابتدا حساب خود را در ربات اصلی شارژ نمایید.", null, 'HTML');
+            }
+            return;
+        }
     }
     if ($datafactor['price_product'] > $user['Balance'] && intval($datafactor['price_product']) != 0) {
         $marzbandirectpay = select("shopSetting", "*", "Namevalue", "statusdirectpabuy", "select")['value'];
@@ -1821,7 +1884,8 @@ $output
         $datafactor['price_productMain'] = $datafactor['price_productMain'] - $resultper;
     }
     $Balancebot = $userbotbalance['Balance'] - $datafactor['price_productMain'];
-    update("user", "Balance", $Balancebot, "id", $userbotbalance['id']);
+    $stmt = $pdo->prepare("UPDATE user SET Balance = Balance - :price WHERE id = :id");
+    $stmt->execute([':price' => $datafactor['price_productMain'], ':id' => $userbotbalance['id']]);
     $keyboardextendfnished = json_encode([
         'inline_keyboard' => [
             [
@@ -1870,7 +1934,12 @@ $output
     }
 } elseif (preg_match('/changelink_(\w+)/', $datain, $dataget)) {
     $id_invoice = $dataget[1];
-    $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
+    $stmt->execute([$id_invoice, $from_id, $ApiToken]);
+    $nameloc = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$nameloc) {
+        return;
+    }
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
     $DataUserOut = $ManagePanel->DataUser($nameloc['Service_location'], $nameloc['username']);
     if ($DataUserOut['status'] == "Unsuccessful") {
@@ -1894,7 +1963,12 @@ $output
     Editmessagetext($from_id, $message_id, $textbotlang['users']['changeLink']['warnchange'], $keyboardextend);
 } elseif (preg_match('/confirmchange_(\w+)/', $datain, $dataget)) {
     $id_invoice = $dataget[1];
-    $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
+    $stmt->execute([$id_invoice, $from_id, $ApiToken]);
+    $nameloc = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$nameloc) {
+        return;
+    }
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
     $DataUserOut = $ManagePanel->Revoke_sub($nameloc['Service_location'], $nameloc['username']);
     if ($DataUserOut['status'] == "Unsuccessful") {

@@ -2,33 +2,43 @@
 ini_set('error_log', 'error_log');
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../botapi.php';
-require_once __DIR__ . '/../Marzban.php';
+require_once __DIR__ . '/../panels/Api/Marzban.php';
 require_once __DIR__ . '/../function.php';
 require_once __DIR__ . '/../panels.php';
 require_once __DIR__ . '/../keyboard.php';
 require_once __DIR__ . '/../jdf.php';
 require __DIR__ . '/../vendor/autoload.php';
-use Endroid\QrCode\Builder\Builder;
-use Endroid\QrCode\Encoding\Encoding;
-use Endroid\QrCode\ErrorCorrectionLevel;
-use Endroid\QrCode\Label\Font\OpenSans;
-use Endroid\QrCode\Label\LabelAlignment;
-use Endroid\QrCode\RoundBlockSizeMode;
-use Endroid\QrCode\Writer\PngWriter;
 
 $ManagePanel = new ManagePanel();
 
-$invoice_id = htmlspecialchars($_POST['invoice_id'], ENT_QUOTES, 'UTF-8');
+$invoice_id = htmlspecialchars($_POST['invoice_id'] ?? '', ENT_QUOTES, 'UTF-8');
+$transid = $_POST['transid'] ?? '';
+if ($invoice_id === '' || $transid === '') {
+    http_response_code(400);
+    exit('invalid request');
+}
 $setting = select("setting", "*");
 $PaySetting = select("PaySetting", "ValuePay", "NamePay", "merchant_id_aqayepardakht","select")['ValuePay'];
-$Payment_report = select("Payment_report", "price", "id_order", $invoice_id,"select")['price'];
+$payment_row = select("Payment_report", "*", "id_order", $invoice_id, "select");
+if (!is_array($payment_row) || $payment_row['Payment_Method'] !== "aqayepardakht") {
+    http_response_code(404);
+    exit('order not found');
+}
+if ($payment_row['payment_Status'] == "expire") {
+    exit('order expired');
+}
+if (!empty($payment_row['dec_not_confirmed']) && !hash_equals((string) $payment_row['dec_not_confirmed'], (string) $transid)) {
+    http_response_code(400);
+    exit('invalid transid');
+}
+$Payment_report = $payment_row['price'];
 $price = $Payment_report;
 // verify Transaction
 
 $data = [
 'pin'    => $PaySetting,
 'amount'    => $Payment_report,
-'transid' => $_POST['transid'],
+'transid' => $transid,
 ];
 $data = json_encode($data);
 $ch = curl_init('https://panel.aqayepardakht.ir/api/v2/verify');
@@ -42,9 +52,8 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 'Content-Length: ' . strlen($data))
 );
 $result = curl_exec($ch);
-curl_close($ch);
 $result = json_decode($result);
-if ($result->code == "1") {
+if (is_object($result) && $result->code == "1") {
     $payment_status = $textbotlang['paymentGateway']['statusSuccess'];
     $price = $Payment_report;
     $dec_payment_status = $textbotlang['paymentGateway']['descThanks'];
@@ -79,7 +88,7 @@ $text_report = sprintf($textbotlang['paymentGateway']['reportAqayepardakht'], $P
     }
 }
 }else {
-        $payment_status = $textbotlang['paymentGateway']['zarinpalResultCodes'][$result->code];
+        $payment_status = $textbotlang['paymentGateway']['statusFailed'];
      $dec_payment_status = "";
 }
 ?>

@@ -1,4 +1,5 @@
 <?php
+chdir(__DIR__);
 ini_set('error_log', 'error_log');
 date_default_timezone_set('Asia/Tehran');
 require_once __DIR__ . '/../config.php';
@@ -8,12 +9,11 @@ $textbotlang = languagechange();
 $setting = select("setting","*",null,null,"select");
 
 //________________[ time 12 report]________________
-$midnight_time = date("H:i");
 $reportnight = select("topicid","idreport","report","reportnight","select")['idreport'];
 // if(true){
-if ($midnight_time == "23:45") {
-$datefirst = date("Y-m-d") . " 00:00:00";
-$dateend = date("Y-m-d") . " 23:59:59";
+if (date("H") == "00" && intval(date("i")) < 15) {
+$datefirst = date("Y-m-d", strtotime("-1 day")) . " 00:00:00";
+$dateend = date("Y-m-d", strtotime("-1 day")) . " 23:59:59";
 
 // Helper function to execute a prepared statement
 function executeQuery($pdo, $sql, $params) {
@@ -30,8 +30,8 @@ $sqlInvoices = "SELECT COUNT(*) AS count, SUM(price_product) AS total_price, SUM
                 FROM invoice 
                 WHERE (FROM_UNIXTIME(time_sell) BETWEEN :startDate AND :endDate) 
                 AND (status IN ('active', 'end_of_time', 'sendedwarn', 'send_on_hold')) 
-                AND name_product != '{$textbotlang['common']['labels']['testServiceName']}'";
-$params = [':startDate' => $datefirst, ':endDate' => $dateend];
+                AND name_product != :testName";
+$params = [':startDate' => $datefirst, ':endDate' => $dateend, ':testName' => $textbotlang['common']['labels']['testServiceName']];
 $stmt = executeQuery($pdo, $sqlInvoices, $params);
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $dayListSell = $result['count'] ?? 0;
@@ -43,7 +43,7 @@ $sqlTestService = "SELECT COUNT(*) AS count
                   FROM invoice 
                   WHERE (FROM_UNIXTIME(time_sell) BETWEEN :startDate AND :endDate) 
                   AND (status IN ('active', 'end_of_time', 'sendedwarn')) 
-                  AND name_product = '{$textbotlang['common']['labels']['testServiceName']}'";
+                  AND name_product = :testName";
 $stmt = executeQuery($pdo, $sqlTestService, $params);
 $dayListSelltest = $stmt->fetchColumn() ?? 0;
 
@@ -51,18 +51,18 @@ $dayListSelltest = $stmt->fetchColumn() ?? 0;
 $sqlNewUsers = "SELECT COUNT(*) AS count 
                  FROM user 
                  WHERE (FROM_UNIXTIME(register) BETWEEN :startDate AND :endDate)";
-$stmt = executeQuery($pdo, $sqlNewUsers, $params);
+$stmt = executeQuery($pdo, $sqlNewUsers, [':startDate' => $datefirst, ':endDate' => $dateend]);
 $usernew = $stmt->fetchColumn() ?? 0;
 
 // Fetch extension data
-$datefirstextend = date("Y/m/d") . " 00:00:00";
-$dateendextend = date("Y/m/d") . " 23:59:59";
+$datefirstextend = date("Y/m/d", strtotime("-1 day")) . " 00:00:00";
+$dateendextend = date("Y/m/d", strtotime("-1 day")) . " 23:59:59";
 
 $sqlExtensions = "SELECT COUNT(*) AS count, SUM(price) AS total_price 
                   FROM service_other 
                   WHERE (time BETWEEN :startDate AND :endDate) 
                   AND type = 'extend_user'
-                  AND status != 'unpaid'";
+                  AND status NOT IN ('unpaid', 'failed')";
 $params = [':startDate' => $datefirstextend, ':endDate' => $dateendextend];
 $stmt = executeQuery($pdo, $sqlExtensions, $params);
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -110,8 +110,8 @@ foreach ($panels as $panel) {
                  WHERE (FROM_UNIXTIME(time_sell) BETWEEN :startDate AND :endDate) 
                  AND (status IN ('active', 'end_of_time', 'sendedwarn', 'send_on_hold')) 
                  AND Service_location = :location 
-                 AND name_product != '{$textbotlang['common']['labels']['testServiceName']}'";
-    $params = [':startDate' => $datefirst, ':endDate' => $dateend, ':location' => $panel['name_panel']];
+                 AND name_product != :testName";
+    $params = [':startDate' => $datefirst, ':endDate' => $dateend, ':location' => $panel['name_panel'], ':testName' => $textbotlang['common']['labels']['testServiceName']];
     $stmt = executeQuery($pdo, $sqlPanel, $params);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
 

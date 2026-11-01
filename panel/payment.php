@@ -37,7 +37,7 @@ $totalSuccess = 0;
 $todayCount = 0;
 try {
   $totalSuccess = (int) db_query($pdo, "SELECT COALESCE(SUM(price),0) FROM Payment_report WHERE payment_Status ='paid'")->fetchColumn();
-  $todayCount = db_count($pdo, "SELECT COUNT(*) FROM Payment_report WHERE time > ?", [strtotime('today')]);
+  $todayCount = db_count($pdo, "SELECT COUNT(*) FROM Payment_report WHERE time LIKE ?", [date('Y/m/d') . '%']);
 } catch (Exception $e) {
 }
 
@@ -57,6 +57,7 @@ $methodMap = [
   'Currency Rial 3' => $textbotlang['panel']['paymentMethodRialGateway3'],
   'aqayepardakht' => $textbotlang['panel']['paymentMethodAqayePardakht'],
   'zarinpal' => $textbotlang['panel']['paymentMethodZarinpal'],
+  'variza' => $textbotlang['panel']['paymentMethodVariza'],
   'plisio' => 'Plisio',
   'arze digital offline' => $textbotlang['panel']['paymentMethodCryptoOffline'],
   'Star Telegram' => $textbotlang['panel']['paymentMethodTelegramStar'],

@@ -1,7 +1,19 @@
 <?php
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
+
 require __DIR__ . '/../../config.php';
 require __DIR__ . '/../../function.php';
+
+date_default_timezone_set('Asia/Tehran');
 
 // Panel UI language strings (loaded from lang/fa.php via languagechange())
 $textbotlang = languagechange();
@@ -27,6 +39,25 @@ function db_count(PDO $pdo, string $sql, array $params = []): int
 {
     return (int) db_query($pdo, $sql, $params)->fetchColumn();
 }
+
+function move_display_order(PDO $pdo, string $table, int $id, int $position): void
+{
+    $current = $pdo->query("SELECT id, display_order FROM `$table` ORDER BY display_order, id FOR UPDATE")->fetchAll(PDO::FETCH_KEY_PAIR);
+    $ids = array_keys($current);
+    $from = array_search($id, $ids, true);
+    $to = max(0, min(count($ids) - 1, $position - 1));
+    if ($from === false || $from === $to) {
+        return;
+    }
+    array_splice($ids, $from, 1);
+    array_splice($ids, $to, 0, [$id]);
+    $stmt = $pdo->prepare("UPDATE `$table` SET display_order = ? WHERE id = ?");
+    foreach ($ids as $index => $rowId) {
+        if ((int) $current[$rowId] !== $index + 1) {
+            $stmt->execute([$index + 1, $rowId]);
+        }
+    }
+}
 function require_auth(): void
 {
     if (session_status() === PHP_SESSION_NONE)
@@ -37,8 +68,8 @@ function require_auth(): void
         exit;
     }
     try {
-        $admin = db_fetch($pdo, "SELECT id_admin FROM admin WHERE username = ?", [$_SESSION['admin_user']]);
-        if (!$admin) {
+        $admin = db_fetch($pdo, "SELECT id_admin, rule FROM admin WHERE username = ?", [$_SESSION['admin_user']]);
+        if (!$admin || $admin['rule'] !== 'administrator') {
             session_destroy();
             header('Location: login.php');
             exit;
@@ -58,6 +89,11 @@ function csrf_token(): string
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
     }
     return $_SESSION['csrf'];
+}
+
+function csrf_check_value(string $token): bool
+{
+    return hash_equals($_SESSION['csrf'] ?? '', $token);
 }
 
 function csrf_check_post(): void

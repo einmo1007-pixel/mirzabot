@@ -33,7 +33,7 @@ function prod_products(array $data, string $method): void
         $stmt->execute([':id_product' => $search, ':name_product' => $search]);
         $totalproduct = (int) $stmt->fetchColumn();
         $totalPages = (int) ceil($totalproduct / $limit);
-        $query = "SELECT * FROM product WHERE (id  LIKE CONCAT('%', :id_product, '%') OR name_product  LIKE CONCAT('%', :name_product, '%')) ORDER BY id LIMIT :limit OFFSET :offset";
+        $query = "SELECT * FROM product WHERE (id  LIKE CONCAT('%', :id_product, '%') OR name_product  LIKE CONCAT('%', :name_product, '%')) ORDER BY display_order, id LIMIT :limit OFFSET :offset";
         $stmt = $pdo->prepare($query);
         $stmt->bindValue(':name_product', $q, PDO::PARAM_STR);
         $stmt->bindValue(':id_product', $q, PDO::PARAM_STR);
@@ -129,11 +129,11 @@ function prod_product_add(array $data, string $method): void
             'agent' => empty($data['agent']) ? "f" : $data['agent'],
             'note' => empty($data['note']) ? "" : $data['note'],
             'data_limit_reset' => empty($data['data_limit_reset']) ? "no_reset" : $data['data_limit_reset'],
-            'inbounds' => empty($data['inbounds']) ? null : $data['inbounds'],
-            'proxies' => empty($data['proxies']) ? null : $data['proxies'],
+            'inbounds' => empty($data['inbounds']) ? null : (is_array($data['inbounds']) ? json_encode($data['inbounds']) : $data['inbounds']),
+            'proxies' => empty($data['proxies']) ? null : (is_array($data['proxies']) ? json_encode($data['proxies']) : $data['proxies']),
             'category' => empty($data['category']) ? null : $data['category'],
             'one_buy_status' => empty($data['one_buy_status']) ? 0 : $data['one_buy_status'],
-            'hide_panel' => empty($data['hide_panel']) ? "{}" : $data['hide_panel'],
+            'hide_panel' => empty($data['hide_panel']) ? "{}" : (is_array($data['hide_panel']) ? json_encode($data['hide_panel']) : $data['hide_panel']),
         ];
 
         $columns = implode(',', array_keys($productData));
@@ -148,6 +148,7 @@ function prod_product_add(array $data, string $method): void
         }
 
         $stmt->execute();
+        $pdo->prepare("UPDATE product SET display_order = id WHERE id = ?")->execute([$pdo->lastInsertId()]);
         sendJsonResponse(true, "Successful");
 
     } catch (Exception $e) {
@@ -196,8 +197,8 @@ function prod_product_edit(array $data, string $method): void
             'agent' => isset($data['agent']) ? $data['agent'] : $product['agent'],
             'note' => isset($data['note']) ? $data['note'] : $product['note'],
             'data_limit_reset' => isset($data['data_limit_reset']) ? $data['data_limit_reset'] : $product['data_limit_reset'],
-            'inbounds' => isset($data['inbounds']) ? $data['inbounds'] : $product['inbounds'],
-            'proxies' => isset($data['proxies']) ? $data['proxies'] : $product['proxies'],
+            'inbounds' => isset($data['inbounds']) ? (is_array($data['inbounds']) ? json_encode($data['inbounds']) : $data['inbounds']) : $product['inbounds'],
+            'proxies' => isset($data['proxies']) ? (is_array($data['proxies']) ? json_encode($data['proxies']) : $data['proxies']) : $product['proxies'],
             'category' => isset($data['category']) ? $data['category'] : $product['category'],
             'one_buy_status' => isset($data['one_buy_status']) ? $data['one_buy_status'] : $product['one_buy_status'],
             'hide_panel' => isset($data['hide_panel']) ? json_encode($data['hide_panel']) : $product['hide_panel'],
@@ -275,27 +276,29 @@ function prod_set_inbounds(array $data, string $method): void
         // Marzban >= 1.0 renamed "proxies" to "proxy_settings" and moved the
         // inbound list into "group_ids".
         $isNewMarzban = $panel['version_panel'] == "1";
-        $proxyKey = $isNewMarzban ? 'proxy_settings' : 'proxies';
-        if ((isset($DataUserOut['msg']) && $DataUserOut['msg'] == "User not found") or !isset($DataUserOut[$proxyKey]))
+        if ((isset($DataUserOut['msg']) && $DataUserOut['msg'] == "User not found") or !isset($DataUserOut[$isNewMarzban ? 'group_ids' : 'proxies']))
             sendJsonResponse(false, "User Not Found", [], 200);
 
-        foreach ($DataUserOut[$proxyKey] as $key => $value) {
-            if ($key == "shadowsocks" || $key == "trojan") {
-                unset($DataUserOut[$proxyKey][$key]['password']);
-            } elseif ($key == "wireguard") {
-                unset($DataUserOut[$proxyKey][$key]['private_key']);
-                unset($DataUserOut[$proxyKey][$key]['public_key']);
-                unset($DataUserOut[$proxyKey][$key]['peer_ips']);
-            } else {
-                unset($DataUserOut[$proxyKey][$key]['id']);
+        if (!$isNewMarzban) {
+            foreach ($DataUserOut['proxies'] as $key => $value) {
+                if ($key == "shadowsocks" || $key == "trojan") {
+                    unset($DataUserOut['proxies'][$key]['password']);
+                } elseif ($key == "wireguard") {
+                    unset($DataUserOut['proxies'][$key]['private_key']);
+                    unset($DataUserOut['proxies'][$key]['public_key']);
+                    unset($DataUserOut['proxies'][$key]['peer_ips']);
+                } elseif ($key == "hysteria") {
+                    unset($DataUserOut['proxies'][$key]['auth']);
+                } else {
+                    unset($DataUserOut['proxies'][$key]['id']);
+                }
+                if (count($DataUserOut['proxies'][$key]) == 0) {
+                    $DataUserOut['proxies'][$key] = new stdClass();
+                }
             }
-            if (count($DataUserOut[$proxyKey][$key]) == 0) {
-                $DataUserOut[$proxyKey][$key] = new stdClass();
-            }
+            $stmt = $pdo->prepare("UPDATE product SET proxies = :proxies WHERE id = :id_product");
+            $stmt->execute([':proxies' => json_encode($DataUserOut['proxies']), ':id_product' => $data['id']]);
         }
-        $proxy_output = json_encode($DataUserOut[$proxyKey]);
-        $stmt = $pdo->prepare("UPDATE product SET proxies = :proxies WHERE id = :id_product");
-        $stmt->execute([':proxies' => $proxy_output, ':id_product' => $data['id']]);
         $datainbound = json_encode($isNewMarzban ? ($DataUserOut['group_ids'] ?? []) : ($DataUserOut['inbounds'] ?? []));
     } elseif ($panel['type'] == "marzneshin") {
         $userdata = json_decode(getuserm($data['input'], $panel['name_panel'])['body'] ?? '', true);
@@ -312,16 +315,6 @@ function prod_set_inbounds(array $data, string $method): void
         if ($user_data == null)
             sendJsonResponse(false, "User Not Found", [], 200);
         $datainbound = $user_data['inboundId'];
-    } elseif ($panel['type'] == "s_ui") {
-        $user_data = GetClientsS_UI($data['input'], $panel['name_panel']);
-        if (!is_array($user_data) || count($user_data) == 0 || !isset($user_data['inbounds'])) {
-            sendJsonResponse(false, "User Not Found", [], 200);
-        }
-        $servies = [];
-        foreach ($user_data['inbounds'] as $service) {
-            $servies[] = $service;
-        }
-        $datainbound = json_encode($servies);
     } elseif ($panel['type'] == "ibsng" || $panel['type'] == "mikrotik") {
         $datainbound = $data['input'];
     } else {

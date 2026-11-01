@@ -1,8 +1,9 @@
 <?php
+chdir(__DIR__);
 ini_set('error_log', 'error_log');
 date_default_timezone_set('Asia/Tehran');
 require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../Marzban.php';
+require_once __DIR__ . '/../panels/Api/Marzban.php';
 require_once __DIR__ . '/../botapi.php';
 require_once __DIR__ . '/../function.php';
 $textbotlang = languagechange();
@@ -22,11 +23,9 @@ foreach ($marzbanlist as $location) {
     if (!empty($Getdnodes['status']) && $Getdnodes['status'] != 200)
         continue;
     $Getdnodes = json_decode($Getdnodes['body'], true);
-    if (count($Getdnodes) == 0)
-        return;
-    if ($location['version_panel'] == "1") {
-        $Getdnodes = $Getdnodes['nodes'];
-    }
+    $Getdnodes = $Getdnodes['nodes'] ?? $Getdnodes;
+    if (empty($Getdnodes))
+        continue;
     foreach ($Getdnodes as $data) {
         if (!in_array($data['status'], ["connected", "disabled"])) {
             $textnode = sprintf($textbotlang['Admin']['report']['nodeDown'], $data['name'], $data['status'], $data['message']);
