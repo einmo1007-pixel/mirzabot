@@ -725,7 +725,16 @@ $backadmin = json_encode([
 ]);
 //------------------  [ list panel ]----------------//
 $namepanel = [];
-    $allPanelRows = $pdo->query("SELECT * FROM marzban_panel ORDER BY display_order, id")->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        $allPanelRows = $pdo->query("SELECT * FROM marzban_panel ORDER BY display_order, id")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\Throwable $e) {
+        try {
+            $pdo->exec("ALTER TABLE `marzban_panel` ADD `display_order` INT NOT NULL DEFAULT 0");
+            $allPanelRows = $pdo->query("SELECT * FROM marzban_panel ORDER BY display_order, id")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            $allPanelRows = $pdo->query("SELECT * FROM marzban_panel ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+        }
+    }
     foreach ($allPanelRows as $row) {
         $namepanel[] = [$row['name_panel']];
     }

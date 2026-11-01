@@ -2803,3 +2803,21 @@ function mirzaEnsureInstallerRemoved()
         mirzaStopForInstaller('Mirza install folder still exists and could not be removed automatically; delete it manually to enable the bot.');
     }
 }
+
+function mirzaEnsureSchemaUpToDate()
+{
+    global $pdo;
+    if (!isset($pdo) || !$pdo instanceof PDO) {
+        return;
+    }
+    $lockFile = __DIR__ . '/storage/cache/schema_v09.lock';
+    if (file_exists($lockFile)) {
+        return;
+    }
+    try {
+        require_once __DIR__ . '/db/bootstrap.php';
+        @file_put_contents($lockFile, date('c'));
+    } catch (\Throwable $e) {
+        error_log('Schema update failed: ' . $e->getMessage());
+    }
+}
