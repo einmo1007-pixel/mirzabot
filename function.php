@@ -2507,22 +2507,23 @@ function sendMessageService($panel_info, $config, $sub_link, $username_service, 
     }
     if (!empty($sub_link) && filter_var($sub_link, FILTER_VALIDATE_URL)) {
         $markup_arr = is_string($reply_markup) ? json_decode($reply_markup, true) : (is_array($reply_markup) ? $reply_markup : null);
-        if (is_array($markup_arr) && isset($markup_arr['inline_keyboard'])) {
-            $hasFastConnect = false;
-            foreach ($markup_arr['inline_keyboard'] as $row) {
-                foreach ($row as $btn) {
-                    if (isset($btn['text']) && (strpos($btn['text'], 'اتصال سریع') !== false || strpos($btn['text'], 'Fast Connect') !== false)) {
-                        $hasFastConnect = true;
-                        break 2;
-                    }
+        if (!is_array($markup_arr) || !isset($markup_arr['inline_keyboard'])) {
+            $markup_arr = ['inline_keyboard' => []];
+        }
+        $hasFastConnect = false;
+        foreach ($markup_arr['inline_keyboard'] as $row) {
+            foreach ($row as $btn) {
+                if (isset($btn['text']) && (strpos($btn['text'], 'لینک اتصال') !== false || strpos($btn['text'], 'Fast Connect') !== false)) {
+                    $hasFastConnect = true;
+                    break 2;
                 }
             }
-            if (!$hasFastConnect) {
-                array_unshift($markup_arr['inline_keyboard'], [
-                    ['text' => "🔗 اتصال سریع", 'url' => trim($sub_link)]
-                ]);
-                $reply_markup = json_encode($markup_arr);
-            }
+        }
+        if (!$hasFastConnect) {
+            array_unshift($markup_arr['inline_keyboard'], [
+                ['text' => "🔗 لینک اتصال", 'url' => trim($sub_link)]
+            ]);
+            $reply_markup = json_encode($markup_arr);
         }
     }
     $STATUS_SEND_MESSAGE_PHOTO = $panel_info['config'] == "onconfig" && (is_array($config) ? count($config) : 0) != 1 ? false : true;

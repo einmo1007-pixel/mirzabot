@@ -395,9 +395,9 @@ if ($datain == "paygwback") {
                 'Currency Rial 2' => $textbotlang['textbot']['iranPay3'],
                 'Currency Rial 3' => $textbotlang['textbot']['iranPay1'],
                 'paymentnotverify' => $textbotlang['textbot']['paymentNotVerify'],
-                'Star Telegram' => $textbotlang['textbot']['starTelegram']
-
-            ][$tracepay['Payment_Method']];
+                'Star Telegram' => $textbotlang['textbot']['starTelegram'],
+                'ton offline' => 'TON آفلاین'
+            ][$tracepay['Payment_Method']] ?? $tracepay['Payment_Method'];
             $paycount .= sprintf($textbotlang['Admin']['report']['gatewayRow'], $status_var, $tracepay['countpay'], $tracepay['sumpay']);
         }
     }
@@ -8344,6 +8344,14 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
             ['text' => $strip_sub_status, 'callback_data' => "editpanel-stripsub-" . ($panel['strip_sub'] ?? 'offstripsub') . "-{$panel['code_panel']}"],
             ['text' => "✂️ حذف /sub/ از لینک", 'callback_data' => "none"],
         ];
+        $version_panel_status = [
+            '1' => $textbotlang['Admin']['Status']['statuson'],
+            '0' => $textbotlang['Admin']['Status']['statusoff']
+        ][$panel['version_panel'] ?? '0'];
+        $Bot_Status['inline_keyboard'][] = [
+            ['text' => $version_panel_status, 'callback_data' => "editpanel-versionpanel-{$panel['version_panel']}-{$panel['code_panel']}"],
+            ['text' => "🎛 پنل پاسارگارد", 'callback_data' => "none"],
+        ];
     }
     if ($panel['type'] == "ibsng" || $panel['type'] == "mikrotik") {
         unset($Bot_Status['inline_keyboard'][2]);
@@ -8469,6 +8477,13 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
             $valuenew = "0";
         }
         update("marzban_panel", "on_hold_test", $valuenew, "code_panel", $code_panel);
+    } elseif ($type == "versionpanel") {
+        if ($value == "1") {
+            $valuenew = "0";
+        } else {
+            $valuenew = "1";
+        }
+        update("marzban_panel", "version_panel", $valuenew, "code_panel", $code_panel);
     }
     $panel = select("marzban_panel", "*", "code_panel", $code_panel, "select");
     $customvlume = json_decode($panel['customvolume'], true);
@@ -8598,6 +8613,14 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
         $Bot_Status['inline_keyboard'][] = [
             ['text' => $strip_sub_status, 'callback_data' => "editpanel-stripsub-" . ($panel['strip_sub'] ?? 'offstripsub') . "-{$panel['code_panel']}"],
             ['text' => "✂️ حذف /sub/ از لینک", 'callback_data' => "none"],
+        ];
+        $version_panel_status = [
+            '1' => $textbotlang['Admin']['Status']['statuson'],
+            '0' => $textbotlang['Admin']['Status']['statusoff']
+        ][$panel['version_panel'] ?? '0'];
+        $Bot_Status['inline_keyboard'][] = [
+            ['text' => $version_panel_status, 'callback_data' => "editpanel-versionpanel-{$panel['version_panel']}-{$panel['code_panel']}"],
+            ['text' => "🎛 پنل پاسارگارد", 'callback_data' => "none"],
         ];
     }
     $Bot_Status = json_encode($Bot_Status);

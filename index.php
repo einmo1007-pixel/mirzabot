@@ -6169,8 +6169,9 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         return;
     }
     $affiliates = select("affiliates", "*", null, null, "select");
+    $bot_target_url = "https://t.me/" . ltrim($usernamebot, '@') . "?start=$from_id";
     $textaffiliates = "{$affiliates['description']}\n🛡 سرویس‌های اختصاصی
-دسترسی به اینترنت آزاد، فراتر از یک اتصال ساده؛ ما پایداری بدون محدودیت را برای فعالیت‌های حرفه‌ای و روزمره شما تضمین می‌کنیم.
+دسترسی به اینترنت آزاد، فراتر از یک اتصال ساده؛ ما پایداری بدون محدودیت را برای فعالیت‌های حساس شما تضمین می‌کنیم.
 
 🔗 آپتایم حداکثری: بهره‌گیری از پروتکل‌های اختصاصی جهت حذف قطعی‌های ناگهانی.
 🔄 سیستم جایگزینی خودکار: پایش هوشمند سرورها و به‌روزرسانی آنی در صورت بروز اختلال در زیرساخت.
@@ -6180,7 +6181,8 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
 📍 سرورهای فعال: آلمان 🇩🇪 | فنلاند 🇫🇮 | آمریکا 🇺🇸
 ⏱️ تحویل هوشمند: فعال‌سازی و دریافت اشتراک در کمتر از ۱۰ ثانیه.
 
-🔗 https://t.me/$usernamebot?start=$from_id";
+⚡️ همین حالا با دریافت اکانت تست، سرعت واقعی شبکه ما را بسنجید:
+🔗 <a href=\"$bot_target_url\">$usernamebot</a>";
     if (strlen($affiliates['id_media']) >= 5) {
         telegram('sendphoto', [
             'chat_id' => $from_id,
@@ -6208,33 +6210,33 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $Percent_porsant = $setting['affiliatespercentage'];
     $sum_order = number_format($inforefral['total_price'], 0);
     if ($affiliatescommission['Discount'] == "onDiscountaffiliates") {
-        $text_start = sprintf($textbotlang['users']['affiliates']['membershipGiftInfo'], $affiliatescommission['price_Discount']);
+        $text_start = "<b>🎁 هدیه عضویت:</b>\n• 🎉 مجموع هدیه: {$affiliatescommission['price_Discount']} تومان  \n• 🔻 ۵۰٪ برای شما (معرف)  \n• 🔻 ۵۰٪ برای زیرمجموعه (کاربر جدید)\n";
     }
     if ($affiliatescommission['status_commission'] == "oncommission") {
-        $text_porsant = sprintf($textbotlang['users']['affiliates']['purchaseCommissionInfo'], $Percent_porsant);
+        $text_porsant = "<b>💸 پورسانت خرید:</b>  \n•  $Percent_porsant درصد از مبلغ خرید زیرمجموعه به شما تعلق می‌گیره";
     }
-    $textaffiliates = sprintf($textbotlang['users']['affiliates']['welcomeGiftInfo'], $text_start, $text_porsant, $user['affiliatescount'], $inforefral['orders'], $sum_order);
+    $textaffiliates = "<b>💼 زیرمجموعه‌گیری و هدیه خوش‌آمد</b>\n\nبا دعوت دوستان از طریق <b>لینک اختصاصی</b>، بدون پرداخت حتی ۱ ریال کیف پولت شارژ میشه و از خدمات ربات استفاده می‌کنی!\n\n$text_start\n$text_porsant\n\n<b>📊 آمار شما:</b>\n• 👥 زیرمجموعه‌ها: {$user['affiliatescount']} نفر\n• 🛒 خریدها: {$inforefral['orders']} عدد\n• 💵 مجموع خرید: $sum_order تومان\n\n<b>📢 دعوت کن، هدیه بگیر، رشد کن!</b>\n";
 
     sendmessage($from_id, $textaffiliates, $keyboard_share, 'HTML');
 } elseif ($datain == "get_gift_start") {
     $gift_status = select("affiliates", "*", null, null, "select");
     if ($gift_status['Discount'] == "offDiscountaffiliates") {
-        sendmessage($from_id, $textbotlang['users']['sectionDisabled'], $keyboard, 'HTML');
+        sendmessage($from_id, "📛 این بخش درحال حاضر غیرفعال می باشد", $keyboard, 'HTML');
         return;
     }
     if (!rowExists("user", "id", $user['affiliates'])) {
-        sendmessage($from_id, $textbotlang['users']['affiliates']['notReferral'], $keyboard, 'HTML');
+        sendmessage($from_id, "📛 شما زیرمجموعه هیچ کاربری نیستید.", $keyboard, 'HTML');
         return;
     }
     $reagent = select("reagent_report", "*", "user_id", $from_id, "select");
     if (!$reagent) {
-        sendmessage($from_id, $textbotlang['users']['affiliates']['notReferral'], $keyboard, 'HTML');
+        sendmessage($from_id, "📛 شما زیرمجموعه هیچ کاربری نیستید.", $keyboard, 'HTML');
         return;
     }
     $claimGift = $pdo->prepare("UPDATE reagent_report SET get_gift = 1 WHERE user_id = ? AND get_gift = 0");
     $claimGift->execute([$from_id]);
     if ($claimGift->rowCount() !== 1) {
-        sendmessage($from_id, $textbotlang['users']['affiliates']['membershipGiftClaimed'], $keyboard, 'HTML');
+        sendmessage($from_id, "<b>⛔ شما قبلاً هدیه عضویت را دریافت کرده‌اید.</b>\nاین هدیه فقط <b>یک‌بار</b> قابل فعال‌سازی است.", $keyboard, 'HTML');
         return;
     }
     $reagent['get_gift'] = true;
@@ -6246,8 +6248,8 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $Balance_add_user = $user['Balance'] + $price_gift_Start;
     addBalance($from_id, $price_gift_Start);
     $addbalancediscount = number_format($price_gift_Start, 0);
-    sendmessage($reagent['reagent'], $textbotlang['users']['affiliates']['joinedGift'], null, 'html');
-    sendmessage($from_id, $textbotlang['users']['affiliates']['joinGiftActivated'], null, 'html');
+    sendmessage($reagent['reagent'], "🎉 یک نفر با معرفی شما وارد شد! هدیه به حساب شما واریز شد.", null, 'html');
+    sendmessage($from_id, "🎉 هدیه عضویت برای شما فعال شد!", null, 'html');
     $report_join_gift = sprintf($textbotlang['Admin']['reportgroup']['membershipGiftPaid'], $from_id, $username, $reagent['reagent'], $user['Balance'], $Balance_add_user, $useraffiliates['Balance'], $Balance_add_regent);
     if (strlen($setting['Channel_Report']) > 0) {
         telegram('sendmessage', [

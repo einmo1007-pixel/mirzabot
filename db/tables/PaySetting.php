@@ -94,6 +94,13 @@ $values = [
     'helpzarinpal' => '2',
     'helpnowpayment' => '2',
     'helpofflinearze' => '2',
+    'status_tonoffline' => 'offtonoffline',
+    'nametonoffline' => 'درگاه پرداخت ارز دیجیتال تون (TON)',
+    'walletaddress_ton' => '0',
+    'cashbacktonoffline' => '0',
+    'min_price_tonoffline' => '10000',
+    'max_price_tonoffline' => '50000000',
+    'edutonoffline' => '2',
 ];
 
 $seed = [];
