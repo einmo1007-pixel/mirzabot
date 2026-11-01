@@ -1718,18 +1718,7 @@ function addBackgroundImage($urlimage, $qrCodeResult, $backgroundPath)
 
 function checktelegramip()
 {
-    $clientIp = $_SERVER['HTTP_CF_CONNECTING_IP']
-        ?? $_SERVER['HTTP_X_REAL_IP']
-        ?? ($_SERVER['REMOTE_ADDR'] ?? '');
-
-    if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) && empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
-        $forwarded = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-        $candidate = trim($forwarded[0]);
-        if (filter_var($candidate, FILTER_VALIDATE_IP)) {
-            $clientIp = $candidate;
-        }
-    }
-
+    $clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
     if (!is_string($clientIp) || $clientIp === '') {
         return false;
     }
@@ -1774,32 +1763,9 @@ function isClientIpInRange($clientIp, $lowerBound, $upperBound)
 
 function webhookSecretMatches($secret)
 {
-    $received = $_GET['secret'] 
-        ?? ($_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] ?? '');
+    $received = $_GET['secret'] ?? '';
 
     return is_string($received) && $received !== '' && hash_equals($secret, $received);
-}
-
-function mirzaGetBaseUrl(): string
-{
-    global $domainhosts;
-
-    $host = trim((string) $domainhosts);
-    $host = preg_replace('#^https?://#', '', $host);
-    $host = rtrim($host, '/');
-
-    if (!str_contains($host, '/') && isset($_SERVER['SCRIPT_NAME'])) {
-        $dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
-        $dir = trim($dir, '/');
-        if ($dir !== '' && $dir !== '.') {
-            $dir = preg_replace('#/(install|cronbot|vpnbot.*)$#', '', $dir);
-            if ($dir !== '' && $dir !== '.') {
-                $host .= '/' . $dir;
-            }
-        }
-    }
-
-    return "https://$host";
 }
 
 function ensureWebhookSecret()
@@ -1819,9 +1785,8 @@ function ensureWebhookSecret()
         $secret = $stored;
     }
 
-    $baseUrl = mirzaGetBaseUrl();
     telegram('setWebhook', [
-        'url' => "$baseUrl/index.php?secret=$secret",
+        'url' => "https://$domainhosts/index.php?secret=$secret",
     ]);
 
     return ['secret' => $secret, 'created' => true];
@@ -1831,9 +1796,8 @@ function setAgentWebhook($token, $id_user, $username, $secret)
 {
     global $domainhosts;
 
-    $baseUrl = mirzaGetBaseUrl();
     return telegram('setWebhook', [
-        'url' => "$baseUrl/vpnbot/{$id_user}{$username}/index.php?secret=$secret",
+        'url' => "https://$domainhosts/vpnbot/{$id_user}{$username}/index.php?secret=$secret",
     ], $token);
 }
 

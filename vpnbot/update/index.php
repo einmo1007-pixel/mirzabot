@@ -22,18 +22,14 @@ if (file_exists($Pathfiles . 'vendor/autoload.php')) {
 $ManagePanel = new ManagePanel();
 
 $text_bot_var = json_decode(file_get_contents('text.json'), true);
+if (!checktelegramip())
+    die("Unauthorized access");
+
 $textbotlang = languagechange();
 $dataBase = select("botsaz", "*", "bot_token", $ApiToken, "select");
 $agentWebhookSecret = ensureAgentWebhookSecret($dataBase);
-
-$isTelegramIp = checktelegramip();
-$hasValidSecret = webhookSecretMatches($agentWebhookSecret['secret'] ?? '');
-
-if (!$isTelegramIp && !$hasValidSecret) {
-    $clientIp = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_REAL_IP'] ?? ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-    error_log("Unauthorized agent webhook access attempt from IP: $clientIp");
+if (!$agentWebhookSecret['created'] && $agentWebhookSecret['secret'] !== '' && !webhookSecretMatches($agentWebhookSecret['secret']))
     die("Unauthorized access");
-}
 if (version_compare(PHP_VERSION, MIN_PHP_VERSION, '<')) {
     if ($callback_query_id)
         telegram('answerCallbackQuery', ['callback_query_id' => $callback_query_id]);

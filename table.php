@@ -16,19 +16,7 @@ if (intval($setting['Channel_Report'] ?? 0) != 0) {
 }
 
 $webhookSecret = ensureWebhookSecret();
-$baseUrl = function_exists('mirzaGetBaseUrl') ? mirzaGetBaseUrl() : "https://$domainhosts";
-$webhookUrl = "$baseUrl/index.php?secret={$webhookSecret['secret']}";
 
-$setWebhookResult = telegram('setWebhook', [
-    'url' => $webhookUrl,
+telegram('setWebhook', [
+    'url' => "https://$domainhosts/index.php?secret={$webhookSecret['secret']}",
 ]);
-
-$webhookInfo = telegram('getWebhookInfo');
-
-header('Content-Type: application/json; charset=utf-8');
-echo json_encode([
-    'status' => 'success',
-    'webhook_url' => $webhookUrl,
-    'set_webhook_result' => $setWebhookResult,
-    'webhook_info' => $webhookInfo,
-], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

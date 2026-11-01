@@ -18,16 +18,12 @@ require_once 'panels.php';
 $textbotlang = languagechange();
 $text = restoreCustomEmojiLabel($text);
 #-----------telegram_ip_ranges------------#
-$isTelegramIp = checktelegramip();
-$webhookSecret = ensureWebhookSecret();
-$hasValidSecret = webhookSecretMatches($webhookSecret['secret'] ?? '');
-
-if (!$isTelegramIp && !$hasValidSecret) {
-    $clientIp = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_REAL_IP'] ?? ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-    error_log("Unauthorized webhook access attempt from IP: $clientIp");
+if (!checktelegramip())
     die("Unauthorized access");
-}
 #-----------end telegram_ip_ranges------------#
+$webhookSecret = ensureWebhookSecret();
+if (!$webhookSecret['created'] && $webhookSecret['secret'] !== '' && !webhookSecretMatches($webhookSecret['secret']))
+    die("Unauthorized access");
 if ($is_bot)
     return;
 $admin_ids = select("admin", "id_admin", null, null, "FETCH_COLUMN");
