@@ -40,15 +40,86 @@ if ($method == "POST" && is_array($keyboard)) {
     update("setting", "keyboardmain", json_encode($keyboardmain), null, null);
     echo json_encode(['ok' => true]);
     exit;
-} else {
-    $keyboardmain = '{"keyboard":[[{"text":"text_sell"},{"text":"text_extend"}],[{"text":"text_usertest"},{"text":"text_wheel_luck"}],[{"text":"text_Purchased_services"},{"text":"accountwallet"}],[{"text":"text_affiliates"},{"text":"text_Tariff_list"}],[{"text":"text_support"},{"text":"text_help"}],[{"text":"text_agentpanel"},{"text":"text_requestagent"}]]}';
-    $action = filter_input(INPUT_GET, 'action');
-    if ($action === "reaset") {
-        csrf_check_get();
-        update("setting", "keyboardmain", $keyboardmain, null, null);
-        header('Location: keyboard.php');
-        exit;
+}
+
+$action = filter_input(INPUT_GET, 'action');
+if ($action === "reaset") {
+    csrf_check_get();
+    $default_kb = '{"keyboard":[[{"text":"text_sell"},{"text":"text_extend"}],[{"text":"text_usertest"},{"text":"text_wheel_luck"}],[{"text":"text_Purchased_services"},{"text":"accountwallet"}],[{"text":"text_affiliates"},{"text":"text_Tariff_list"}],[{"text":"text_support"},{"text":"text_help"}],[{"text":"text_agentpanel"},{"text":"text_requestagent"}]]}';
+    update("setting", "keyboardmain", $default_kb, null, null);
+    header('Location: keyboard.php');
+    exit;
+}
+
+if ($method == "GET" && (isset($_GET['api']) || isset($_GET['ajax']) || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false))) {
+    header('Content-Type: application/json; charset=utf-8');
+    $keyboardSetting = select("setting", "keyboardmain", null, null, "select");
+    $keyboardmain = json_decode($keyboardSetting['keyboardmain'] ?? '', true);
+    if (!is_array($keyboardmain) || !isset($keyboardmain['keyboard']) || !is_array($keyboardmain['keyboard'])) {
+        $keyboardmain = ['keyboard' => []];
     }
+
+    $list_keyboard = [
+        'text_sell',
+        'text_extend',
+        'text_usertest',
+        'text_wheel_luck',
+        'text_Purchased_services',
+        'accountwallet',
+        'text_affiliates',
+        'text_Tariff_list',
+        'text_support',
+        'text_help',
+        'text_agentpanel',
+        'text_requestagent',
+    ];
+    $labels = [
+        'text_sell' => $textbotlang['textbot']['sell'] ?? 'خرید سرویس',
+        'text_extend' => $textbotlang['textbot']['extend'] ?? 'تمدید سرویس',
+        'text_usertest' => $textbotlang['textbot']['userTest'] ?? 'تست رایگان',
+        'text_wheel_luck' => $textbotlang['textbot']['wheelLuck'] ?? 'گردونه شانس',
+        'text_Purchased_services' => $textbotlang['textbot']['purchasedServices'] ?? 'سرویس‌های من',
+        'accountwallet' => $textbotlang['textbot']['accountWallet'] ?? 'کیف پول',
+        'text_affiliates' => $textbotlang['textbot']['affiliates'] ?? 'زیرمجموعه‌گیری',
+        'text_Tariff_list' => $textbotlang['textbot']['tariffList'] ?? 'تعرفه‌ها',
+        'text_support' => $textbotlang['textbot']['support'] ?? 'پشتیبانی',
+        'text_help' => $textbotlang['textbot']['help'] ?? 'راهنما',
+        'text_agentpanel' => $textbotlang['textbot']['agentPanel'] ?? 'پنل نمایندگی',
+        'text_requestagent' => $textbotlang['textbot']['requestAgent'] ?? 'درخواست نمایندگی',
+    ];
+
+    foreach ($keyboardmain['keyboard'] as $row_kb) {
+        if (!is_array($row_kb)) {
+            continue;
+        }
+        foreach ($row_kb as $arrkey) {
+            if (!is_array($arrkey) || !isset($arrkey['text'])) {
+                continue;
+            }
+            $index_number = array_search($arrkey['text'], $list_keyboard, true);
+            if ($index_number !== false) {
+                unset($list_keyboard[$index_number]);
+            }
+        }
+    }
+    $list_keyboard = array_values($list_keyboard);
+
+    $available_keys = [];
+    foreach ($list_keyboard as $key) {
+        $available_keys[] = [['text' => $key]];
+    }
+
+    $formatted_labels = [];
+    foreach ($labels as $k => $v) {
+        $formatted_labels[$k] = function_exists('customEmojiLabelText') ? customEmojiLabelText($v) : $v;
+    }
+
+    echo json_encode([
+        'keylist' => $available_keys,
+        'userlist' => $keyboardmain['keyboard'],
+        'text' => $formatted_labels
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 ?>
 
@@ -62,10 +133,20 @@ if ($method == "POST" && is_array($keyboard)) {
 
     <script>
         window.__MIRZA_API_ORIGIN = new URL('..', window.location.href).href.replace(/\/$/, '');
+        window.__MIRZA_KEYBOARD_API = window.location.href.split('?')[0].split('#')[0] + '?api=1';
+        (function() {
+            var origOpen = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function(method, url) {
+                if (typeof url === 'string' && url.indexOf('/api/keyboard') !== -1) {
+                    url = window.__MIRZA_KEYBOARD_API;
+                }
+                return origOpen.apply(this, arguments);
+            };
+        })();
     </script>
 
-    <script type="module" crossorigin src="js/sort_keyboard.js"></script>
-    <link rel="stylesheet" crossorigin href="css/sort_keyboard.css">
+    <script type="module" crossorigin src="js/sort_keyboard.js?v=<?= file_exists(__DIR__ . '/js/sort_keyboard.js') ? filemtime(__DIR__ . '/js/sort_keyboard.js') : '1' ?>"></script>
+    <link rel="stylesheet" crossorigin href="css/sort_keyboard.css?v=<?= file_exists(__DIR__ . '/css/sort_keyboard.css') ? filemtime(__DIR__ . '/css/sort_keyboard.css') : '1' ?>">
     <style>
         @import url(https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap);
 
