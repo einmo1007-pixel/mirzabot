@@ -16,7 +16,9 @@ require_once $Pathfiles . 'panels.php';
 require_once 'func.php';
 require_once 'botapi.php';
 require_once 'keyboard.php';
-require_once $Pathfiles . 'vendor/autoload.php';
+if (file_exists($Pathfiles . 'vendor/autoload.php')) {
+    require_once $Pathfiles . 'vendor/autoload.php';
+}
 $ManagePanel = new ManagePanel();
 
 $text_bot_var = json_decode(file_get_contents('text.json'), true);

@@ -10,7 +10,9 @@ require_once 'jdf.php';
 require_once 'function.php';
 mirzaEnsureInstallerRemoved();
 require_once 'keyboard.php';
-require_once 'vendor/autoload.php';
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+}
 require_once 'panels.php';
 $textbotlang = languagechange();
 $text = restoreCustomEmojiLabel($text);

@@ -1,6 +1,5 @@
-# Composer-managed dependencies — installed by install.sh at install/update time.
-# Never commit these; run `composer install` to recreate them.
-/vendor/
+# Composer-managed dependencies — committed for shared hosting compatibility
+# /vendor/
 
 # Composer runtime artifacts
 composer.phar

@@ -1,6 +1,8 @@
 <?php
-require_once 'vendor/autoload.php';
-require 'config.php';
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+}
+require_once __DIR__ . '/config.php';
 ini_set('error_log', 'error_log');
 
 const MIN_PHP_VERSION = '8.5.12';
@@ -2357,6 +2359,10 @@ function createqrcode($contents)
         if ($contents === false || $contents === '') {
             return null;
         }
+    }
+    if (!class_exists(\Endroid\QrCode\Builder\Builder::class)) {
+        error_log('createqrcode failed: vendor/autoload.php or Endroid\QrCode is missing');
+        return null;
     }
     $builder = new Builder(
         writer: new PngWriter(),

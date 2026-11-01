@@ -7,7 +7,9 @@ require_once __DIR__ . '/../panels/Api/Marzban.php';
 require_once __DIR__ . '/../function.php';
 require_once __DIR__ . '/../keyboard.php';
 require_once __DIR__ . '/../panels.php';
-require __DIR__ . '/../vendor/autoload.php';
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
 
 $ManagePanel = new ManagePanel();
 $data = json_decode(file_get_contents("php://input"), true);
