@@ -112,15 +112,13 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
     $date = time();
     $invoice_rand_id = bin2hex(random_bytes(4)); // کد پیگیری فاکتور
     $notifctions = json_encode(['volume' => false, 'time' => false]);
-    $stmt = $connect->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username, time_sell, Service_location, name_product, price_product, Volume, Service_time, Status, notifctions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt = $pdo->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username, time_sell, Service_location, name_product, price_product, Volume, Service_time, Status, notifctions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     
     $Status = "active";
     $p_name = "سرویس تست";
     $p_price = "0";
     
-    $stmt->bind_param("sssssssssss", $from_id, $invoice_rand_id, $username_ac, $date, $marzban_list_get['name_panel'], $p_name, $p_price, $marzban_list_get['val_usertest'], $marzban_list_get['time_usertest'], $Status, $notifctions);
-    $stmt->execute();
-    $stmt->close();
+    $stmt->execute([$from_id, $invoice_rand_id, $username_ac, $date, $marzban_list_get['name_panel'], $p_name, $p_price, $marzban_list_get['val_usertest'], $marzban_list_get['time_usertest'], $Status, $notifctions]);
 
     // ارسال درخواست ساخت به پنل بدون هیچ تغییر اضافی
     $dataoutput = $ManagePanel->createUser($marzban_list_get['name_panel'], "usertest", $username_ac, $datac);
@@ -324,8 +322,8 @@ if (isset($datain) && $datain == "direct_pay_start") {
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$payable_amount, $from_id]);
 
-    $cardQuery = mysqli_query($connect, "SELECT * FROM card_number ORDER BY RAND() LIMIT 1");
-    $card_info = mysqli_fetch_assoc($cardQuery);
+    $stmtCard = $pdo->query("SELECT * FROM card_number ORDER BY RAND() LIMIT 1");
+    $card_info = $stmtCard ? $stmtCard->fetch(PDO::FETCH_ASSOC) : null;
     
     if ($card_info) {
         $card_number = $card_info['cardnumber'];
@@ -338,12 +336,12 @@ if (isset($datain) && $datain == "direct_pay_start") {
         $randomStringInvoice = bin2hex(random_bytes(4)); 
         $notifctions = json_encode(['volume' => false, 'time' => false]);
         
-        $stmtInv = $connect->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username, time_sell, Service_location, name_product, price_product, Volume, Service_time, Status, note, refral, notifctions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmtInv = $pdo->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username, time_sell, Service_location, name_product, price_product, Volume, Service_time, Status, note, refral, notifctions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $status_inv = "unpaid";
         $note_inv = "DirectBuy";
         $refral_inv = $freshUser['affiliates'];
         
-        $stmtInv->bind_param("sssssssssssss", 
+        $stmtInv->execute([
             $from_id, 
             $randomStringInvoice, 
             $username_ac, 
@@ -357,20 +355,17 @@ if (isset($datain) && $datain == "direct_pay_start") {
             $note_inv, 
             $refral_inv, 
             $notifctions
-        );
-        $stmtInv->execute();
-        $stmtInv->close();
+        ]);
 
         // ثبت گزارش پرداخت
         $invoice_ref = "getconfigafterpay|$username_ac";
         $dateacc = date('Y/m/d H:i:s');
         $randomStringOrder = bin2hex(random_bytes(5));
         
-        $stmtPay = $connect->prepare("INSERT INTO Payment_report (id_user,id_order,time,price,payment_Status,Payment_Method,id_invoice) VALUES (?,?,?,?,?,?,?)");
+        $stmtPay = $pdo->prepare("INSERT INTO Payment_report (id_user,id_order,time,price,payment_Status,Payment_Method,id_invoice) VALUES (?,?,?,?,?,?,?)");
         $payment_Status = "Unpaid";
         $Payment_Method = "cart to cart";
-        $stmtPay->bind_param("sssssss", $from_id, $randomStringOrder, $dateacc, $payable_amount, $payment_Status, $Payment_Method, $invoice_ref);
-        $stmtPay->execute();
+        $stmtPay->execute([$from_id, $randomStringOrder, $dateacc, $payable_amount, $payment_Status, $Payment_Method, $invoice_ref]);
 
         $textcart = "💳 <b>اطلاعات جهت واریز:</b>\n\n🔹 شماره کارت:\n<code>$card_number</code>\n🔹 به نام: <b>$PaySettingname</b>\n\n💰 مبلغ قابل پرداخت: <b>$valueprice تومان</b>\n\n📸 لطفاً پس از واریز، دکمه زیر را زده و <b>تصویر رسید</b> خود را ارسال کنید.";
         

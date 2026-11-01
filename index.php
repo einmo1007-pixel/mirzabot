@@ -272,6 +272,15 @@ if (floor($TimeLastMessage / 60) >= 1) {
 }
 
 
+// ==========================================================
+// --- ادغام فایل خرید مستقیم و تست مستقیم ---
+// ==========================================================
+if ((isset($text) && (strpos($text, "/start buy_") === 0 || strpos($text, "/start usertest") === 0)) || (isset($datain) && $datain == "direct_pay_start")) {
+    require_once 'direct_buy.php';
+    return; 
+}
+// ==========================================================
+
 if (strpos($text, "/start ") !== false && $user['step'] != "gettextSystemMessage") {
     $affiliatesid = explode(" ", $text)[1];
     if (!in_array($affiliatesid, ['start', "usertest", "/start", "buy", "help"])) {
