@@ -90,7 +90,7 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
     // ساخت نام کاربری - اصلاح شده برای دقت ۱۰۰ درصد طبق تنظیمات
     $username_base = (!empty($username) && $username != 'none') ? $username : $from_id;
     // حذف رندوم اضافی از متد ساخت یوزرنیم برای خروجی تمیز
-    $username_ac = generateUsername($from_id, $marzban_list_get['MethodUsername'] ?? 'none', $username_base, "", "test", $marzban_list_get['namecustom'] ?? 'none', $user['namecustom'] ?? 'none');
+    $username_ac = generateUsername($from_id, $marzban_list_get['MethodUsername'], $username_base, "", "test", $marzban_list_get['namecustom'], $user['namecustom']);
     $username_ac = strtolower($username_ac);
 
     // بررسی تکراری بودن در پنل و دیتابیس
@@ -221,7 +221,7 @@ if (isset($text) && strpos($text, "/start buy_") === 0) {
         }
 
         $randomString = bin2hex(random_bytes(2));
-        $username_ac = generateUsername($from_id, $marzban_panel['MethodUsername'] ?? 'none', $username, $randomString, "quick", $marzban_panel['namecustom'] ?? 'none', "none");
+        $username_ac = generateUsername($from_id, $marzban_panel['MethodUsername'], $username, $randomString, "quick", $marzban_panel['namecustom'], "none");
         $username_ac = strtolower($username_ac);
         
         $DataUserOut = $ManagePanel->DataUser($marzban_panel['name_panel'], $username_ac);

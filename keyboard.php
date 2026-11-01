@@ -71,7 +71,7 @@ if (!empty($keyboardRows)) {
     $keyboardRows = array_values($keyboardRows);
 }
 
-if (($setting['inlinebtnmain'] ?? '') == "oninline" && !empty($keyboardRows)) {
+if ($setting['inlinebtnmain'] == "oninline" && !empty($keyboardRows)) {
     $trace_keyboard = $keyboardRows;
     foreach ($trace_keyboard as $key => $callback_set) {
         foreach ($callback_set as $keyboard_key => $keyboard) {
@@ -673,7 +673,7 @@ $keyboard_shop_manage = json_encode([
     ],
     'resize_keyboard' => true
 ]);
-if (($setting['inlinebtnmain'] ?? '') == "oninline") {
+if ($setting['inlinebtnmain'] == "oninline") {
     $confrimrolls = json_encode([
         'inline_keyboard' => [
             [
@@ -703,7 +703,7 @@ $channelkeyboard = json_encode([
     ],
     'resize_keyboard' => true
 ]);
-if (($setting['inlinebtnmain'] ?? '') == "oninline") {
+if ($setting['inlinebtnmain'] == "oninline") {
     $backuser = json_encode([
         'inline_keyboard' => [
             [['text' => $textbotlang['users']['backbtn'], 'callback_data' => "backuser"]]
@@ -725,10 +725,10 @@ $backadmin = json_encode([
 ]);
 //------------------  [ list panel ]----------------//
 $namepanel = [];
-    $allPanelRows = $pdo->query("SELECT * FROM marzban_panel ORDER BY display_order, id")->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($allPanelRows as $row) {
-        $namepanel[] = [$row['name_panel']];
-    }
+$allPanelRows = $pdo->query("SELECT * FROM marzban_panel ORDER BY display_order, id")->fetchAll(PDO::FETCH_ASSOC);
+foreach ($allPanelRows as $row) {
+    $namepanel[] = [$row['name_panel']];
+}
     $list_marzban_panel = [
         'keyboard' => [],
         'resize_keyboard' => true,
@@ -828,7 +828,7 @@ foreach ($helpRows as $result) {
         ['text' => $result['category'], 'callback_data' => "helpctg_{$catId}"]
     ];
 }
-if (($setting['linkappstatus'] ?? '') == "1") {
+if ($setting['linkappstatus'] == "1") {
     $helpcwtgory['inline_keyboard'][] = [
         ['text' => $textbotlang['keyboard']['appDownloadLink'], 'callback_data' => "linkappdownlod"],
     ];
@@ -896,7 +896,7 @@ if ($panelcount > 10) {
     foreach ($activePanelRows as $result) {
         if ($result['type'] == "Manualsale" && empty($manualsellCounts[$result['code_panel']]))
             continue;
-        if (!empty($result['hide_user']) && in_array($from_id, json_decode($result['hide_user'], true) ?? []))
+        if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true)))
             continue;
         if ($users['step'] == "getusernameinfo") {
             $list_marzban_panel_users['inline_keyboard'][] = [
@@ -910,9 +910,9 @@ if ($panelcount > 10) {
     }
 }
 $statusnote = false;
-if (($setting['statusnamecustom'] ?? '') == 'onnamecustom')
+if ($setting['statusnamecustom'] == 'onnamecustom')
     $statusnote = true;
-if (($setting['statusnoteforf'] ?? '') == "0" && ($users['agent'] ?? '') == "f")
+if ($setting['statusnoteforf'] == "0" && $users['agent'] == "f")
     $statusnote = false;
 if ($statusnote) {
     $list_marzban_panel_users['inline_keyboard'][] = [
@@ -929,7 +929,7 @@ $list_marzban_panel_user = json_encode($list_marzban_panel_users);
 //------------------  [ listpanelusers omdhe ]----------------//
 $list_marzban_panel_users_om = ['inline_keyboard' => []];
 foreach ($activePanelRows as $result) {
-    if (!empty($result['hide_user']) && in_array($from_id, json_decode($result['hide_user'], true) ?? []))
+    if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true)))
         continue;
     $list_marzban_panel_users_om['inline_keyboard'][] = [
         ['text' => $result['name_panel'], 'callback_data' => "locationom_{$result['code_panel']}"]
@@ -963,7 +963,7 @@ if ($panelcount > 10) {
     foreach ($activePanelRows as $result) {
         if ($result['name_panel'] == $users['Processing_value_four'])
             continue;
-        if (!empty($result['hide_user']) && in_array($from_id, json_decode($result['hide_user'], true) ?? []))
+        if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true)))
             continue;
         $list_marzban_panel_users_change['inline_keyboard'][] = [
             ['text' => $result['name_panel'], 'callback_data' => "changelocselectlo-{$result['code_panel']}"]
@@ -981,7 +981,7 @@ $list_marzban_panel_usertest = ['inline_keyboard' => []];
 foreach ($allPanelRows as $result) {
     if ($result['TestAccount'] != "ONTestAccount" || !in_array($result['agent'], [$users['agent'], "all"]))
         continue;
-    if (!empty($result['hide_user']) && in_array($from_id, json_decode($result['hide_user'], true) ?? []))
+    if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true)))
         continue;
     $list_marzban_panel_usertest['inline_keyboard'][] = [
         ['text' => $result['name_panel'], 'callback_data' => "locationtest_{$result['code_panel']}"]
@@ -1090,7 +1090,7 @@ foreach ($panelOptionRows as $panelType => $panelRows) {
     $panelKeyboardRows[] = [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]];
     $panelOptions[$panelType] = json_encode(['keyboard' => $panelKeyboardRows, 'resize_keyboard' => true]);
 }
-if (($setting['statussupportpv'] ?? '') == "onpvsupport") {
+if ($setting['statussupportpv'] == "onpvsupport") {
     $supportoption = json_encode([
         'inline_keyboard' => [
             [
@@ -1186,8 +1186,8 @@ $keyboardtypepanel = json_encode([
     ],
 ]);
 
-$panelechekc = count(array_filter($allPanelRows, fn($panel) => ($panel['MethodUsername'] ?? '') == "agentCustomTextSequential"));
-if (($setting['inlinebtnmain'] ?? '') == "oninline") {
+$panelechekc = count(array_filter($allPanelRows, fn($panel) => $panel['MethodUsername'] == "agentCustomTextSequential"));
+if ($setting['inlinebtnmain'] == "oninline") {
     $keyboardagent = [
         'inline_keyboard' => [
             [
