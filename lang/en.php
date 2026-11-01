@@ -1648,9 +1648,6 @@ Status: approved (%s)',
                         'askFallbackName' => '📌 What name should be registered if the user has no username?',
                 ],
                 'api' => [
-                        'askAddress' => '📌 Send the API address.
-
-Current address: %s',
                         'token' => 'Your api token: <code>%s</code>',
                         'docsLink' => '📘 Full API reference:
 %s
@@ -1794,8 +1791,6 @@ Current value: %s Toman',
                         'deleted' => '📌 The selected section was deleted.',
                 ],
                 'gateway' => [
-                        'tronadoStatus' => 'Tornado gateway status',
-                        'tronadoDesc' => 'In this section you can turn the Tornado gateway off or on',
                         'askMinAmount' => '💵 Send the minimum payable amount for this gateway in Toman.',
                         'askMaxAmount' => '💵 Send the maximum payable amount for this gateway in Toman.',
                         'askCashback' => '🎁 Send the cashback percentage for payments with this gateway. Send 0 to disable it.',
@@ -4076,7 +4071,6 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'setAffiliateBanner' => '🏞 Set referral banner',
                 'setAffiliatePercent' => '🧮 Set referral percentage',
                 'setApi' => 'Set api',
-                'setApiAddress' => 'Set api address',
                 'setAqayePardakhtMerchant' => 'Set Aghaye Pardakht merchant',
                 'setCardNumber' => '💳 Set card number',
                 'setEducationAqayePardakht' => '📚 Set Aghaye Pardakht gateway tutorial',
@@ -4735,6 +4729,19 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'usersViewBtn' => 'View',
         ],
         'paymentGateway' => [
+                'resultSuccessTitle' => "Payment completed",
+                'resultSuccessText' => "Your order has been recorded. Head back to the bot to get your service.",
+                'resultAlreadyTitle' => "This payment was already confirmed",
+                'resultAlreadyText' => "There is no need to pay again. Go back to the bot to see your service.",
+                'resultFailedTitle' => "Payment was not confirmed",
+                'resultFailedText' => "If you were charged, the amount will be returned within a few hours. Contact support if you need help.",
+                'resultExpiredTitle' => "This payment has expired",
+                'resultExpiredText' => "Please create a new order from inside the bot.",
+                'resultNotFoundTitle' => "Transaction not found",
+                'resultNotFoundText' => "The order id is not valid, or it does not belong to this bot.",
+                'resultOrderLabel' => "Order id",
+                'resultAmountLabel' => "Amount",
+                'resultBackToBot' => "Back to the bot",
                 'zarinpalErrors' => [
                         -9 => 'Error sending data',
                         -10 => 'The IP or merchant code of the acceptor is incorrect.',
@@ -4794,17 +4801,9 @@ Payment method : First Rial currency',
 - 💸 Amount %s
 - 💳 Method : AbanGateway',
                 'reportTronado' => '💵 New payment
-%s
 - 👤 User username : @%s
 - 🆔User numeric ID : %s
 - 💸 Transaction amount %s
-- 🔗 <a href = "https://tronscan.org/#/transaction/%s">Payment link </a>
-- 📥 Deposited Tron amount. : %s
-- 💳 Payment method :  Tronado',
-                'reportCubePay' => '💵 New payment
-- 👤 Username : @%s
-- 🆔 User ID : %s
-- 💸 Amount %s
 - 💳 Payment method : CubePay',
                 'reportNowpayment' => '💵 New payment
 - 👤 User username : @%s

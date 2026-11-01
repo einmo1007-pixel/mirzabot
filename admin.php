@@ -56,7 +56,7 @@ $backmenu_register([
     "getcashcart", "gethelpcart", "getlistidcart", "getmaincart", "getmaxcart", "gettimeauto"
 ], $CartManage);
 $backmenu_register(["getidExceptio", "getidExceptioremove"], $Exception_auto_cart_keyboard);
-$backmenu_register(["apiternado", "urlpaymenttron", "getcashiranpay2", "getfeeiranpay2", "getmaaxiranpay2", "getmainiranpay2", "helpiranpay2"], $trnado);
+$backmenu_register(["apiternado", "getcashiranpay2", "getfeeiranpay2", "getmaaxiranpay2", "getmainiranpay2", "helpiranpay2"], $trnado);
 $backmenu_register(["merchant_zarinpal", "getcashzarinpal", "getmaaxzarinpal", "getmainaqzarinpal", "helpzarinpal"], $keyboardzarinpal);
 $backmenu_register(["merchant_id_aqayepardakht", "getcashahaypar", "getmaaxaqayepardakht", "getmainaqayepardakht", "helpaqayepardakht"], $aqayepardakht);
 $backmenu_register(["apinowpayment", "getcashplisio", "gethelpplisio", "getmainplisio", "getmaxplisio"], $NowPaymentsManage);
@@ -5246,15 +5246,6 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
 } elseif ($user['step'] == "apiternado") {
     sendmessage($from_id, $textbotlang['Admin']['SettingnowPayment']['saveApi'], $trnado, 'HTML');
     update("PaySetting", "ValuePay", $text, "NamePay", "apiternado");
-    step('home', $from_id);
-} elseif ($text == $textbotlang['keyboard']['setApiAddress'] && $adminrulecheck['rule'] == "administrator") {
-    $PaySetting = select("PaySetting", "ValuePay", "NamePay", "urlpaymenttron", "select");
-    $texttronseller = sprintf($textbotlang['Admin']['api']['askAddress'], $PaySetting['ValuePay'] ?? '');
-    sendmessage($from_id, $texttronseller, $backadmin, 'HTML');
-    step('urlpaymenttron', $from_id);
-} elseif ($user['step'] == "urlpaymenttron") {
-    sendmessage($from_id, $textbotlang['Admin']['SettingnowPayment']['saveApi'], $trnado, 'HTML');
-    update("PaySetting", "ValuePay", $text, "NamePay", "urlpaymenttron");
     step('home', $from_id);
 } elseif ($text == $textbotlang['keyboard']['inboundDeactivate'] && $adminrulecheck['rule'] == "administrator") {
     sendmessage($from_id, $textbotlang['Admin']['managepanel']['Inbound']['getProtocol'], $keyboardprotocol, 'HTML');

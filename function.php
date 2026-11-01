@@ -629,27 +629,16 @@ function rate_arze()
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
     $response = curl_exec($ch);
-    if ($response !== false) {
-        $decoded = json_decode($response, true);
-        if (is_array($decoded) && isset($decoded['result']) && is_array($decoded['result'])) {
-            return $decoded['result'];
-        }
+    if ($response === false) {
+        error_log('rate_arze failed: ' . curl_error($ch));
+        return null;
     }
-    error_log('rate_arze: falling back to secondary providers');
-    $arze_rate = [];
-    $requests_tron = @json_decode(@file_get_contents('https://api.diadata.org/v1/assetQuotation/Tron/0x0000000000000000000000000000000000000000'), true);
-    $html_read = @file_get_contents("https://www.bon-bast.com/");
-    $requestsusd = 0;
-    if ($html_read && preg_match('/<span>\s*([\d,]+)\s*<\/span>/', $html_read, $matches)) {
-        if (!empty($matches[1])) {
-            $requestsusd = str_replace(',', '', $matches[1]);
-        }
+    $decoded = json_decode($response, true);
+    if (!is_array($decoded) || !isset($decoded['result']) || !is_array($decoded['result'])) {
+        error_log('rate_arze: unexpected response');
+        return null;
     }
-    $arze_rate['USD'] = intval($requestsusd);
-    if (!empty($requests_tron['Price'])) {
-        $arze_rate['TRX'] = intval($requests_tron['Price'] * $arze_rate['USD']);
-    }
-    return $arze_rate;
+    return $decoded['result'];
 }
 function updatePaymentMessageId($response, $orderId)
 {
@@ -828,42 +817,6 @@ function createPayiranpay4($price, $order_id)
     }
 
     return json_decode($response, true) ?: ['success' => false, 'message' => 'iranpay4: bad response'];
-}
-
-function trnado($order_id, $price)
-{
-    global $domainhosts;
-    $apitronseller = select("PaySetting", "*", "NamePay", "apiternado", "select")['ValuePay'] ?? '';
-    $walletaddress = select("PaySetting", "*", "NamePay", "walletaddress", "select")['ValuePay'] ?? '';
-    $urlpay = select("PaySetting", "*", "NamePay", "urlpaymenttron", "select")['ValuePay'] ?? '';
-    $curl = curl_init();
-    $data = array(
-        "PaymentID" => $order_id,
-        "WalletAddress" => $walletaddress,
-        "TronAmount" => $price,
-        "CallbackUrl" => "https://" . $domainhosts . "/payment/tronado.php"
-    );
-    $datasend = json_encode($data);
-    curl_setopt_array($curl, array(
-        CURLOPT_URL => "$urlpay",
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 30,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'POST',
-        CURLOPT_HTTPHEADER => array(
-            'x-api-key: ' . $apitronseller,
-            'Content-Type: application/json',
-            'Cookie: ASP.NET_SessionId=spou2s5lo4nnxkjtavscrrlo'
-        ),
-    ));
-    curl_setopt($curl, CURLOPT_POSTFIELDS, $datasend);
-
-    $response = curl_exec($curl);
-
-    return json_decode($response, true);
 }
 
 function cubepay($order_id, $price, $customer_user_id)

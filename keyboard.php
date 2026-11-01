@@ -202,7 +202,6 @@ $CartManage = json_encode([
 $trnado = json_encode([
     'inline_keyboard' => [
         [['text' => $textbotlang['keyboard']['apiT'], 'callback_data' => "paygwopt-apiT"]],
-        [['text' => $textbotlang['keyboard']['setApiAddress'], 'callback_data' => "paygwopt-setApiAddress"]],
         [['text' => $textbotlang['keyboard']['cashbackIranPay2'], 'callback_data' => "paygwopt-cashbackIranPay2"]],
         [['text' => $textbotlang['keyboard']['feeStatusIranPay2'], 'callback_data' => "paygwopt-feeStatusIranPay2"], ['text' => $textbotlang['keyboard']['feeAmountIranPay2'], 'callback_data' => "paygwopt-feeAmountIranPay2"]],
         [['text' => $textbotlang['keyboard']['minAmountIranPay2'], 'callback_data' => "paygwopt-minAmountIranPay2"], ['text' => $textbotlang['keyboard']['maxAmountIranPay2'], 'callback_data' => "paygwopt-maxAmountIranPay2"]],

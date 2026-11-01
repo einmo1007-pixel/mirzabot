@@ -1648,9 +1648,6 @@ n2',
                         'askFallbackName' => '📌 如果用户没有用户名，应注册什么名称？',
                 ],
                 'api' => [
-                        'askAddress' => '📌 请发送 API 地址。
-
-当前地址：%s',
                         'token' => '您的 api 令牌：<code>%s</code>',
                         'docsLink' => '📘 完整 API 文档：
 %s
@@ -1794,8 +1791,6 @@ trojan://xyz',
                         'deleted' => '📌 所选部分已删除。',
                 ],
                 'gateway' => [
-                        'tronadoStatus' => 'Tornado 网关状态',
-                        'tronadoDesc' => '在此部分，您可以关闭或开启 Tornado 网关',
                         'askMinAmount' => '💵 请发送此网关的最低支付金额（单位：托曼）。',
                         'askMaxAmount' => '💵 请发送此网关的最高支付金额（单位：托曼）。',
                         'askCashback' => '🎁 请发送通过此网关支付后的返现百分比。发送 0 以关闭。',
@@ -1803,7 +1798,7 @@ trojan://xyz',
                         'detail' => "💳 网关：<b>%s</b>\n\n状态：%s\n\n📌 点击按钮以更改状态或设置。",
                         'cubepayFeeOn' => "✅ 已<b>开启</b>向客户收取手续费。\n\n💵 当前数值：<b>%s</b>\n该数值会加到客户的账单上，但用户余额仍按其请求的金额充值。",
                         'cubepayFeeOff' => "❌ 已<b>关闭</b>向客户收取手续费。",
-                        'cubepayFeeAsk' => "💵 请发送手续费数值：\n\n▫️ <b>0 到 100</b> → 按<b>百分比</b>收取（可含小数，如 <code>9.9</code>）\n▫️ <b>大于 100</b> → 按<b>固定土曼金额</b>收取（如 <code>5000</code>)\n\n当前数值：<b>%s</b>",
+                        'cubepayFeeAsk' => "💵 请发送手续费数值：\n\n▫️ <b>0 到 100</b> → 按<b>百分比</b>收取（可含小数，如 <code>9.9</code>）\n▫️ <b>大于 100</b> → 按<b>固定土曼金额</b>收取（如 <code>5000</code>）\n\n当前数值：<b>%s</b>",
                         'cubepayFeeSavedPercent' => "✅ 已保存 — <b>%s%%</b> 百分比手续费\n\n示例：100,000 土曼的订单，客户需支付 <b>%s</b> 土曼。",
                         'cubepayFeeSavedFixed' => "✅ 已保存 — <b>%s 土曼</b> 固定手续费\n\n示例：100,000 土曼的订单，客户需支付 <b>%s</b> 土曼。",
                         'askDailyLimit' => "⏳ 请发送 AbanGateway <b>成功</b>支付的每日上限。\n\n<b>0</b> 表示无上限。",
@@ -4076,7 +4071,6 @@ f,n.n2',
                 'setAffiliateBanner' => '🏞 设置下线收集横幅',
                 'setAffiliatePercent' => '🧮 设置下线百分比',
                 'setApi' => '设置 api',
-                'setApiAddress' => '设置 api 地址',
                 'setAqayePardakhtMerchant' => '设置 Aghaye Pardakht 商户',
                 'setCardNumber' => '💳 设置卡号',
                 'setEducationAqayePardakht' => '📚 设置 Aghaye Pardakht 网关教程',
@@ -4735,6 +4729,19 @@ f,n.n2',
                 'usersViewBtn' => '查看',
         ],
         'paymentGateway' => [
+                'resultSuccessTitle' => "支付成功",
+                'resultSuccessText' => "您的订单已记录。请返回机器人领取服务。",
+                'resultAlreadyTitle' => "该支付已确认",
+                'resultAlreadyText' => "无需重复支付。请返回机器人查看服务。",
+                'resultFailedTitle' => "支付未确认",
+                'resultFailedText' => "如果已扣款，金额将在数小时内退回。如需帮助请联系客服。",
+                'resultExpiredTitle' => "该支付已过期",
+                'resultExpiredText' => "请在机器人中重新创建订单。",
+                'resultNotFoundTitle' => "未找到该交易",
+                'resultNotFoundText' => "订单编号无效，或不属于此机器人。",
+                'resultOrderLabel' => "订单编号",
+                'resultAmountLabel' => "金额",
+                'resultBackToBot' => "返回机器人",
                 'zarinpalErrors' => [
                         -9 => '发送数据出错',
                         -10 => '受理方的 IP 或商户代码不正确。',
@@ -4794,18 +4801,10 @@ f,n.n2',
 - 💸 金额 %s
 - 💳 支付方式 : AbanGateway',
                 'reportTronado' => '💵 新付款
-%s
 - 👤 用户用户名：@%s
 - 🆔用户数字 ID：%s
 - 💸 交易金额 %s
-- 🔗 <a href = "https://tronscan.org/#/transaction/%s">付款链接 </a>
-- 📥 已存入的 Tron 金额：%s
-- 💳 支付方式：Tronado',
-                'reportCubePay' => '💵 新付款
-- 👤 用户名 : @%s
-- 🆔 用户 ID : %s
-- 💸 金额 %s
-- 💳 支付方式 : CubePay',
+- 💳 支付方式：CubePay',
                 'reportNowpayment' => '💵 新付款
 - 👤 用户用户名：@%s
 - 🆔用户数字 ID：%s
