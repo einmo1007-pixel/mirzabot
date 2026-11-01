@@ -9,7 +9,6 @@ require_once 'botapi.php';
 require_once 'jdf.php';
 require_once 'function.php';
 mirzaEnsureInstallerRemoved();
-mirzaEnsureSchemaUpToDate();
 require_once 'keyboard.php';
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
