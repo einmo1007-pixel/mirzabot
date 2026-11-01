@@ -10,7 +10,7 @@ return [
     ['Payment_report', 'idx_payreport_id_order', '`id_order`'],
     ['Payment_report', 'idx_payreport_status', '`payment_Status`(100)'],
     ['marzban_panel', 'idx_panel_name', '`name_panel`(150)'],
-    ['marzban_panel', 'idx_panel_code', '`code_panel`(100)'],
+    ['marzban_panel', 'idx_panel_code', '`code_panel`'],
     ['product', 'idx_product_code', '`code_product`(50)'],
     ['product', 'idx_product_location', '`Location`(100)'],
     ['manualsell', 'idx_manualsell_codepanel', '`codepanel`(100)'],

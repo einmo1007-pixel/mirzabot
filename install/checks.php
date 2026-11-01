@@ -94,10 +94,10 @@ function mirza_install_php_check(): array
 {
     $items = [];
 
-    $minimumVersion = '8.5.12';
+    $minimumVersion = '8.2.0';
     $items[] = version_compare(PHP_VERSION, $minimumVersion, '>=')
         ? mirza_install_item('ok', 'نسخه PHP', PHP_VERSION, 'حداقل نسخه موردنیاز ' . $minimumVersion . ' است.')
-        : mirza_install_item('fail', 'نسخه PHP', PHP_VERSION, 'نسخه PHP باید ' . $minimumVersion . ' یا بالاتر باشد. از بخش Select PHP Version (یا MultiPHP Manager) در کنترل پنل هاست نسخه 8.5 را انتخاب کنید؛ اگر هاست این نسخه را ندارد از پشتیبانی هاست ارتقای PHP را بخواهید.');
+        : mirza_install_item('fail', 'نسخه PHP', PHP_VERSION, 'نسخه PHP باید ' . $minimumVersion . ' یا بالاتر باشد. از بخش Select PHP Version (یا MultiPHP Manager) در کنترل پنل هاست نسخه 8.2 یا بالاتر را انتخاب کنید؛ اگر هاست این نسخه را ندارد از پشتیبانی هاست ارتقای PHP را بخواهید.');
 
     if (version_compare(PHP_VERSION, '9.0.0', '>=')) {
         $items[] = mirza_install_item('warn', 'سازگاری نسخه', PHP_VERSION, 'این نسخه هنوز روی ربات تست نشده است؛ نسخه 8.5 پیشنهاد می‌شود.');

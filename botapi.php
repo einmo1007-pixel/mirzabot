@@ -155,6 +155,10 @@ function customEmojiBlocked($token = null, $block = false)
 }
 function telegram($method, $datas = [], $token = null, $allowEmojiFallback = true)
 {
+    if (isset($GLOBALS['telegram_mock_handler']) && is_callable($GLOBALS['telegram_mock_handler'])) {
+        return ($GLOBALS['telegram_mock_handler'])($method, $datas, $token);
+    }
+
     global $APIKEY;
 
     $token = $token === null ? $APIKEY : $token;
@@ -233,6 +237,7 @@ function telegram($method, $datas = [], $token = null, $allowEmojiFallback = tru
                 || str_contains($description, "message can't be deleted")
                 || str_contains($description, 'message to delete not found')
                 || str_contains($description, 'chat not found')
+                || str_contains($description, 'TOPIC_NOT_MODIFIED')
             ));
         if ($allowEmojiFallback && $errorCode === 400 && !$silent && is_array($premiumEmojiPayload)) {
             $retry = telegram($method, stripCustomEmojiPayload($premiumEmojiPayload), $token, false);

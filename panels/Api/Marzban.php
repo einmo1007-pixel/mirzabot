@@ -15,7 +15,7 @@ function token_panel($code_panel, $verify = true)
     $url_get_token = $panel['url_panel'] . '/api/admin/token';
     $username_panel = $panel['username_panel'];
     $password_panel = $panel['password_panel'];
-    if ($panel['datelogin'] != null && $verify) {
+    if (!empty($panel['datelogin']) && $verify) {
         $date = json_decode($panel['datelogin'], true);
         if (isset($date['time'])) {
             $start_date = time() - strtotime($date['time']);
@@ -64,7 +64,7 @@ function getuser($username_account, $location)
     );
     $req = new CurlRequest($url);
     $req->setHeaders($headers);
-    $req->setBearerToken($Check_token['access_token']);
+    $req->setBearerToken($Check_token['access_token'] ?? '');
     $response = $req->get();
     return $response;
 }

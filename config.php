@@ -12,12 +12,14 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES => false,
 ];
 $dsn = "mysql:host=$dbhost;dbname=$dbname;charset=utf8mb4";
-try {
-    $pdo = new PDO($dsn, $usernamedb, $passworddb, $options);
-    $pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
-} catch (\PDOException $e) {
-    error_log("Database connection failed: " . $e->getMessage());
-    die("error: database connection failed");
+if (!isset($pdo) || !($pdo instanceof PDO)) {
+    try {
+        $pdo = new PDO($dsn, $usernamedb, $passworddb, $options);
+        $pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
+    } catch (\PDOException $e) {
+        error_log("Database connection failed: " . $e->getMessage());
+        die("error: database connection failed");
+    }
 }
 $APIKEY = '{API_KEY}';
 $adminnumber = '{admin_number}';

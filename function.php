@@ -5,7 +5,7 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
 require_once __DIR__ . '/config.php';
 ini_set('error_log', 'error_log');
 
-const MIN_PHP_VERSION = '8.5.12';
+const MIN_PHP_VERSION = '8.2.0';
 
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Encoding\Encoding;
@@ -302,11 +302,13 @@ function syncReportTopics($chatId, $textbotlang)
         $topicId = intval(select("topicid", "idreport", "report", $report, "select")['idreport'] ?? 0);
         if ($topicId > 0) {
             $editTopic = telegram('editForumTopic', ['chat_id' => $chatId, 'message_thread_id' => $topicId, 'name' => $name]);
+            usleep(150000);
             if ($editTopic['ok'] || str_contains($editTopic['description'] ?? '', 'TOPIC_NOT_MODIFIED')) {
                 continue;
             }
         }
         $createForumTopic = telegram('createForumTopic', ['chat_id' => $chatId, 'name' => $name]);
+        usleep(150000);
         if (!$createForumTopic['ok']) {
             return false;
         }

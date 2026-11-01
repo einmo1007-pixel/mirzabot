@@ -8,7 +8,7 @@ class ManagePanel
     public $pdo, $domainhosts, $name_panel;
     function splitWireguardLinks($panel, $result)
     {
-        if (!is_array($result) || ($panel['type'] != "x-ui_single" && !($panel['type'] == "marzban" && $panel['version_panel'] == "1"))) {
+        if (!is_array($result) || ($panel['type'] != "x-ui_single" && !($panel['type'] == "marzban" && ($panel['version_panel'] ?? '') == "1"))) {
             return $result;
         }
         $isWireguard = fn($link) => stripos(trim((string) $link), 'wireguard://') === 0;
