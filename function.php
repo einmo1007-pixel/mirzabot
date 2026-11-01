@@ -630,19 +630,63 @@ function rate_arze()
 {
     $ch = curl_init('https://demo.mirzabot.com/b.php');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
     $response = curl_exec($ch);
-    if ($response === false) {
-        error_log('rate_arze failed: ' . curl_error($ch));
-        return null;
+    curl_close($ch);
+    if ($response !== false) {
+        $decoded = json_decode($response, true);
+        if (is_array($decoded) && isset($decoded['result']) && is_array($decoded['result'])) {
+            $rates = $decoded['result'];
+            if (!empty($rates['Ton'])) {
+                return $rates;
+            }
+        }
     }
-    $decoded = json_decode($response, true);
-    if (!is_array($decoded) || !isset($decoded['result']) || !is_array($decoded['result'])) {
-        error_log('rate_arze: unexpected response');
-        return null;
+
+    $requestsusd = 60000;
+    try {
+        $ch = curl_init("https://www.bon-bast.com/");
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $html_read = curl_exec($ch);
+        curl_close($ch);
+        if ($html_read) {
+            preg_match('/<span>\s*([\d,]+)\s*<\/span>/', $html_read, $matches);
+            if (!empty($matches[1])) {
+                $requestsusd = str_replace(',', '', $matches[1]);
+            }
+        }
+    } catch (\Throwable $e) {}
+
+    $arze_rate = ['USD' => intval($requestsusd)];
+
+    try {
+        $ch = curl_init('https://api.diadata.org/v1/assetQuotation/Ton/0x0000000000000000000000000000000000000000');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $res = curl_exec($ch);
+        curl_close($ch);
+        $requests_ton = json_decode((string)$res, true);
+        if ($requests_ton && isset($requests_ton['Price'])) {
+            $arze_rate['Ton'] = intval($requests_ton['Price'] * $arze_rate['USD']);
+        } else {
+            $cg = json_decode(@file_get_contents('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd'), true);
+            $ton_usd = $cg['the-open-network']['usd'] ?? 5;
+            $arze_rate['Ton'] = intval($ton_usd * $arze_rate['USD']);
+        }
+    } catch (\Throwable $e) {
+        $arze_rate['Ton'] = intval(5 * $arze_rate['USD']);
     }
-    return $decoded['result'];
+
+    return $arze_rate;
 }
 function updatePaymentMessageId($response, $orderId)
 {
@@ -2461,6 +2505,26 @@ function sendMessageService($panel_info, $config, $sub_link, $username_service, 
     if (isTelegramChatIdEmpty($user_id)) {
         return;
     }
+    if (!empty($sub_link) && filter_var($sub_link, FILTER_VALIDATE_URL)) {
+        $markup_arr = is_string($reply_markup) ? json_decode($reply_markup, true) : (is_array($reply_markup) ? $reply_markup : null);
+        if (is_array($markup_arr) && isset($markup_arr['inline_keyboard'])) {
+            $hasFastConnect = false;
+            foreach ($markup_arr['inline_keyboard'] as $row) {
+                foreach ($row as $btn) {
+                    if (isset($btn['text']) && (strpos($btn['text'], 'اتصال سریع') !== false || strpos($btn['text'], 'Fast Connect') !== false)) {
+                        $hasFastConnect = true;
+                        break 2;
+                    }
+                }
+            }
+            if (!$hasFastConnect) {
+                array_unshift($markup_arr['inline_keyboard'], [
+                    ['text' => "🔗 اتصال سریع", 'url' => trim($sub_link)]
+                ]);
+                $reply_markup = json_encode($markup_arr);
+            }
+        }
+    }
     $STATUS_SEND_MESSAGE_PHOTO = $panel_info['config'] == "onconfig" && (is_array($config) ? count($config) : 0) != 1 ? false : true;
     $out_put_qrcode = "";
     if ($panel_info['sublink'] == "onsublink" && $panel_info['config']) {
@@ -2804,4 +2868,27 @@ function mirzaEnsureInstallerRemoved()
     if (!mirzaRemoveInstallerPath($installerDirectory)) {
         mirzaStopForInstaller('Mirza install folder still exists and could not be removed automatically; delete it manually to enable the bot.');
     }
+}
+
+function stripSubPath($url)
+{
+    if (empty($url) || !is_string($url)) {
+        return $url;
+    }
+    return preg_replace('#^(https?://[^/]+)/sub/#i', '$1/', $url);
+}
+
+function applyStripSub($panel, $subscription_url)
+{
+    if (empty($subscription_url) || !is_string($subscription_url)) {
+        return $subscription_url;
+    }
+    if (
+        is_array($panel) &&
+        isset($panel['type']) && $panel['type'] === 'marzban' &&
+        isset($panel['strip_sub']) && $panel['strip_sub'] === 'onstripsub'
+    ) {
+        return stripSubPath($subscription_url);
+    }
+    return $subscription_url;
 }

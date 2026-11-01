@@ -366,10 +366,31 @@ if (intval($paymentsstartelegram) == 1) {
         ['text' => $textbotlang['textbot']['starTelegram'], 'callback_data' => "startelegrams"]
     ];
 }
+$statustonoffline = getPaySettingValue("statustonoffline");
+if ($statustonoffline == "ontonoffline") {
+    $nametonoffline = getPaySettingValue("nametonoffline", "💎 TON آفلاین");
+    if (empty($nametonoffline)) {
+        $nametonoffline = "💎 TON آفلاین";
+    }
+    $step_payment['inline_keyboard'][] = [
+        ['text' => $nametonoffline, 'callback_data' => "tonoffline"]
+    ];
+}
 $step_payment['inline_keyboard'][] = [
-    ['text' => $textbotlang['keyboard']['closeList'], 'callback_data' => "colselist"]
+    ['text' => $textbotlang['keyboard']['closeList'], 'callback_data' => "colselist", 'style' => 'danger']
 ];
 $step_payment = json_encode($step_payment);
+$tonoffline_keyboard = json_encode([
+    'keyboard' => [
+        [['text' => "🗂 نام درگاه TON آفلاین"]],
+        [['text' => "💳 آدرس ولت TON"]],
+        [['text' => "💰 کش بک TON آفلاین"]],
+        [['text' => "⬇️ حداقل مبلغ TON آفلاین"], ['text' => "⬆️ حداکثر مبلغ TON آفلاین"]],
+        [['text' => "📚 تنظیم آموزش TON آفلاین"]],
+        [['text' => $textbotlang['Admin']['backAdminBtn'], 'style' => 'danger'], ['text' => $textbotlang['Admin']['backMenuBtn'], 'style' => 'danger']],
+    ],
+    'resize_keyboard' => true
+]);
 $keyboardhelpadmin = json_encode([
     'keyboard' => [
         [['text' => $textbotlang['keyboard']['addEducation']], ['text' => $textbotlang['keyboard']['deleteEducation']]],
@@ -1520,6 +1541,15 @@ $nowpayment_setting_keyboard = json_encode([
         [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
     ]
 ]);
+$tonoffline_inline_keyboard = json_encode([
+    'inline_keyboard' => [
+        [['text' => "🗂 نام درگاه", 'callback_data' => "paygwopt-tonofflineName"], ['text' => "💳 آدرس ولت TON", 'callback_data' => "paygwopt-tonofflineWallet"]],
+        [['text' => "💰 کش‌بک", 'callback_data' => "paygwopt-tonofflineCashback"]],
+        [['text' => "⬇️ حداقل مبلغ", 'callback_data' => "paygwopt-tonofflineMin"], ['text' => "⬆️ حداکثر مبلغ", 'callback_data' => "paygwopt-tonofflineMax"]],
+        [['text' => "📚 آموزش پرداخت", 'callback_data' => "paygwopt-tonofflineEdu"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
+]);
 $paymentGateways = [
     'card' => ['label' => $textbotlang['keyboard']['cartToCartGateway'], 'setting' => 'Cartstatus', 'on' => 'oncard', 'off' => 'offcard', 'keyboard' => $CartManage],
     'plisio' => ['label' => 'Plisio', 'setting' => 'nowpaymentstatus', 'on' => 'onnowpayment', 'off' => 'offnowpayment', 'keyboard' => $NowPaymentsManage],
@@ -1532,6 +1562,7 @@ $paymentGateways = [
     'zarinpal' => ['label' => $textbotlang['keyboard']['zarinPalGateway'], 'setting' => 'zarinpalstatus', 'on' => 'onzarinpal', 'off' => 'offzarinpal', 'keyboard' => $keyboardzarinpal],
     'variza' => ['label' => $textbotlang['keyboard']['varizaGateway'], 'setting' => 'variza_status', 'on' => 'onvariza', 'off' => 'offvariza', 'keyboard' => $keyboardvariza],
     'digi' => ['label' => $textbotlang['keyboard']['cryptoOfflinePayment'], 'setting' => 'digistatus', 'on' => 'ondigi', 'off' => 'offdigi', 'keyboard' => $tronnowpayments],
+    'tonoffline' => ['label' => '💎 TON آفلاین', 'setting' => 'statustonoffline', 'on' => 'ontonoffline', 'off' => 'offtonoffline', 'keyboard' => $tonoffline_inline_keyboard],
     'star' => ['label' => 'Star Telegram', 'setting' => 'statusstar', 'on' => '1', 'off' => '0', 'keyboard' => $Startelegram],
 ];
 function paymentGatewaysKeyboard()
