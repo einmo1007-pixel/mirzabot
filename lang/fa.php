@@ -3724,7 +3724,7 @@ f,n.n2',
                 'selectLocation' => '📌 نوع سرویس را انتخاب نمایید .',
                 'sell' => 'خرید سرویس 🛍',
                 'starTelegram' => '💫 استارز تلگرام',
-                'support' => 'راهنمای مشکلات ❓',
+                'support' => 'راهنمای مشکلات 📬',
                 'tariffList' => 'آیدی من 🆔',
                 'tariffListDesc' => '⁣',
                 'testExpired' => 'سلام به شما کاربر عزیز!
