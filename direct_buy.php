@@ -158,7 +158,8 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
         'inline_keyboard' => [[['text' => $textbotlang['users']['help']['btninlinebuy'], 'callback_data' => "helpbtn"]]]
     ]);
     
-    sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $usertestinfo, $textcreatuser, $invoice_rand_id);
+    $sub_link_direct = (!empty($dataoutput['subscription_url']) && filter_var($dataoutput['subscription_url'], FILTER_VALIDATE_URL)) ? $dataoutput['subscription_url'] : $output_config_link;
+    sendMessageService($marzban_list_get, $dataoutput['configs'], $sub_link_direct, $dataoutput['username'], $usertestinfo, $textcreatuser, $invoice_rand_id);
     sendmessage($from_id, "✅ سرویس تست شما با موفقیت فعال شد.", $keyboard, 'HTML');
     step('home', $from_id);
     

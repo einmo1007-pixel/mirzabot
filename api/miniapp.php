@@ -1076,7 +1076,8 @@ function mini_purchase(array $data, string $method): void
     $textcreatuser = str_replace('{config}', "<code>{$output_config_link}</code>", $textcreatuser);
     $textcreatuser = str_replace('{links}', $config, $textcreatuser);
     $textcreatuser = str_replace('{links2}', $output_config_link, $textcreatuser);
-    sendMessageService($panel, $dataoutput['configs'] ?? null, $output_config_link, $user_info['username'], null, $textcreatuser, $randomString, $user_info['id'], __DIR__ . '/../images.jpg', wireguard: $dataoutput['wireguard'] ?? []);
+    $sub_link_miniapp = (!empty($dataoutput['subscription_url']) && filter_var($dataoutput['subscription_url'], FILTER_VALIDATE_URL)) ? $dataoutput['subscription_url'] : $output_config_link;
+    sendMessageService($panel, $dataoutput['configs'] ?? null, $sub_link_miniapp, $user_info['username'], null, $textcreatuser, $randomString, $user_info['id'], __DIR__ . '/../images.jpg', wireguard: $dataoutput['wireguard'] ?? []);
     if (in_array(usernameMethodKey($panel['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
         $value = intval($user_info['number_username']) + 1;
         update("user", "number_username", $value, "id", $user_info['id']);
