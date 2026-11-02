@@ -516,7 +516,7 @@ return [
                         'pointsEarned2Alt' => '📌您获得了 2 个新积分。',
                         'pointsEarned1Alt' => '📌您获得了 1 个新积分。',
                         'accountScore' => '🥅 您的账户积分：{score}',
-                        'defaultBanner' => "🛡 专属高速连接服务\n畅享无限制自由网络，保障超高稳定性。\n\n⚡️ 立即获取测试账号体验真实网速：\n🔗 {bot}",
+                        'defaultBanner' => '邀请好友加入机器人即可赚取收益，并畅享我们的服务！',
                         'notReferral' => '📛 您不是任何用户的下线。',
                         'joinedGift' => '🎉 有人通过您的推荐加入了！礼品已充值到您的账户。',
                         'joinGiftActivated' => '🎉 会员礼品已为您激活！',
@@ -1574,20 +1574,20 @@ n2',
                         'panelSelected' => '✅ 面板选择成功',
                 ],
                 'affiliates' => [
-                        'askBanner' => "⭕️ 请发送推荐横幅或文本：
+                        'askBanner' => "🖼 <b>推荐横幅设置</b>
 
-▫️ 发送带文案的图片：同时更新图片和文本。
-▫️ 仅发送文本：更新文本（保留原图片）。
-▫️ 仅发送图片：更新图片（保留原文案）。
+请发送横幅文本或图片：
+▫️ <b>发送文本：</b>设置横幅文本。
+▫️ <b>发送图片：</b>设置横幅图片（可附带说明）。
 
-💡 您可以在文本中使用 {link} 或 {bot} 来插入动态推荐链接。",
+💡 <i>机器人用户名和专属推荐链接将自动添加到横幅末尾。</i>",
                         'invalidBanner' => '❌ 发送的内容无效。请发送文本或图片。',
                         'bannerPhotoRemoved' => '✅ 横幅图片已删除。',
                         'bannerTextReset' => '✅ 横幅文字已恢复默认。',
-                        'bannerStatusReport' => "\n\n<b>📊 当前横幅状态：</b>\n• 图片：%s\n• 横幅文字：\n<i>%s</i>",
+                        'bannerStatusReport' => "\n\n<b>📊 当前状态：</b>\n• 图片：%s\n• 文本：<i>%s</i>",
                         'hasPhoto' => '有 🖼',
                         'noPhoto' => '无 ❌',
-                        'defaultDesc' => '机器人默认',
+                        'defaultDesc' => '默认文本',
                         'askJoinGift' => '📌 请输入您希望用户每次新增下线时获得的金额',
                         'settingsTitle' => "🎁 <b>推荐设置</b>\n\n• 🎁 购买后佣金：%s\n• 🎉 佣金：%s\n• 🧮 佣金比例：%s\n• 🎁 启动礼物：%s\n• 💎 启动礼物金额：%s 托曼\n\n📌 点击项目左侧按钮进行修改。",
                         'invalidNumber' => "❌ 数值必须是数字。",

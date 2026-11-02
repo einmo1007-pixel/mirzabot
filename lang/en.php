@@ -516,7 +516,7 @@ Use the button below to pay👇🏻',
                         'pointsEarned2Alt' => '📌You earned 2 new points.',
                         'pointsEarned1Alt' => '📌You earned 1 new point.',
                         'accountScore' => '🥅 Your account score: {score}',
-                        'defaultBanner' => "🛡 Dedicated High-Speed Services\nFreedom to connect with maximum stability and uptime.\n\n⚡️ Check out our speed with a test account:\n🔗 {bot}",
+                        'defaultBanner' => 'Earn income and enjoy our services by inviting your friends to the bot!',
                         'notReferral' => '📛 You are not referred by any user.',
                         'joinedGift' => '🎉 Someone joined through your referral! The gift was credited to your account.',
                         'joinGiftActivated' => '🎉 The membership gift was activated for you!',
@@ -1574,20 +1574,20 @@ Number of products sold: %s
                         'panelSelected' => '✅ Panel selected successfully',
                 ],
                 'affiliates' => [
-                        'askBanner' => "⭕️ Please send the referral banner or text:
+                        'askBanner' => "🖼 <b>Referral Banner Settings</b>
 
-▫️ Photo with caption: Updates both image and text.
-▫️ Text only: Updates the text (keeps previous image).
-▫️ Photo only: Updates the image (keeps previous text).
+Please send the banner text or photo:
+▫️ <b>Send text:</b> Sets the banner text.
+▫️ <b>Send photo:</b> Sets the banner photo (with or without caption).
 
-💡 You can use {link} or {bot} in the text for dynamic referral links.",
-                        'invalidBanner' => '❌ Invalid content. Please send a text or an image.',
+💡 <i>The referral link and bot ID will be automatically added to the end of the banner.</i>",
+                        'invalidBanner' => '❌ Invalid content sent. Please send text or a banner image.',
                         'bannerPhotoRemoved' => '✅ Banner image removed.',
                         'bannerTextReset' => '✅ Banner text reset to default.',
-                        'bannerStatusReport' => "\n\n<b>📊 Current banner status:</b>\n• Image: %s\n• Banner text:\n<i>%s</i>",
+                        'bannerStatusReport' => "\n\n<b>📊 Current Status:</b>\n• Photo: %s\n• Text: <i>%s</i>",
                         'hasPhoto' => 'Yes 🖼',
                         'noPhoto' => 'No ❌',
-                        'defaultDesc' => 'Bot default',
+                        'defaultDesc' => 'Default text',
                         'askJoinGift' => '📌 Enter the amount you want the user to receive for each new referral',
                         'settingsTitle' => "🎁 <b>Referral settings</b>\n\n• 🎁 Commission after purchase: %s\n• 🎉 Commission: %s\n• 🧮 Commission percent: %s\n• 🎁 Start gift: %s\n• 💎 Start gift amount: %s Toman\n\n📌 Tap the left button of an item to change it.",
                         'invalidNumber' => "❌ The value must be a number.",

@@ -6167,22 +6167,24 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $affiliates = select("affiliates", "*", null, null, "select");
     $clean_bot_user = ltrim($usernamebot, '@');
     $bot_target_url = "https://t.me/{$clean_bot_user}?start={$from_id}";
-    $bot_display = str_starts_with($usernamebot, '@') ? $usernamebot : '@' . $usernamebot;
+    $bot_display = '@' . $clean_bot_user;
     $bot_link_html = "<a href=\"{$bot_target_url}\">{$bot_display}</a>";
 
-    $banner_text = (!empty($affiliates['description']) && $affiliates['description'] !== 'none')
-        ? $affiliates['description']
+    $banner_content = (!empty($affiliates['description']) && $affiliates['description'] !== 'none')
+        ? trim($affiliates['description'])
         : $textbotlang['users']['affiliates']['defaultBanner'];
 
-    $banner_text = str_replace(
+    $banner_content = str_replace(
         ['{link}', '{url}', '{bot}', '{username}', '{usernamebot}', '{id}'],
-        [$bot_target_url, $bot_target_url, $bot_link_html, $bot_link_html, $bot_link_html, $from_id],
-        $banner_text
+        ['', '', '', '', '', ''],
+        $banner_content
     );
-
-    if (!str_contains($banner_text, $bot_target_url)) {
-        $banner_text .= "\n\n🔗 " . $bot_link_html;
+    $banner_content = trim($banner_content);
+    if (empty($banner_content)) {
+        $banner_content = $textbotlang['users']['affiliates']['defaultBanner'];
     }
+
+    $banner_text = $banner_content . "\n\n🔗 " . $bot_link_html;
 
     if (!empty($affiliates['id_media']) && strlen($affiliates['id_media']) >= 5 && $affiliates['id_media'] !== 'none') {
         telegram('sendphoto', [
