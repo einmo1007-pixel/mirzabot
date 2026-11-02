@@ -144,11 +144,9 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
     }
 
     // دریافت و جایگذاری متن نهایی
-    $text_key = ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik") ? "textafterpayibsng" : "textaftertext";
-    $stmtText = $pdo->prepare("SELECT text FROM textbot WHERE id_text = :id_text LIMIT 1");
-    $stmtText->execute([':id_text' => $text_key]);
-    $resText = $stmtText->fetch(PDO::FETCH_ASSOC);
-    $template_text = ($resText) ? $resText['text'] : "✅ سرویس شما ایجاد شد\nUser: {username}\nLink: {links2}";
+    $template_text = ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik")
+        ? ($textbotlang['textbot']['afterPayIbsng'] ?? "✅ سرویس شما ایجاد شد\nUser: {username}\nLink: {links2}")
+        : ($textbotlang['textbot']['afterText'] ?? "✅ سرویس شما ایجاد شد\nUser: {username}\nLink: {links2}");
 
     $textcreatuser = str_replace(['{username}', '{name_service}', '{location}', '{day}', '{volume}', '{config}', '{links}', '{links2}'], 
                                 [$dataoutput['username'], "تست", $marzban_list_get['name_panel'], $marzban_list_get['time_usertest'], $marzban_list_get['val_usertest'], "<code>{$output_config_link}</code>", $config, $output_config_link], 
