@@ -1213,7 +1213,8 @@ function DirectPayment($order_id, $image = 'images.jpg')
             $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
             update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $get_invoice['id_invoice']);
         }
-        sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $get_invoice['id_invoice'], $get_invoice['id_user'], $image, wireguard: $dataoutput['wireguard'] ?? []);
+        $sub_link_verified = (!empty($dataoutput['subscription_url']) && filter_var($dataoutput['subscription_url'], FILTER_VALIDATE_URL)) ? $dataoutput['subscription_url'] : $output_config_link;
+        sendMessageService($marzban_list_get, $dataoutput['configs'], $sub_link_verified, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $get_invoice['id_invoice'], $get_invoice['id_user'], $image, wireguard: $dataoutput['wireguard'] ?? []);
         $partsdic = explode("_", $Balance_id['Processing_value_four']);
         if ($partsdic[0] == "dis") {
             $SellDiscountlimit = select("DiscountSell", "*", "codeDiscount", $partsdic[1], "select");
@@ -2505,26 +2506,56 @@ function sendMessageService($panel_info, $config, $sub_link, $username_service, 
     if (isTelegramChatIdEmpty($user_id)) {
         return;
     }
-    if (!empty($sub_link) && filter_var($sub_link, FILTER_VALIDATE_URL)) {
+    $sub_url = null;
+    if (!empty($sub_link)) {
+        $trimmed_sub = trim($sub_link);
+        if (filter_var($trimmed_sub, FILTER_VALIDATE_URL)) {
+            $sub_url = $trimmed_sub;
+        } else {
+            foreach (preg_split('/[
+\n]+/', $trimmed_sub) as $line) {
+                $line = trim($line);
+                if (filter_var($line, FILTER_VALIDATE_URL)) {
+                    $sub_url = $line;
+                    break;
+                }
+            }
+        }
+    }
+    if ($sub_url !== null) {
         $markup_arr = is_string($reply_markup) ? json_decode($reply_markup, true) : (is_array($reply_markup) ? $reply_markup : null);
         if (!is_array($markup_arr) || !isset($markup_arr['inline_keyboard'])) {
             $markup_arr = ['inline_keyboard' => []];
         }
         $hasFastConnect = false;
-        foreach ($markup_arr['inline_keyboard'] as $row) {
-            foreach ($row as $btn) {
+        foreach ($markup_arr['inline_keyboard'] as &$row) {
+            foreach ($row as &$btn) {
                 if (isset($btn['text']) && (strpos($btn['text'], 'لینک اتصال') !== false || strpos($btn['text'], 'Fast Connect') !== false)) {
                     $hasFastConnect = true;
+                    if (preg_match('/^https:\/\//i', $sub_url)) {
+                        unset($btn['url']);
+                        $btn['web_app'] = ['url' => $sub_url];
+                    } else {
+                        unset($btn['web_app']);
+                        $btn['url'] = $sub_url;
+                    }
                     break 2;
                 }
             }
         }
+        unset($row, $btn);
         if (!$hasFastConnect) {
+            $btn_connect = ['text' => "🔗 لینک اتصال"];
+            if (preg_match('/^https:\/\//i', $sub_url)) {
+                $btn_connect['web_app'] = ['url' => $sub_url];
+            } else {
+                $btn_connect['url'] = $sub_url;
+            }
             array_unshift($markup_arr['inline_keyboard'], [
-                ['text' => "🔗 لینک اتصال", 'url' => trim($sub_link)]
+                $btn_connect
             ]);
-            $reply_markup = json_encode($markup_arr);
         }
+        $reply_markup = json_encode($markup_arr);
     }
     $STATUS_SEND_MESSAGE_PHOTO = $panel_info['config'] == "onconfig" && (is_array($config) ? count($config) : 0) != 1 ? false : true;
     $out_put_qrcode = "";

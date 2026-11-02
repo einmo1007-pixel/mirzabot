@@ -1253,12 +1253,22 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
 {$textbotlang['users']['status']['linksub']}
            
 <code>$subscriptionurl</code>";
+        $sub_buttons = [];
+        $clean_sub = trim((string) $subscriptionurl);
+        if (!empty($clean_sub) && filter_var($clean_sub, FILTER_VALIDATE_URL)) {
+            $sub_btn = ['text' => "🔗 لینک اتصال"];
+            if (preg_match('/^https:\/\//i', $clean_sub)) {
+                $sub_btn['web_app'] = ['url' => $clean_sub];
+            } else {
+                $sub_btn['url'] = $clean_sub;
+            }
+            $sub_buttons[] = [$sub_btn];
+        }
+        $sub_buttons[] = [
+            ['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => "productcheckdata"],
+        ];
         $bakinfos = json_encode([
-            'inline_keyboard' => [
-                [
-                    ['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => "productcheckdata"],
-                ]
-            ]
+            'inline_keyboard' => $sub_buttons
         ]);
         update("user", "Processing_value", $nameloc['username'], "id", $from_id);
         $subscriptionurl = $DataUserOut['subscription_url'];
@@ -3176,7 +3186,8 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
         update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $randomString);
     }
-    sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $usertestinfo, $textcreatuser, $randomString, wireguard: $dataoutput['wireguard'] ?? []);
+    $sub_link_test = (!empty($dataoutput['subscription_url']) && filter_var($dataoutput['subscription_url'], FILTER_VALIDATE_URL)) ? $dataoutput['subscription_url'] : $output_config_link;
+    sendMessageService($marzban_list_get, $dataoutput['configs'], $sub_link_test, $dataoutput['username'], $usertestinfo, $textcreatuser, $randomString, wireguard: $dataoutput['wireguard'] ?? []);
     sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
     step('home', $from_id);
     if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
@@ -4210,7 +4221,8 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
         update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $randomString);
     }
-    sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $randomString, wireguard: $dataoutput['wireguard'] ?? []);
+    $sub_link_buy = (!empty($dataoutput['subscription_url']) && filter_var($dataoutput['subscription_url'], FILTER_VALIDATE_URL)) ? $dataoutput['subscription_url'] : $output_config_link;
+    sendMessageService($marzban_list_get, $dataoutput['configs'], $sub_link_buy, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $randomString, wireguard: $dataoutput['wireguard'] ?? []);
     sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
     if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
         $value = intval($user['number_username']) + 1;
@@ -4759,7 +4771,8 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $textcreatuser = str_replace('{config}', "<code>{$output_config_link}</code>", $textcreatuser);
         $textcreatuser = str_replace('{links}', "<code>{$config}</code>", $textcreatuser);
         $textcreatuser = str_replace('{links2}', "{$output_config_link}", $textcreatuser);
-        sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $randomString, wireguard: $dataoutput['wireguard'] ?? []);
+        $sub_link_bulk = (!empty($dataoutput['subscription_url']) && filter_var($dataoutput['subscription_url'], FILTER_VALIDATE_URL)) ? $dataoutput['subscription_url'] : $output_config_link;
+        sendMessageService($marzban_list_get, $dataoutput['configs'], $sub_link_bulk, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $randomString, wireguard: $dataoutput['wireguard'] ?? []);
     }
     sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
     $balanceformatsell = number_format(select("user", "Balance", "id", $from_id, "select")['Balance'], 0);
