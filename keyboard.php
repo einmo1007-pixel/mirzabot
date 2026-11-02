@@ -1653,7 +1653,7 @@ $keyboard_stat = json_encode([
 ]);
 function keyboard_list_text($lang)
 {
-    global $textbotlang;
+    global $textbotlang, $setting;
     $keyboard_text = ['inline_keyboard' => []];
     $keyboard_list_text = $textbotlang['bottext']['items'];
     $keyboard_text['inline_keyboard'][] = [
@@ -1662,8 +1662,25 @@ function keyboard_list_text($lang)
         ['text' => ($lang == 'ru' ? "✅" : "") . $textbotlang['bottext']['langs']['ru'], 'callback_data' => "bt_lang:ru"],
         ['text' => ($lang == 'zh' ? "✅" : "") . $textbotlang['bottext']['langs']['zh'], 'callback_data' => "bt_lang:zh"],
     ];
+
+    $raw = is_array($setting) ? ($setting['text_edit'] ?? null) : null;
+    if ($raw === null) {
+        $row = select("setting", "text_edit", null, null, "select");
+        $raw = is_array($row) ? ($row['text_edit'] ?? null) : null;
+    }
+    $map = (is_string($raw) && $raw !== '') ? json_decode($raw, true) : [];
+    $langOverrides = is_array($map) ? ($map[$lang] ?? []) : [];
+
+    $overrideFile = __DIR__ . '/lang/override/' . $lang . '.php';
+    $fileOverrides = (is_file($overrideFile) && is_array($fo = include $overrideFile)) ? $fo : [];
+
     foreach ($keyboard_list_text as $data) {
-        $keyboard_text['inline_keyboard'][] = [['text' => $data['label'], 'callback_data' => "bt_edit|$lang|{$data['key']}"]];
+        $parts = explode('.', $data['key']);
+        $p0 = $parts[0] ?? '';
+        $p1 = $parts[1] ?? '';
+        $isOverridden = isset($langOverrides[$p0][$p1]) || isset($fileOverrides[$p0][$p1]);
+        $prefix = $isOverridden ? "🟢 " : "";
+        $keyboard_text['inline_keyboard'][] = [['text' => $prefix . $data['label'], 'callback_data' => "bt_edit|$lang|{$data['key']}"]];
     }
     $keyboard_text['inline_keyboard'][] = [['text' => $textbotlang['bottext']['btn_close'], 'callback_data' => 'bt_close']];
     return json_encode($keyboard_text);

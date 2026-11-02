@@ -9600,7 +9600,9 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
         sendmessage($from_id, $textbotlang['bottext']['msg_empty'], $backadmin, 'HTML');
         return;
     }
-    $bt_map = (isset($setting['text_edit']) && $setting['text_edit']) ? json_decode($setting['text_edit'], true) : [];
+    $latest_setting = select("setting", "text_edit", null, null, "select");
+    $raw_text_edit = is_array($latest_setting) ? ($latest_setting['text_edit'] ?? null) : ($setting['text_edit'] ?? null);
+    $bt_map = (is_string($raw_text_edit) && $raw_text_edit !== '') ? json_decode($raw_text_edit, true) : [];
     if (!is_array($bt_map)) {
         $bt_map = [];
     }
@@ -9619,7 +9621,11 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
     } else {
         $bt_map[$bt_lang][$bt_p0][$bt_p1] = $bt_new;
     }
-    update("setting", "text_edit", empty($bt_map) ? null : json_encode($bt_map, JSON_UNESCAPED_UNICODE), null, null);
+    $new_json = empty($bt_map) ? null : json_encode($bt_map, JSON_UNESCAPED_UNICODE);
+    update("setting", "text_edit", $new_json, null, null);
+    if (isset($setting) && is_array($setting)) {
+        $setting['text_edit'] = $new_json;
+    }
     step('home', $from_id);
     $textbotlang = languagechange();
     $bt_home = strtr($textbotlang['bottext']['home_text'], ['{lang}' => $textbotlang['bottext']['langs'][$bt_lang] ?? $bt_lang]);

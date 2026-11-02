@@ -61,7 +61,7 @@ return [
         timeauto_not_verify varchar(20) NOT NULL,
         status_keyboard_config varchar(20) NULL,
         cron_status TEXT NOT NULL,
-        text_edit JSON NULL,
+        text_edit LONGTEXT NULL,
         limitnumber varchar(200) NULL,
         webhook_secret varchar(200) NOT NULL DEFAULT '',
         api_token varchar(200) NOT NULL DEFAULT ''
@@ -158,7 +158,7 @@ return [
         ['timeauto_not_verify', '4', 'varchar(20)'],
         ['status_keyboard_config', '1', 'varchar(20)'],
         ['cron_status', $cronStatus, 'TEXT'],
-        ['text_edit', '{}', 'JSON'],
+        ['text_edit', null, 'LONGTEXT'],
         ['webhook_secret', null, "VARCHAR(200) NOT NULL DEFAULT ''"],
         ['api_token', null, "VARCHAR(200) NOT NULL DEFAULT ''"],
         ['alert_balance', '0', 'VARCHAR(10)'],
