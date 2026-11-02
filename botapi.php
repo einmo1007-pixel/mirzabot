@@ -155,10 +155,6 @@ function customEmojiBlocked($token = null, $block = false)
 }
 function telegram($method, $datas = [], $token = null, $allowEmojiFallback = true)
 {
-    if (isset($GLOBALS['telegram_mock_handler']) && is_callable($GLOBALS['telegram_mock_handler'])) {
-        return ($GLOBALS['telegram_mock_handler'])($method, $datas, $token);
-    }
-
     global $APIKEY;
 
     $token = $token === null ? $APIKEY : $token;
