@@ -3489,7 +3489,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         'n2' => $textbotlang['common']['roles']['advancedAgentAlt'],
     ][$user['agent']];
     $userjoin = jdate('Y/m/d H:i:s', $user['register']);
-    $numberphone = ($user['number'] == "none" || empty($user['number'])) ? "ثبت نشده" : $user['number'];
+    $numberphone = ($user['number'] == "none" || empty($user['number'])) ? $textbotlang['common']['labels']['notSent'] : $user['number'];
     if (intval($setting['scorestatus']) == 1) {
         $textscore = strtr($textbotlang['users']['affiliates']['accountScore'], ['{score}' => $user['score']]);
     } else {

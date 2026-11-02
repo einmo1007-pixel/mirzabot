@@ -44,7 +44,7 @@ if (!isset($reporttest)) {
 if (isset($text) && strpos($text, "/start usertest") === 0) {
     
     if (!check_active_btn($setting['keyboardmain'], "text_usertest")) {
-        sendmessage($from_id, "📌 سرویس تست در حال حاضر در دسترس نیست .", null, 'HTML');
+        sendmessage($from_id, $textbotlang['users']['usertest']['unavailable'], null, 'HTML');
         return;
     }
 
@@ -100,7 +100,7 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
     $stmt = $pdo->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username, time_sell, Service_location, name_product, price_product, Volume, Service_time, Status, notifctions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     
     $Status = "active";
-    $p_name = "سرویس تست";
+    $p_name = $textbotlang['common']['labels']['testServiceName'];
     $p_price = "0";
     
     $stmt->execute([$from_id, $invoice_rand_id, $username_ac, $date, $marzban_list_get['name_panel'], $p_name, $p_price, $marzban_list_get['val_usertest'], $marzban_list_get['time_usertest'], $Status, $notifctions]);
@@ -135,7 +135,7 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
     
     $sub_link_direct = (!empty($dataoutput['subscription_url']) && filter_var($dataoutput['subscription_url'], FILTER_VALIDATE_URL)) ? $dataoutput['subscription_url'] : $output_config_link;
     sendMessageService($marzban_list_get, $dataoutput['configs'], $sub_link_direct, $dataoutput['username'], $usertestinfo, $textcreatuser, $invoice_rand_id);
-    sendmessage($from_id, "✅ سرویس تست شما با موفقیت فعال شد.", $keyboard, 'HTML');
+    sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
     step('home', $from_id);
     
     if (strlen($setting['Channel_Report']) > 0 && !empty($reporttest)) {
@@ -155,7 +155,7 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
             'message_thread_id' => $reporttest,
             'text' => $text_report,
             'parse_mode' => "HTML",
-            'reply_markup' => json_encode(['inline_keyboard' => [[['text' => 'مدیریت کاربر', 'callback_data' => 'manageuser_' . $from_id]]]])
+            'reply_markup' => json_encode(['inline_keyboard' => [[['text' => $textbotlang['Admin']['manageUser']['manageUserBtn'], 'callback_data' => 'manageuser_' . $from_id]]]])
         ]);
     }
     return; 
@@ -172,7 +172,7 @@ if (isset($text) && strpos($text, "/start buy_") === 0) {
         $marzban_panel = select("marzban_panel", "*", "code_panel", $req_panel_code, "select");
         
         if (!$marzban_panel) {
-            sendmessage($from_id, "❌ خطا: پنل با کد $req_panel_code پیدا نشد.", null, 'HTML');
+            sendmessage($from_id, $textbotlang['users']['sell']['panelMissing'], null, 'HTML');
             return;
         }
 
@@ -181,7 +181,7 @@ if (isset($text) && strpos($text, "/start buy_") === 0) {
         $info_product = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$info_product) {
-            sendmessage($from_id, "❌ خطا: محصول با کد $req_product_code پیدا نشد.", null, 'HTML');
+            sendmessage($from_id, $textbotlang['users']['sell']['productNotFound'], null, 'HTML');
             return;
         }
 
@@ -217,29 +217,33 @@ if (isset($text) && strpos($text, "/start buy_") === 0) {
             $stmt = $pdo->prepare($sql);
             $stmt->execute(['payment', $json_data, $req_product_code, $username_ac, "1", $from_id]);
         } catch (Exception $e) {
-            sendmessage($from_id, "❌ خطای سیستم: " . $e->getMessage(), null, 'HTML');
+            sendmessage($from_id, $textbotlang['common']['erroroccurred'], null, 'HTML');
             return;
         }
 
-        if ($info_product['Volume_constraint'] == 0) $info_product['Volume_constraint'] = "نامحدود";
-        if ($info_product['Service_time'] == 0) $info_product['Service_time'] = "نامحدود";
+        if (intval($info_product['Volume_constraint']) == 0) $info_product['Volume_constraint'] = $textbotlang['users']['status']['unlimited'];
+        if (intval($info_product['Service_time']) == 0) $info_product['Service_time'] = $textbotlang['users']['status']['unlimited'];
         
         $price_show = number_format($priceproduct);
+        $userBalance = number_format($user['Balance'] ?? 0);
         
-        $textin = "
-📇 <b>پیش فاکتور خرید سریع:</b>
-
-👤 نام کاربری سرویس: <code>$username_ac</code>
-🔐 نام محصول: {$info_product['name_product']}
-📆 مدت اعتبار: {$info_product['Service_time']} روز
-👥 حجم: {$info_product['Volume_constraint']} گیگ
-💶 قیمت نهایی: $price_show تومان
-
-💳 <b>جهت دریافت شماره کارت و پرداخت، دکمه زیر را بزنید:</b>";
+        $replacements = [
+            '{username}' => $username_ac,
+            '{name_product}' => $info_product['name_product'],
+            '{Service_time}' => $info_product['Service_time'],
+            '{note}' => $info_product['note'] ?? '',
+            '{price}' => $price_show,
+            '{Volume}' => $info_product['Volume_constraint'],
+            '{userBalance}' => $userBalance
+        ];
+        $textin = strtr($textbotlang['textbot']['preInvoice'], $replacements);
+        if (intval($info_product['Volume_constraint']) == 0) {
+            $textin = str_replace($textbotlang['common']['units']['gb'], "", $textin);
+        }
 
         $payment_keyboard = json_encode([
             'inline_keyboard' => [
-                [['text' => "💳 پرداخت و دریافت سرویس", 'callback_data' => "direct_pay_start"]],
+                [['text' => $textbotlang['keyboard']['payAndGetService'], 'callback_data' => "direct_pay_start"]],
             ]
         ]);
 
@@ -256,7 +260,7 @@ if (isset($datain) && $datain == "direct_pay_start") {
 
     $saved_product_code = isset($freshUser['Processing_value_one']) ? $freshUser['Processing_value_one'] : '';
     if (empty($saved_product_code)) {
-        sendmessage($from_id, "❌ خطا: اطلاعات محصول یافت نشد. لطفاً مجدداً از لینک استفاده کنید.", null, 'HTML');
+        sendmessage($from_id, $textbotlang['users']['sell']['productNotFound'], null, 'HTML');
         return;
     }
 
@@ -278,7 +282,7 @@ if (isset($datain) && $datain == "direct_pay_start") {
     $info_product = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$info_product) {
-        sendmessage($from_id, "❌ خطا: محصول یافت نشد.", null, 'HTML');
+        sendmessage($from_id, $textbotlang['users']['sell']['productNotFound'], null, 'HTML');
         return;
     }
 
@@ -340,16 +344,21 @@ if (isset($datain) && $datain == "direct_pay_start") {
         $Payment_Method = "cart to cart";
         $stmtPay->execute([$from_id, $randomStringOrder, $dateacc, $payable_amount, $payment_Status, $Payment_Method, $invoice_ref]);
 
-        $textcart = "💳 <b>اطلاعات جهت واریز:</b>\n\n🔹 شماره کارت:\n<code>$card_number</code>\n🔹 به نام: <b>$PaySettingname</b>\n\n💰 مبلغ قابل پرداخت: <b>$valueprice تومان</b>\n\n📸 لطفاً پس از واریز، دکمه زیر را زده و <b>تصویر رسید</b> خود را ارسال کنید.";
+        $replacements = [
+            '{price}' => $valueprice,
+            '{card_number}' => $card_number,
+            '{name_card}' => $PaySettingname,
+        ];
+        $textcart = strtr($textbotlang['textbot']['cart'], $replacements);
         
         $sendresidcart = json_encode([
             'inline_keyboard' => [
                 [
-                    ['text' => "کپی کارت", 'copy_text' => ["text" => $card_number]],
-                    ['text' => "کپی مبلغ", 'copy_text' => ["text" => $payable_amount]]
+                    ['text' => $textbotlang['keyboard']['copyCardNumber'], 'copy_text' => ["text" => $card_number]],
+                    ['text' => $textbotlang['keyboard']['copyAmount'], 'copy_text' => ["text" => $payable_amount]]
                 ],
                 [
-                    ['text' => "✅ پرداخت کردم | ارسال رسید", 'callback_data' => "sendresidcart-" . $randomStringOrder, 'style' => 'success']
+                    ['text' => $textbotlang['keyboard']['paidSendReceipt'], 'callback_data' => "sendresidcart-" . $randomStringOrder]
                 ]
             ]
         ]);
@@ -362,7 +371,7 @@ if (isset($datain) && $datain == "direct_pay_start") {
         sendmessage($from_id, $textcart, $sendresidcart, 'HTML');
         return; 
     } else {
-        sendmessage($from_id, "❌ خطایی در دریافت اطلاعات بانکی رخ داد.", null, 'HTML');
+        sendmessage($from_id, $textbotlang['users']['Balance']['noActiveCard'], null, 'HTML');
     }
 }
 ?>
