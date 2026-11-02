@@ -2895,26 +2895,3 @@ function mirzaEnsureInstallerRemoved()
         mirzaStopForInstaller('Mirza install folder still exists and could not be removed automatically; delete it manually to enable the bot.');
     }
 }
-
-function stripSubPath($url)
-{
-    if (empty($url) || !is_string($url)) {
-        return $url;
-    }
-    return preg_replace('#^(https?://[^/]+)/sub/#i', '$1/', $url);
-}
-
-function applyStripSub($panel, $subscription_url)
-{
-    if (empty($subscription_url) || !is_string($subscription_url)) {
-        return $subscription_url;
-    }
-    if (
-        is_array($panel) &&
-        isset($panel['type']) && $panel['type'] === 'marzban' &&
-        isset($panel['strip_sub']) && $panel['strip_sub'] === 'onstripsub'
-    ) {
-        return stripSubPath($subscription_url);
-    }
-    return $subscription_url;
-}

@@ -272,6 +272,7 @@ To enable it, the bot owner needs a Telegram Premium subscription, or the bot mu
                         'transactionExpired' => '❗The time for this transaction has expired and payment for this transaction is not possible.',
                         'askReceiptImage' => '🖼 Send your receipt image',
                         'askReceiptOrTron' => '📌 Send your deposit image or Tron transaction link.',
+                        'askReceiptOrTon' => '📌 Please send your receipt image or TON transaction link.',
                         'restartPurchaseOrPay' => '❌ An error occurred. Please perform the purchase or payment steps again',
                         'onlyOneImage' => '❌  You are only allowed to send one image',
                         'receiptSentRenew' => '🚀 Your receipt was sent and your service will be renewed after review',
@@ -434,6 +435,22 @@ Use the button below to pay👇🏻',
 🔹 The sent amount must not be less or more than the declared amount.
 🔹 If you deposit more than the specified amount, it is not possible to add the difference.
 🔹 Each transaction is valid for one hour; do not send any amount after the expiration message.
+
+✅ If you have any issues, you can contact support.',
+                        'transactionCreatedTon' => '✅ Your transaction has been created
+
+🛒 Tracking code: <code>%s</code>
+🌐 Network: TON
+💳 Wallet address: <code>%s</code>
+💎 TON amount: <code>%s TON</code>
+
+📌 Please deposit %s Tomans; then click the button below and send the receipt.
+
+💢 Please note these points before payment 👇
+
+🔸 If you enter the address incorrectly, the transaction will not be confirmed.
+🔹 The sent amount must not be less or more than the declared amount.
+🔹 Each transaction is valid for one hour.
 
 ✅ If you have any issues, you can contact support.',
                 ],
@@ -1565,6 +1582,12 @@ Number of products sold: %s
 
 💡 You can use {link} or {bot} in the text for dynamic referral links.",
                         'invalidBanner' => '❌ Invalid content. Please send a text or an image.',
+                        'bannerPhotoRemoved' => '✅ Banner image removed.',
+                        'bannerTextReset' => '✅ Banner text reset to default.',
+                        'bannerStatusReport' => "\n\n<b>📊 Current banner status:</b>\n• Image: %s\n• Banner text:\n<i>%s</i>",
+                        'hasPhoto' => 'Yes 🖼',
+                        'noPhoto' => 'No ❌',
+                        'defaultDesc' => 'Bot default',
                         'askJoinGift' => '📌 Enter the amount you want the user to receive for each new referral',
                         'settingsTitle' => "🎁 <b>Referral settings</b>\n\n• 🎁 Commission after purchase: %s\n• 🎉 Commission: %s\n• 🧮 Commission percent: %s\n• 🎁 Start gift: %s\n• 💎 Start gift amount: %s Toman\n\n📌 Tap the left button of an item to change it.",
                         'invalidNumber' => "❌ The value must be a number.",
@@ -1844,6 +1867,15 @@ Current key: <code>%s</code>
                         'askMerchant' => '💳 Obtain your merchant code and enter it in this section
         
 Your current merchant code: %s',
+                        'askTonWallet' => '📌 Please send the TON wallet address',
+                        'askGatewayName' => '📌 Please send the gateway name',
+                        'savedGatewayName' => '✅ Gateway name updated successfully',
+                        'savedTonWallet' => '✅ Wallet address saved successfully',
+                        'savedCashback' => '✅ Cashback percentage saved successfully',
+                        'savedMinAmount' => '✅ Minimum amount saved successfully',
+                        'savedMaxAmount' => '✅ Maximum amount saved successfully',
+                        'savedEducation' => '✅ Payment instructions saved successfully',
+                        'askEducationTon' => '📌 Please send text, image or video for TON payment tutorial',
                         'askTronWallet' => '💳 Send your Tron trc20 wallet address
         
         Your current wallet: %s',
@@ -3696,6 +3728,7 @@ After joining, click the check membership button',
                 'selectLocation' => '📌 Select the service location.',
                 'sell' => '🔐 Buy subscription',
                 'starTelegram' => '💫 Star Telegram',
+                'tonOffline' => '💎 TON Offline',
                 'support' => '☎️ Support',
                 'tariffList' => '💵 Subscription rates',
                 'tariffListDesc' => 'Not set',
@@ -3981,6 +4014,14 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'minAmountAqayePardakht' => '⬇️ Minimum Aghaye Pardakht amount',
                 'minAmountCartToCart' => '⬇️ Minimum card-to-card amount',
                 'minAmountCryptoOffline' => '⬇️ Minimum offline crypto amount',
+                'nameTonOffline' => '🗂 TON offline gateway name',
+                'walletTonOffline' => '💳 TON wallet address',
+                'cashbackTonOffline' => '💰 TON offline cashback',
+                'minAmountTonOffline' => '⬇️ Minimum TON offline amount',
+                'maxAmountTonOffline' => '⬆️ Maximum TON offline amount',
+                'educationTonOffline' => '📚 TON offline payment guide',
+                'removeBannerPhoto' => '🗑 Remove banner photo',
+                'resetBannerText' => '🔄 Reset text to default',
                 'minAmountIranPay1' => '⬇️ Minimum Rial currency amount',
                 'minAmountIranPay2' => '⬇️ Minimum CubePay amount',
                 'minAmountIranPay3' => '⬇️ Minimum third Rial currency amount',

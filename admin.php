@@ -396,7 +396,7 @@ if ($datain == "paygwback") {
                 'Currency Rial 3' => $textbotlang['textbot']['iranPay1'],
                 'paymentnotverify' => $textbotlang['textbot']['paymentNotVerify'],
                 'Star Telegram' => $textbotlang['textbot']['starTelegram'],
-                'ton offline' => 'TON آفلاین'
+                'ton offline' => $textbotlang['textbot']['tonOffline'] ?? 'TON آفلاین'
             ][$tracepay['Payment_Method']] ?? $tracepay['Payment_Method'];
             $paycount .= sprintf($textbotlang['Admin']['report']['gatewayRow'], $status_var, $tracepay['countpay'], $tracepay['sumpay']);
         }
@@ -5715,54 +5715,54 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
     array_unshift($gatewayRows, [['text' => $gatewayStatusText, 'callback_data' => "paygwtoggle-$gatewayKey"]]);
     Editmessagetext($from_id, $message_id, sprintf($textbotlang['Admin']['gateway']['detail'], $gateway['label'], $gatewayStatusText), json_encode(['inline_keyboard' => $gatewayRows]));
 } elseif ($datain == "paygwopt-tonofflineName" && $adminrulecheck['rule'] == "administrator") {
-    sendmessage($from_id, "📌 نام درگاه را ارسال نمایید", $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['gateway']['askGatewayName'], $backadmin, 'HTML');
     step("getnametonoffline", $from_id);
 } elseif ($user['step'] == "getnametonoffline") {
     update("PaySetting", "ValuePay", $text, "NamePay", "nametonoffline");
-    sendmessage($from_id, "✅ نام درگاه با موفقیت تغییر یافت", $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['gateway']['savedGatewayName'], $backadmin, 'HTML');
     step("home", $from_id);
 } elseif ($datain == "paygwopt-tonofflineWallet" && $adminrulecheck['rule'] == "administrator") {
-    sendmessage($from_id, "📌 آدرس ولت TON را ارسال نمایید", $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['gateway']['askTonWallet'], $backadmin, 'HTML');
     step("getwallettonoffline", $from_id);
 } elseif ($user['step'] == "getwallettonoffline") {
     update("PaySetting", "ValuePay", $text, "NamePay", "walletaddress_ton");
-    sendmessage($from_id, "✅ آدرس ولت با موفقیت ثبت شد", $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['gateway']['savedTonWallet'], $backadmin, 'HTML');
     step("home", $from_id);
 } elseif ($datain == "paygwopt-tonofflineCashback" && $adminrulecheck['rule'] == "administrator") {
-    sendmessage($from_id, "📌 درصد کش‌بک را به عدد وارد کنید (مثلا 5 برای 5 درصد)", $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['gateway']['askCashback'], $backadmin, 'HTML');
     step("getcashbacktonoffline", $from_id);
 } elseif ($user['step'] == "getcashbacktonoffline") {
     if (!ctype_digit($text)) {
-        sendmessage($from_id, "❌ لطفاً فقط عدد وارد کنید", $backadmin, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['affiliates']['invalidNumber'], $backadmin, 'HTML');
         return;
     }
     update("PaySetting", "ValuePay", $text, "NamePay", "cashbacktonoffline");
-    sendmessage($from_id, "✅ درصد کش‌بک با موفقیت ذخیره شد", $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['gateway']['savedCashback'], $backadmin, 'HTML');
     step("home", $from_id);
 } elseif ($datain == "paygwopt-tonofflineMin" && $adminrulecheck['rule'] == "administrator") {
-    sendmessage($from_id, "📌 حداقل مبلغ پرداختی را به تومان وارد نمایید", $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['gateway']['askMinAmount'], $backadmin, 'HTML');
     step("getminsonoffline", $from_id);
 } elseif ($user['step'] == "getminsonoffline") {
     if (!ctype_digit($text)) {
-        sendmessage($from_id, "❌ لطفاً فقط عدد وارد کنید", $backadmin, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['affiliates']['invalidNumber'], $backadmin, 'HTML');
         return;
     }
     update("PaySetting", "ValuePay", $text, "NamePay", "minbalancetonoffline");
-    sendmessage($from_id, "✅ حداقل مبلغ با موفقیت ذخیره شد", $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['gateway']['savedMinAmount'], $backadmin, 'HTML');
     step("home", $from_id);
 } elseif ($datain == "paygwopt-tonofflineMax" && $adminrulecheck['rule'] == "administrator") {
-    sendmessage($from_id, "📌 حداکثر مبلغ پرداختی را به تومان وارد نمایید", $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['gateway']['askMaxAmount'], $backadmin, 'HTML');
     step("getmaxsonoffline", $from_id);
 } elseif ($user['step'] == "getmaxsonoffline") {
     if (!ctype_digit($text)) {
-        sendmessage($from_id, "❌ لطفاً فقط عدد وارد کنید", $backadmin, 'HTML');
+        sendmessage($from_id, $textbotlang['Admin']['affiliates']['invalidNumber'], $backadmin, 'HTML');
         return;
     }
     update("PaySetting", "ValuePay", $text, "NamePay", "maxbalancetonoffline");
-    sendmessage($from_id, "✅ حداکثر مبلغ با موفقیت ذخیره شد", $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['gateway']['savedMaxAmount'], $backadmin, 'HTML');
     step("home", $from_id);
 } elseif ($datain == "paygwopt-tonofflineEdu" && $adminrulecheck['rule'] == "administrator") {
-    sendmessage($from_id, "📌 متن، تصویر یا ویدیوی آموزش پرداخت با TON را ارسال نمایید", $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['gateway']['askEducationTon'], $backadmin, 'HTML');
     step("gethelptonoffline", $from_id);
 } elseif ($user['step'] == "gethelptonoffline") {
     if ($photo) {
@@ -5773,7 +5773,7 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
         $data = ['type' => 'text', 'text' => $text];
     }
     update("PaySetting", "ValuePay", json_encode($data), "NamePay", "helptonoffline");
-    sendmessage($from_id, "✅ آموزش پرداخت با TON با موفقیت ذخیره شد", $backadmin, 'HTML');
+    sendmessage($from_id, $textbotlang['Admin']['gateway']['savedEducation'], $backadmin, 'HTML');
     step("home", $from_id);
 } elseif ($text == $textbotlang['keyboard']['cashbackCartToCart']) {
     sendmessage($from_id, $textbotlang['Admin']['price']['askPaymentCashback'], $backadmin, 'HTML');
@@ -7374,14 +7374,14 @@ elseif ($text == $textbotlang['keyboard']['hidePanelForUser'] && $adminrulecheck
         update("affiliates", "id_media", "none");
         step("home", $from_id);
         [$affiliateText, $affiliateKeyboard] = affiliateSettingsMenu();
-        Editmessagetext($from_id, $message_id, "✅ تصویر بنر حذف شد.\n\n" . $affiliateText, $affiliateKeyboard);
+        Editmessagetext($from_id, $message_id, $textbotlang['Admin']['affiliates']['bannerPhotoRemoved'] . "\n\n" . $affiliateText, $affiliateKeyboard);
         return;
     }
     if ($dataget[1] === 'resettext') {
         update("affiliates", "description", "");
         step("home", $from_id);
         [$affiliateText, $affiliateKeyboard] = affiliateSettingsMenu();
-        Editmessagetext($from_id, $message_id, "✅ متن بنر به حالت پیش‌فرض بازگردانده شد.\n\n" . $affiliateText, $affiliateKeyboard);
+        Editmessagetext($from_id, $message_id, $textbotlang['Admin']['affiliates']['bannerTextReset'] . "\n\n" . $affiliateText, $affiliateKeyboard);
         return;
     }
     [$question, $affiliateStep] = [
@@ -7392,11 +7392,11 @@ elseif ($text == $textbotlang['keyboard']['hidePanelForUser'] && $adminrulecheck
     $targetKeyboard = $affiliateFlowKeyboard;
     if ($dataget[1] === 'banner') {
         $affCurrent = select("affiliates", "*", null, null, "select");
-        $hasPhoto = (!empty($affCurrent['id_media']) && strlen($affCurrent['id_media']) >= 5 && $affCurrent['id_media'] !== 'none') ? 'دارد 🖼' : 'ندارد ❌';
+        $hasPhoto = (!empty($affCurrent['id_media']) && strlen($affCurrent['id_media']) >= 5 && $affCurrent['id_media'] !== 'none') ? $textbotlang['Admin']['affiliates']['hasPhoto'] : $textbotlang['Admin']['affiliates']['noPhoto'];
         $currentDesc = (!empty($affCurrent['description']) && $affCurrent['description'] !== 'none')
             ? $affCurrent['description']
-            : 'پیش‌فرض ربات';
-        $question .= "\n\n<b>📊 وضعیت فعلی بنر:</b>\n• تصویر: $hasPhoto\n• متن بنر:\n<i>$currentDesc</i>";
+            : $textbotlang['Admin']['affiliates']['defaultDesc'];
+        $question .= sprintf($textbotlang['Admin']['affiliates']['bannerStatusReport'], $hasPhoto, $currentDesc);
         $targetKeyboard = $affiliateBannerFlowKeyboard;
     }
     savedata("clear", "message_id", $message_id);
@@ -8373,16 +8373,6 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
             ['text' => $textbotlang['keyboard']['inactiveAccount'], 'callback_data' => "none"],
         ];
     }
-    if ($panel['type'] == "marzban") {
-        $strip_sub_status = [
-            'onstripsub' => $textbotlang['Admin']['Status']['statuson'],
-            'offstripsub' => $textbotlang['Admin']['Status']['statusoff']
-        ][$panel['strip_sub'] ?? 'offstripsub'];
-        $Bot_Status['inline_keyboard'][] = [
-            ['text' => $strip_sub_status, 'callback_data' => "editpanel-stripsub-" . ($panel['strip_sub'] ?? 'offstripsub') . "-{$panel['code_panel']}"],
-            ['text' => "✂️ حذف /sub/ از لینک", 'callback_data' => "none"],
-        ];
-    }
     if ($panel['type'] == "ibsng" || $panel['type'] == "mikrotik") {
         unset($Bot_Status['inline_keyboard'][2]);
         unset($Bot_Status['inline_keyboard'][3]);
@@ -8463,13 +8453,6 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
             $valuenew = "onsubvip";
         }
         update("marzban_panel", "subvip", $valuenew, "code_panel", $code_panel);
-    } elseif ($type == "stripsub") {
-        if ($value == "onstripsub") {
-            $valuenew = "offstripsub";
-        } else {
-            $valuenew = "onstripsub";
-        }
-        update("marzban_panel", "strip_sub", $valuenew, "code_panel", $code_panel);
     } elseif ($type == "customstatusf") {
         $panel = select("marzban_panel", "*", "code_panel", $code_panel, "select");
         $customvlume = json_decode($panel['customvolume'], true);
@@ -8626,16 +8609,6 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
         $Bot_Status['inline_keyboard'][] = [
             ['text' => $inbocunddisable, 'callback_data' => "editpanel-inbocunddisable-{$panel['inboundstatus']}-{$panel['code_panel']}"],
             ['text' => $textbotlang['keyboard']['inactiveAccount'], 'callback_data' => "none"],
-        ];
-    }
-    if ($panel['type'] == "marzban") {
-        $strip_sub_status = [
-            'onstripsub' => $textbotlang['Admin']['Status']['statuson'],
-            'offstripsub' => $textbotlang['Admin']['Status']['statusoff']
-        ][$panel['strip_sub'] ?? 'offstripsub'];
-        $Bot_Status['inline_keyboard'][] = [
-            ['text' => $strip_sub_status, 'callback_data' => "editpanel-stripsub-" . ($panel['strip_sub'] ?? 'offstripsub') . "-{$panel['code_panel']}"],
-            ['text' => "✂️ حذف /sub/ از لینک", 'callback_data' => "none"],
         ];
     }
     $Bot_Status = json_encode($Bot_Status);

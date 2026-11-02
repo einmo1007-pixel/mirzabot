@@ -299,10 +299,10 @@ if (strpos($text, "/start ") !== false && $user['step'] != "gettextSystemMessage
             if (intval($user['affiliates']) == 0 && $is_new_user) {
                 update("user", "affiliates", $affiliatesid, "id", $from_id);
                 $useraffiliates = select("user", "*", 'id', $affiliatesid, "select");
-                sendmessage($from_id, "شما با دعوت @{$useraffiliates['username']} وارد ربات شدی و به عنوان زیرمجموعه ثبت شدی ✅", $keyboard, 'html');
+                sendmessage($from_id, sprintf($textbotlang['users']['affiliates']['welcomeInvited'], $useraffiliates['username']), $keyboard, 'html');
                 $addcountaffiliates = intval($useraffiliates['affiliatescount']) + 1;
                 update("user", "affiliatescount", $addcountaffiliates, "id", $affiliatesid);
-                sendmessage($affiliatesid, "<b>🎉 یک زیرمجموعه جدید!</b>\n\nکاربر @$username با لینک دعوت شما وارد ربات شد ✅\n\nتعداد زیر مجموعه های شما : {$addcountaffiliates} نفر", null, 'HTML');
+                sendmessage($affiliatesid, sprintf($textbotlang['users']['affiliates']['newReferralJoined'], $username), null, 'HTML');
                 $stmt = $pdo->prepare("INSERT IGNORE INTO reagent_report (user_id, get_gift, time, reagent) VALUES (?, ?, ?, ?)");
                 $dateacc = date('Y/m/d H:i:s');
                 $type_gift = 0;
@@ -5602,7 +5602,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         if ($user['Processing_value'] < $mainbalancetonoffline || $user['Processing_value'] > $maxbalancetonoffline) {
             $minf = number_format($mainbalancetonoffline);
             $maxf = number_format($maxbalancetonoffline);
-            sendmessage($from_id, "❌ حداقل مبلغ واریزی این روش پرداخت باید $minf و حداکثر $maxf تومان باشد", null, 'HTML');
+            sendmessage($from_id, strtr($textbotlang['users']['Balance']['depositRange'], ['{mainbalance}' => $minf, '{maxbalance}' => $maxf]), null, 'HTML');
             return;
         }
         deletemessage($from_id, $message_id);
@@ -5618,27 +5618,18 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $paymentkeyboard = json_encode([
             'inline_keyboard' => [
                 [
-                    ['text' => "✅ ارسال لینک واریز یا تصویر واریزی", 'callback_data' => "sendresidton-{$randomString}"]
+                    ['text' => $textbotlang['keyboard']['sendDepositLink'], 'callback_data' => "sendresidton-{$randomString}"]
                 ]
             ]
         ]);
         $formatprice = number_format($user['Processing_value'], 0);
-        $textnowpayments = "✅ تراکنش شما ایجاد شد
-
-🛒 کد پیگیری: <code>$randomString</code>
-🌐 شبکه: TON
-💳 آدرس ولت: <code>$ton_wallet</code>
-💎 مبلغ TON: <code>$ton_amount TON</code>
-
-📌 مبلغ $formatprice تومان را واریز نمایید؛ پس از واریز دکمه زیر را کلیک و رسید ارسال کنید.
-
-💢 لطفاً قبل از پرداخت به این نکات توجه کنید 👇
-
-🔸 در صورت اشتباه وارد کردن آدرس، تراکنش تایید نمی‌شود.
-🔹 مبلغ ارسالی نباید کمتر یا بیشتر از مبلغ اعلام‌شده باشد.
-🔹 هر تراکنش یک ساعت معتبر است.
-
-✅ در صورت مشکل می‌توانید با پشتیبانی در ارتباط باشید";
+        $textnowpayments = sprintf(
+            $textbotlang['users']['Balance']['transactionCreatedTon'],
+            $randomString,
+            $ton_wallet,
+            $ton_amount,
+            $formatprice
+        );
         $gethelp = getPaySettingValue('helptonoffline');
         if ($gethelp !== null && $gethelp != 2) {
             $data_help = json_decode($gethelp, true);
@@ -5774,7 +5765,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         return;
     }
     deletemessage($from_id, $message_id);
-    sendmessage($from_id, "📌 تصویر واریزی خود یا لینک تراکنش TON را ارسال نمایید.", $backuser, 'HTML');
+    sendmessage($from_id, $textbotlang['users']['Balance']['askReceiptOrTon'], $backuser, 'HTML');
     step('getresidton', $from_id);
     update("user", "Processing_value", $dataget[1], "id", $from_id);
 } elseif ($user['step'] == "getresidton") {
@@ -5805,60 +5796,58 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $service_order = $payment_order['service'];
     $service_value = $service_order ? json_decode($service_order['value'], true) : [];
     if ($get_invoice) {
-        $textsendrasid = "
-⭕️ یک پرداخت جدید انجام شده است.
-
-⭕️⭕️⭕️⭕️⭕️
-خرید سرویس جدید
-نام کاربری سرویس : {$get_invoice['username']}
-نام محصول : {$get_invoice['name_product']}
-حجم محصول : {$get_invoice['Volume']} گیگ
-زمان محصول : {$get_invoice['Service_time']} روز
-👤 نام اکانت کاربر : $first_name
-👤 شناسه کاربر: <a href=\"tg://user?id=$from_id\">$from_id</a>
-💸 موجودی فعلی کاربر : $format_balance تومان
-🛒 کد پیگیری پرداخت: {$PaymentReport['id_order']}
-⚜️ نام کاربری: @$username
-💵 تعداد کل پرداختی‌های کاربر : $Paymentusercount عدد
-💸 مبلغ پرداختی: $format_price_cart تومان
-💎 روش پرداخت: TON آفلاین
-
-توضیحات: $caption $text
-✍️ در صورت درست بودن رسید، پرداخت را تایید نمایید.";
+        $textsendrasid = sprintf($textbotlang['Admin']['reportgroup']['newPaymentService'], $get_invoice['username'], $get_invoice['name_product'], $get_invoice['Volume'], $get_invoice['Service_time'], $first_name, $from_id, $from_id, $format_balance, $PaymentReport['id_order'], $username, $Paymentusercount, $format_price_cart, $caption, $text);
     } elseif ($service_order && $service_order['type'] == "extend_user") {
         $usernamepanel = $service_order['username'];
-        $textsendrasid = "
-⭕️ یک پرداخت جدید انجام شده است.
-
-⭕️⭕️⭕️⭕️⭕️
-تمدید سرویس
-نام کاربری سرویس : {$usernamepanel}
-👤 نام اکانت کاربر : $first_name
-👤 شناسه کاربر: <a href=\"tg://user?id=$from_id\">$from_id</a>
-💸 موجودی فعلی کاربر : $format_balance تومان
-🛒 کد پیگیری پرداخت: {$PaymentReport['id_order']}
-⚜️ نام کاربری: @$username
-💵 تعداد کل پرداختی‌های کاربر : $Paymentusercount عدد
-💸 مبلغ پرداختی: $format_price_cart تومان
-💎 روش پرداخت: TON آفلاین
-
-توضیحات: $caption $text
-✍️ در صورت درست بودن رسید، پرداخت را تایید نمایید.";
+        $service_other = $service_value;
+        $nameloc = select("invoice", "*", "username", $usernamepanel, "select");
+        $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
+        $eextraprice = json_decode($marzban_list_get['pricecustomvolume'], true);
+        $custompricevalue = $eextraprice[$user['agent']];
+        $eextraprice = json_decode($marzban_list_get['pricecustomtime'], true);
+        $customtimevalueprice = $eextraprice[$user['agent']];
+        $codeproduct = $service_other['code_product'];
+        if ($codeproduct == "custom_volume") {
+            $prodcut['code_product'] = "custom_volume";
+            $prodcut['name_product'] = $nameloc['name_product'];
+            $prodcut['price_product'] = ($service_other['volumebuy'] * $custompricevalue) + ($nameloc['Service_time'] * $customtimevalueprice);
+            $prodcut['Service_time'] = $service_other['Service_time'];
+            $prodcut['Volume_constraint'] = $service_other['volumebuy'];
+        } else {
+            $nameloc = select("invoice", "*", "username", $usernamepanel, "select");
+            $__q11 = $pdo->prepare("SELECT * FROM product WHERE (Location = ? OR Location = '/all') AND agent= ? AND code_product = ?");
+            $__q11->bindValue(1, $nameloc['Service_location'], PDO::PARAM_STR);
+            $__q11->bindValue(2, $user['agent'], PDO::PARAM_STR);
+            $__q11->bindValue(3, $codeproduct, PDO::PARAM_STR);
+            $__q11->execute();
+            $prodcut = $__q11->fetch(PDO::FETCH_ASSOC);
+        }
+        $Confirm_pay = json_encode([
+            'inline_keyboard' => [
+                [
+                    ['text' => $textbotlang['users']['Balance']['confirmPaying'], 'callback_data' => "Confirm_pay_{$PaymentReport['id_order']}"],
+                    ['text' => $textbotlang['users']['Balance']['rejectPay'], 'callback_data' => "reject_pay_{$PaymentReport['id_order']}"],
+                ],
+                [
+                    ['text' => $textbotlang['users']['Balance']['addBalanceUser'], 'callback_data' => "addbalamceuser_{$PaymentReport['id_order']}"],
+                    ['text' => $textbotlang['users']['Balance']['blockedfake'], 'callback_data' => "blockuserfake_{$PaymentReport['id_user']}"],
+                ],
+                [
+                    ['text' => $textbotlang['keyboard']['configInfo'], 'callback_data' => "manageinvoice_{$nameloc['id_invoice']}"],
+                ]
+            ]
+        ]);
+        $textsendrasid = sprintf($textbotlang['Admin']['reportgroup']['newPaymentRenew'], $usernamepanel, $prodcut['name_product'], $first_name, $from_id, $from_id, $format_balance, $PaymentReport['id_order'], $username, $Paymentusercount, $format_price_cart, $caption, $text);
+    } elseif ($service_order && $service_order['type'] == "extra_user") {
+        $usernamepanel = $service_order['username'];
+        $volumes = $service_value['volume_value'];
+        $textsendrasid = sprintf($textbotlang['Admin']['reportgroup']['newPaymentExtraVolume'], $usernamepanel, $volumes, $first_name, $from_id, $from_id, $format_balance, $PaymentReport['id_order'], $username, $Paymentusercount, $format_price_cart, $caption, $text);
+    } elseif ($service_order && $service_order['type'] == "extra_time_user") {
+        $usernamepanel = $service_order['username'];
+        $time = $service_value['day'];
+        $textsendrasid = sprintf($textbotlang['Admin']['reportgroup']['newPaymentExtraTime'], $usernamepanel, $time, $first_name, $from_id, $from_id, $format_balance, $PaymentReport['id_order'], $username, $Paymentusercount, $format_price_cart, $caption, $text);
     } else {
-        $textsendrasid = "
-⭕️ یک پرداخت جدید انجام شده است.
-افزایش موجودی
-👤 نام اکانت کاربر : $first_name
-👤 شناسه کاربر: <a href=\"tg://user?id=$from_id\">$from_id</a>
-💸 موجودی فعلی کاربر : $format_balance تومان
-🛒 کد پیگیری پرداخت: {$PaymentReport['id_order']}
-⚜️ نام کاربری: @$username
-💵 تعداد کل پرداختی‌های کاربر : $Paymentusercount عدد
-💸 مبلغ پرداختی: $format_price_cart تومان
-💎 روش پرداخت: TON آفلاین
-
-توضیحات: $caption $text
-✍️ در صورت درست بودن رسید، پرداخت را تایید نمایید.";
+        $textsendrasid = sprintf($textbotlang['Admin']['reportgroup']['newPaymentBalance'], $first_name, $from_id, $from_id, $format_balance, $PaymentReport['id_order'], $username, $Paymentusercount, $format_price_cart, $caption, $text);
     }
     foreach ($admin_ids as $id_admin) {
         $adminrulecheck = select("admin", "*", "id_admin", $id_admin, "select");
@@ -6187,7 +6176,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
 
     $banner_text = (!empty($affiliates['description']) && $affiliates['description'] !== 'none')
         ? $affiliates['description']
-        : ($textbotlang['users']['affiliates']['defaultBanner'] ?? "🛡 سرویس‌های اختصاصی\nدسترسی به اینترنت آزاد، فراتر از یک اتصال ساده؛ ما پایداری بدون محدودیت را برای فعالیت‌های حساس شما تضمین می‌کنیم.\n\n🔗 آپتایم حداکثری: بهره‌گیری از پروتکل‌های اختصاصی جهت حذف قطعی‌های ناگهانی.\n🔄 سیستم جایگزینی خودکار: پایش هوشمند سرورها و به‌روزرسانی آنی در صورت بروز اختلال در زیرساخت.\n🎮 امنیت در ترید و گیم: ارائه Static IP جهت حفظ امنیت حساب‌های ارزی و کاهش پینگ.\n📱 سازگاری کامل: اتصال یکپارچه در سیستم‌عامل‌های iOS، Android و Windows.\n\n📍 سرورهای فعال: آلمان 🇩🇪 | فنلاند 🇫🇮 | آمریکا 🇺🇸\n⏱️ تحویل هوشمند: فعال‌سازی و دریافت اشتراک در کمتر از ۱۰ ثانیه.\n\n⚡️ همین حالا با دریافت اکانت تست، سرعت واقعی شبکه ما را بسنجید:\n🔗 {bot}");
+        : ($textbotlang['users']['affiliates']['defaultBanner'] ?? '');
 
     $banner_text = str_replace(
         ['{link}', '{url}', '{bot}', '{username}', '{usernamebot}', '{id}'],
@@ -6218,8 +6207,8 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $keyboard_share = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => "🎁 دریافت هدیه عضویت", 'callback_data' => "get_gift_start", 'style' => 'success'],
-                ['text' => "🔗 اشتراک گذاری لینک", 'url' => "https://t.me/share/url?url=" . urlencode($bot_target_url)],
+                ['text' => $textbotlang['keyboard']['receiveMembershipGift'], 'callback_data' => "get_gift_start", 'style' => 'success'],
+                ['text' => $textbotlang['keyboard']['shareLink'], 'url' => "https://t.me/share/url?url=" . urlencode($bot_target_url)],
             ],
         ]
     ]);
@@ -6228,33 +6217,33 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $Percent_porsant = $setting['affiliatespercentage'];
     $sum_order = number_format($inforefral['total_price'], 0);
     if ($affiliatescommission['Discount'] == "onDiscountaffiliates") {
-        $text_start = "<b>🎁 هدیه عضویت:</b>\n• 🎉 مجموع هدیه: {$affiliatescommission['price_Discount']} تومان  \n• 🔻 ۵۰٪ برای شما (معرف)  \n• 🔻 ۵۰٪ برای زیرمجموعه (کاربر جدید)\n";
+        $text_start = sprintf($textbotlang['users']['affiliates']['membershipGiftInfo'], $affiliatescommission['price_Discount']);
     }
     if ($affiliatescommission['status_commission'] == "oncommission") {
-        $text_porsant = "<b>💸 پورسانت خرید:</b>  \n•  $Percent_porsant درصد از مبلغ خرید زیرمجموعه به شما تعلق می‌گیره";
+        $text_porsant = sprintf($textbotlang['users']['affiliates']['purchaseCommissionInfo'], $Percent_porsant);
     }
-    $textaffiliates = "<b>💼 زیرمجموعه‌گیری و هدیه خوش‌آمد</b>\n\nبا دعوت دوستان از طریق <b>لینک اختصاصی</b>، بدون پرداخت حتی ۱ ریال کیف پولت شارژ میشه و از خدمات ربات استفاده می‌کنی!\n\n$text_start\n$text_porsant\n\n<b>📊 آمار شما:</b>\n• 👥 زیرمجموعه‌ها: {$user['affiliatescount']} نفر\n• 🛒 خریدها: {$inforefral['orders']} عدد\n• 💵 مجموع خرید: $sum_order تومان\n\n<b>📢 دعوت کن، هدیه بگیر، رشد کن!</b>\n";
+    $textaffiliates = sprintf($textbotlang['users']['affiliates']['welcomeGiftInfo'], $text_start, $text_porsant, $user['affiliatescount'], $inforefral['orders'], $sum_order);
 
     sendmessage($from_id, $textaffiliates, $keyboard_share, 'HTML');
 } elseif ($datain == "get_gift_start") {
     $gift_status = select("affiliates", "*", null, null, "select");
     if ($gift_status['Discount'] == "offDiscountaffiliates") {
-        sendmessage($from_id, "📛 این بخش درحال حاضر غیرفعال می باشد", $keyboard, 'HTML');
+        sendmessage($from_id, $textbotlang['users']['sectionDisabled'], $keyboard, 'HTML');
         return;
     }
     if (!rowExists("user", "id", $user['affiliates'])) {
-        sendmessage($from_id, "📛 شما زیرمجموعه هیچ کاربری نیستید.", $keyboard, 'HTML');
+        sendmessage($from_id, $textbotlang['users']['affiliates']['notReferral'], $keyboard, 'HTML');
         return;
     }
     $reagent = select("reagent_report", "*", "user_id", $from_id, "select");
     if (!$reagent) {
-        sendmessage($from_id, "📛 شما زیرمجموعه هیچ کاربری نیستید.", $keyboard, 'HTML');
+        sendmessage($from_id, $textbotlang['users']['affiliates']['notReferral'], $keyboard, 'HTML');
         return;
     }
     $claimGift = $pdo->prepare("UPDATE reagent_report SET get_gift = 1 WHERE user_id = ? AND get_gift = 0");
     $claimGift->execute([$from_id]);
     if ($claimGift->rowCount() !== 1) {
-        sendmessage($from_id, "<b>⛔ شما قبلاً هدیه عضویت را دریافت کرده‌اید.</b>\nاین هدیه فقط <b>یک‌بار</b> قابل فعال‌سازی است.", $keyboard, 'HTML');
+        sendmessage($from_id, $textbotlang['users']['affiliates']['membershipGiftClaimed'], $keyboard, 'HTML');
         return;
     }
     $reagent['get_gift'] = true;
@@ -6266,8 +6255,8 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $Balance_add_user = $user['Balance'] + $price_gift_Start;
     addBalance($from_id, $price_gift_Start);
     $addbalancediscount = number_format($price_gift_Start, 0);
-    sendmessage($reagent['reagent'], "🎉 یک نفر با معرفی شما وارد شد! هدیه به حساب شما واریز شد.", null, 'html');
-    sendmessage($from_id, "🎉 هدیه عضویت برای شما فعال شد!", null, 'html');
+    sendmessage($reagent['reagent'], $textbotlang['users']['affiliates']['joinedGift'], null, 'html');
+    sendmessage($from_id, $textbotlang['users']['affiliates']['joinGiftActivated'], null, 'html');
     $report_join_gift = sprintf($textbotlang['Admin']['reportgroup']['membershipGiftPaid'], $from_id, $username, $reagent['reagent'], $user['Balance'], $Balance_add_user, $useraffiliates['Balance'], $Balance_add_regent);
     if (strlen($setting['Channel_Report']) > 0) {
         telegram('sendmessage', [

@@ -272,6 +272,7 @@ return [
                         'transactionExpired' => '❗此交易的时间已过期，无法对此交易进行付款。',
                         'askReceiptImage' => '🖼 请发送您的收据图片',
                         'askReceiptOrTron' => '📌 请发送您的存款图片或 Tron 交易链接。',
+                        'askReceiptOrTon' => '📌 请发送您的付款凭证图片或 TON 交易链接。',
                         'restartPurchaseOrPay' => '❌ 发生了错误。请重新执行购买或付款步骤',
                         'onlyOneImage' => '❌  您只能发送一张图片',
                         'receiptSentRenew' => '🚀 您的收据已发送，审核后将续费您的服务',
@@ -436,6 +437,22 @@ return [
 🔹 每笔交易有效期为一小时，收到交易过期消息后，请在任何情况下都不要向钱包发送任何金额。
 
 ✅ 如有问题，您可以联系客服。',
+                        'transactionCreatedTon' => '✅ 您的交易已创建
+
+🛒 跟踪码：<code>%s</code>
+🌐 网络：TON
+💳 钱包地址：<code>%s</code>
+💎 TON 金额：<code>%s TON</code>
+
+📌 请转账 %s 托曼；付款后点击下方按钮并发送收据。
+
+💢 付款前请注意以下事项 👇
+
+🔸 如果地址输入错误，交易将无法确认。
+🔹 发送金额不得少于或多于规定金额。
+🔹 每笔交易有效期为一小时。
+
+✅ 如有问题请联系客服。',
                 ],
                 'Discount' => [
                         'discountapplied' => '恭喜 🎉
@@ -1565,6 +1582,12 @@ n2',
 
 💡 您可以在文本中使用 {link} 或 {bot} 来插入动态推荐链接。",
                         'invalidBanner' => '❌ 发送的内容无效。请发送文本或图片。',
+                        'bannerPhotoRemoved' => '✅ 横幅图片已删除。',
+                        'bannerTextReset' => '✅ 横幅文字已恢复默认。',
+                        'bannerStatusReport' => "\n\n<b>📊 当前横幅状态：</b>\n• 图片：%s\n• 横幅文字：\n<i>%s</i>",
+                        'hasPhoto' => '有 🖼',
+                        'noPhoto' => '无 ❌',
+                        'defaultDesc' => '机器人默认',
                         'askJoinGift' => '📌 请输入您希望用户每次新增下线时获得的金额',
                         'settingsTitle' => "🎁 <b>推荐设置</b>\n\n• 🎁 购买后佣金：%s\n• 🎉 佣金：%s\n• 🧮 佣金比例：%s\n• 🎁 启动礼物：%s\n• 💎 启动礼物金额：%s 托曼\n\n📌 点击项目左侧按钮进行修改。",
                         'invalidNumber' => "❌ 数值必须是数字。",
@@ -1844,6 +1867,15 @@ nowpayments.io
                         'askMerchant' => '💳 获取您的商户代码并在此部分输入
         
 您当前的商户代码：%s',
+                        'askTonWallet' => '📌 请发送 TON 钱包地址',
+                        'askGatewayName' => '📌 请发送网关名称',
+                        'savedGatewayName' => '✅ 网关名称修改成功',
+                        'savedTonWallet' => '✅ 钱包地址保存成功',
+                        'savedCashback' => '✅ 返现比例保存成功',
+                        'savedMinAmount' => '✅ 最低金额保存成功',
+                        'savedMaxAmount' => '✅ 最高金额保存成功',
+                        'savedEducation' => '✅ 支付教程保存成功',
+                        'askEducationTon' => '📌 请发送 TON 支付教程的文字、图片或视频',
                         'askTronWallet' => '💳 请发送您的 Tron trc20 钱包地址
         
         您当前的钱包：%s',
@@ -3696,6 +3728,7 @@ f,n.n2',
                 'selectLocation' => '📌 请选择服务位置。',
                 'sell' => '🔐 购买订阅',
                 'starTelegram' => '💫 Star Telegram',
+                'tonOffline' => '💎 TON 离线',
                 'support' => '☎️ 客服',
                 'tariffList' => '💵 订阅资费',
                 'tariffListDesc' => '未设置',
@@ -3981,6 +4014,14 @@ f,n.n2',
                 'minAmountAqayePardakht' => '⬇️ Aghaye Pardakht 最低金额',
                 'minAmountCartToCart' => '⬇️ 卡对卡最低金额',
                 'minAmountCryptoOffline' => '⬇️ 离线加密货币最低金额',
+                'nameTonOffline' => '🗂 TON 离线网关名称',
+                'walletTonOffline' => '💳 TON 钱包地址',
+                'cashbackTonOffline' => '💰 TON 离线返现',
+                'minAmountTonOffline' => '⬇️ TON 离线最低金额',
+                'maxAmountTonOffline' => '⬆️ TON 离线最高金额',
+                'educationTonOffline' => '📚 TON 离线支付教程',
+                'removeBannerPhoto' => '🗑 删除横幅图片',
+                'resetBannerText' => '🔄 重置文字为默认',
                 'minAmountIranPay1' => '⬇️ 里亚尔货币最低金额',
                 'minAmountIranPay2' => '⬇️ CubePay 最低金额',
                 'minAmountIranPay3' => '⬇️ 第三里亚尔货币最低金额',

@@ -52,7 +52,6 @@ return [
         version_panel varchar(60) NOT NULL,
         customvolume TEXT NULL,
         hide_user TEXT NULL,
-        strip_sub varchar(60) NULL DEFAULT '0',
         display_order INT NOT NULL DEFAULT 0
         SQL,
     'columns' => [
@@ -94,7 +93,6 @@ return [
         ['version_panel', '0', 'VARCHAR(60)'],
         ['customvolume', $zeroVolume, 'TEXT'],
         ['hide_user', null, 'TEXT'],
-        ['strip_sub', '0', 'VARCHAR(60)'],
         ['display_order', null, 'INT NOT NULL DEFAULT 0'],
     ],
 ];

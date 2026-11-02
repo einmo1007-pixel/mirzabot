@@ -54,7 +54,7 @@ class MarzbanPanelDriver extends BasePanelDriver
             }
             $Output['status'] = 'successful';
             $Output['username'] = $data_Output['username'];
-            $Output['subscription_url'] = applyStripSub($Get_Data_Panel, $data_Output['subscription_url']);
+            $Output['subscription_url'] = $data_Output['subscription_url'];
             $Output['configs'] = $data_Output['links'];
         }
         return $Output;
@@ -133,7 +133,7 @@ class MarzbanPanelDriver extends BasePanelDriver
                 'online_at' => $UsernameData['online_at'] ?? null,
                 'used_traffic' => $UsernameData['used_traffic'] ?? null,
                 'links' => $UsernameData['links'] ?? [],
-                'subscription_url' => applyStripSub($Get_Data_Panel, $UsernameData['subscription_url'] ?? ''),
+                'subscription_url' => $UsernameData['subscription_url'] ?? '',
                 'sub_updated_at' => $UsernameData['sub_updated_at'] ?? null,
                 'sub_last_user_agent' => $UsernameData['sub_last_user_agent'] ?? null,
                 'uuid' => $UsernameData['proxies'] ?? null,
@@ -161,7 +161,7 @@ class MarzbanPanelDriver extends BasePanelDriver
             $Output = array(
                 'status' => 'successful',
                 'configs' => $Data_User['links'],
-                'subscription_url' => applyStripSub($Get_Data_Panel, $Data_User['subscription_url'])
+                'subscription_url' => $Data_User['subscription_url']
             );
         }
         return $Output;
