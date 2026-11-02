@@ -32,8 +32,8 @@ function iranpay4_finish(bool $ok, string $title, string $detail): never
     exit;
 }
 
-$failedTitle = $textbotlang['paymentGateway']['statusFailed'] ?? 'پرداخت ناموفق';
-$successTitle = $textbotlang['paymentGateway']['statusSuccess'] ?? 'پرداخت موفق';
+$failedTitle = $textbotlang['paymentGateway']['statusFailed'];
+$successTitle = $textbotlang['paymentGateway']['statusSuccess'];
 
 if ($order_id === '') {
     iranpay4_finish(false, $failedTitle, 'شناسه سفارش ارسال نشد.');

@@ -145,11 +145,11 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
 
     // دریافت و جایگذاری متن نهایی
     $template_text = ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik")
-        ? ($textbotlang['textbot']['afterPayIbsng'] ?? "✅ سرویس شما ایجاد شد\nUser: {username}\nLink: {links2}")
-        : ($textbotlang['textbot']['afterText'] ?? "✅ سرویس شما ایجاد شد\nUser: {username}\nLink: {links2}");
+        ? $textbotlang['textbot']['afterPayIbsng']
+        : $textbotlang['textbot']['afterText'];
 
     $textcreatuser = str_replace(['{username}', '{name_service}', '{location}', '{day}', '{volume}', '{config}', '{links}', '{links2}'], 
-                                [$dataoutput['username'], "تست", $marzban_list_get['name_panel'], $marzban_list_get['time_usertest'], $marzban_list_get['val_usertest'], "<code>{$output_config_link}</code>", $config, $output_config_link], 
+                                [$dataoutput['username'], $textbotlang['common']['labels']['test'], $marzban_list_get['name_panel'], $marzban_list_get['time_usertest'], $marzban_list_get['val_usertest'], "<code>{$output_config_link}</code>", $config, $output_config_link], 
                                 $template_text);
 
     $usertestinfo = json_encode([

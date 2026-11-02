@@ -30,8 +30,8 @@ function variza_finish(bool $ok, string $title, string $detail): never
     exit;
 }
 
-$failedTitle = $textbotlang['paymentGateway']['statusFailed'] ?? 'پرداخت ناموفق';
-$successTitle = $textbotlang['paymentGateway']['statusSuccess'] ?? 'پرداخت موفق';
+$failedTitle = $textbotlang['paymentGateway']['statusFailed'];
+$successTitle = $textbotlang['paymentGateway']['statusSuccess'];
 $waitingTitle = 'در انتظار تأیید';
 
 if ($order_id === '') {

@@ -5078,7 +5078,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             $text_error = isset($pay['error']) ? $pay['error'] : json_encode($pay);
             sendmessage($from_id, $textbotlang['users']['Balance']['errorLinkPayment'], $keyboard, 'HTML');
             step('home', $from_id);
-            $ErrorsLinkPayment = sprintf($textbotlang['Admin']['reportgroup']['errorZarinpalLink'] ?? 'Variza link error: %s user %s', $text_error, $from_id);
+            $ErrorsLinkPayment = sprintf($textbotlang['Admin']['reportgroup']['errorZarinpalLink'], $text_error, $from_id);
             if (strlen($setting['Channel_Report']) > 0) {
                 telegram('sendmessage', [
                     'chat_id' => $setting['Channel_Report'],
@@ -6176,7 +6176,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
 
     $banner_text = (!empty($affiliates['description']) && $affiliates['description'] !== 'none')
         ? $affiliates['description']
-        : ($textbotlang['users']['affiliates']['defaultBanner'] ?? '');
+        : $textbotlang['users']['affiliates']['defaultBanner'];
 
     $banner_text = str_replace(
         ['{link}', '{url}', '{bot}', '{username}', '{usernamebot}', '{id}'],

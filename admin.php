@@ -396,7 +396,7 @@ if ($datain == "paygwback") {
                 'Currency Rial 3' => $textbotlang['textbot']['iranPay1'],
                 'paymentnotverify' => $textbotlang['textbot']['paymentNotVerify'],
                 'Star Telegram' => $textbotlang['textbot']['starTelegram'],
-                'ton offline' => $textbotlang['textbot']['tonOffline'] ?? 'TON آفلاین'
+                'ton offline' => $textbotlang['textbot']['tonOffline']
             ][$tracepay['Payment_Method']] ?? $tracepay['Payment_Method'];
             $paycount .= sprintf($textbotlang['Admin']['report']['gatewayRow'], $status_var, $tracepay['countpay'], $tracepay['sumpay']);
         }

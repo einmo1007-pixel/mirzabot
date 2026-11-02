@@ -74,18 +74,18 @@ if ($method == "GET" && (isset($_GET['api']) || isset($_GET['ajax']) || (isset($
         'text_requestagent',
     ];
     $labels = [
-        'text_sell' => $textbotlang['textbot']['sell'] ?? 'خرید سرویس',
-        'text_extend' => $textbotlang['textbot']['extend'] ?? 'تمدید سرویس',
-        'text_usertest' => $textbotlang['textbot']['userTest'] ?? 'تست رایگان',
-        'text_wheel_luck' => $textbotlang['textbot']['wheelLuck'] ?? 'گردونه شانس',
-        'text_Purchased_services' => $textbotlang['textbot']['purchasedServices'] ?? 'سرویس‌های من',
-        'accountwallet' => $textbotlang['textbot']['accountWallet'] ?? 'کیف پول',
-        'text_affiliates' => $textbotlang['textbot']['affiliates'] ?? 'زیرمجموعه‌گیری',
-        'text_Tariff_list' => $textbotlang['textbot']['tariffList'] ?? 'تعرفه‌ها',
-        'text_support' => $textbotlang['textbot']['support'] ?? 'پشتیبانی',
-        'text_help' => $textbotlang['textbot']['help'] ?? 'راهنما',
-        'text_agentpanel' => $textbotlang['textbot']['agentPanel'] ?? 'پنل نمایندگی',
-        'text_requestagent' => $textbotlang['textbot']['requestAgent'] ?? 'درخواست نمایندگی',
+        'text_sell' => $textbotlang['textbot']['sell'],
+        'text_extend' => $textbotlang['textbot']['extend'],
+        'text_usertest' => $textbotlang['textbot']['userTest'],
+        'text_wheel_luck' => $textbotlang['textbot']['wheelLuck'],
+        'text_Purchased_services' => $textbotlang['textbot']['purchasedServices'],
+        'accountwallet' => $textbotlang['textbot']['accountWallet'],
+        'text_affiliates' => $textbotlang['textbot']['affiliates'],
+        'text_Tariff_list' => $textbotlang['textbot']['tariffList'],
+        'text_support' => $textbotlang['textbot']['support'],
+        'text_help' => $textbotlang['textbot']['help'],
+        'text_agentpanel' => $textbotlang['textbot']['agentPanel'],
+        'text_requestagent' => $textbotlang['textbot']['requestAgent'],
     ];
 
     foreach ($keyboardmain['keyboard'] as $row_kb) {
