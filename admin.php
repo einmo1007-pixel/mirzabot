@@ -7369,27 +7369,65 @@ elseif ($text == $textbotlang['keyboard']['hidePanelForUser'] && $adminrulecheck
     update("affiliates", $column, $affiliateSetting[$column] == $on ? $off : $on);
     [$affiliateText, $affiliateKeyboard] = affiliateSettingsMenu();
     Editmessagetext($from_id, $message_id, $affiliateText, $affiliateKeyboard);
-} elseif (preg_match('/^affiliate-(percent|giftamount|banner)$/', $datain, $dataget) && $adminrulecheck['rule'] == "administrator") {
+} elseif (preg_match('/^affiliate-(percent|giftamount|banner|removephoto|resettext)$/', $datain, $dataget) && $adminrulecheck['rule'] == "administrator") {
+    if ($dataget[1] === 'removephoto') {
+        update("affiliates", "id_media", "none");
+        step("home", $from_id);
+        [$affiliateText, $affiliateKeyboard] = affiliateSettingsMenu();
+        Editmessagetext($from_id, $message_id, "✅ تصویر بنر حذف شد.\n\n" . $affiliateText, $affiliateKeyboard);
+        return;
+    }
+    if ($dataget[1] === 'resettext') {
+        update("affiliates", "description", "");
+        step("home", $from_id);
+        [$affiliateText, $affiliateKeyboard] = affiliateSettingsMenu();
+        Editmessagetext($from_id, $message_id, "✅ متن بنر به حالت پیش‌فرض بازگردانده شد.\n\n" . $affiliateText, $affiliateKeyboard);
+        return;
+    }
     [$question, $affiliateStep] = [
         'percent' => [$textbotlang['Admin']['affiliates']['askPercent'], 'setpercentage'],
         'giftamount' => [$textbotlang['Admin']['affiliates']['askJoinGift'], 'getdiscont'],
         'banner' => [$textbotlang['Admin']['affiliates']['askBanner'], 'setbanner'],
     ][$dataget[1]];
+    $targetKeyboard = $affiliateFlowKeyboard;
+    if ($dataget[1] === 'banner') {
+        $affCurrent = select("affiliates", "*", null, null, "select");
+        $hasPhoto = (!empty($affCurrent['id_media']) && strlen($affCurrent['id_media']) >= 5 && $affCurrent['id_media'] !== 'none') ? 'دارد 🖼' : 'ندارد ❌';
+        $currentDesc = (!empty($affCurrent['description']) && $affCurrent['description'] !== 'none')
+            ? $affCurrent['description']
+            : 'پیش‌فرض ربات';
+        $question .= "\n\n<b>📊 وضعیت فعلی بنر:</b>\n• تصویر: $hasPhoto\n• متن بنر:\n<i>$currentDesc</i>";
+        $targetKeyboard = $affiliateBannerFlowKeyboard;
+    }
     savedata("clear", "message_id", $message_id);
-    Editmessagetext($from_id, $message_id, $question, $affiliateFlowKeyboard);
+    Editmessagetext($from_id, $message_id, $question, $targetKeyboard);
     step($affiliateStep, $from_id);
 } elseif (in_array($user['step'], ["setpercentage", "getdiscont", "setbanner"])) {
-    if ($user['step'] == "setbanner" ? !$photo : !ctype_digit($text)) {
-        editFlowMessage($textbotlang['Admin']['affiliates'][$user['step'] == "setbanner" ? 'invalidBanner' : 'invalidNumber'], $affiliateFlowKeyboard);
-        return;
-    }
-    if ($user['step'] == "setpercentage") {
+    if ($user['step'] == "setbanner") {
+        if (!$photo && empty($text)) {
+            editFlowMessage($textbotlang['Admin']['affiliates']['invalidBanner'], $affiliateBannerFlowKeyboard);
+            return;
+        }
+        if ($photo) {
+            update("affiliates", "id_media", $photoid);
+            if (!empty($caption)) {
+                update("affiliates", "description", $caption);
+            }
+        } elseif (!empty($text)) {
+            update("affiliates", "description", $text);
+        }
+    } elseif ($user['step'] == "setpercentage") {
+        if (!ctype_digit($text)) {
+            editFlowMessage($textbotlang['Admin']['affiliates']['invalidNumber'], $affiliateFlowKeyboard);
+            return;
+        }
         update("setting", "affiliatespercentage", $text);
     } elseif ($user['step'] == "getdiscont") {
+        if (!ctype_digit($text)) {
+            editFlowMessage($textbotlang['Admin']['affiliates']['invalidNumber'], $affiliateFlowKeyboard);
+            return;
+        }
         update("affiliates", "price_Discount", $text);
-    } else {
-        update("affiliates", "id_media", $photoid);
-        update("affiliates", "description", $caption);
     }
     step("home", $from_id);
     [$affiliateText, $affiliateKeyboard] = affiliateSettingsMenu();

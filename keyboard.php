@@ -629,6 +629,10 @@ function giftCodesMenu()
 $wheelFlowKeyboard = json_encode(['inline_keyboard' => [[['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "wheelsettings"]]]]);
 $lotteryFlowKeyboard = json_encode(['inline_keyboard' => [[['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "lotterysettings"]]]]);
 $affiliateFlowKeyboard = json_encode(['inline_keyboard' => [[['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "affiliatesettings"]]]]);
+$affiliateBannerFlowKeyboard = json_encode(['inline_keyboard' => [
+    [['text' => '🗑 حذف عکس بنر', 'callback_data' => 'affiliate-removephoto'], ['text' => '🔄 بازنشانی متن به پیش‌فرض', 'callback_data' => 'affiliate-resettext']],
+    [['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "affiliatesettings"]]
+]]);
 $giftCodeFlowKeyboard = json_encode(['inline_keyboard' => [[['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "giftcode_list"]]]]);
 $discountCodeFlowKeyboard = json_encode(['inline_keyboard' => [[['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "discountcode_list"]]]]);
 function editFlowMessage($text, $keyboard)

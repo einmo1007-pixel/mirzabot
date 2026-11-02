@@ -6182,27 +6182,34 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         return;
     }
     $affiliates = select("affiliates", "*", null, null, "select");
-    $bot_target_url = "https://t.me/" . ltrim($usernamebot, '@') . "?start=$from_id";
-    $textaffiliates = "{$affiliates['description']}\n🛡 سرویس‌های اختصاصی
-دسترسی به اینترنت آزاد، فراتر از یک اتصال ساده؛ ما پایداری بدون محدودیت را برای فعالیت‌های حساس شما تضمین می‌کنیم.
+    $clean_bot_user = ltrim($usernamebot, '@');
+    $bot_target_url = "https://t.me/{$clean_bot_user}?start={$from_id}";
+    $bot_display = str_starts_with($usernamebot, '@') ? $usernamebot : '@' . $usernamebot;
+    $bot_link_html = "<a href=\"{$bot_target_url}\">{$bot_display}</a>";
 
-🔗 آپتایم حداکثری: بهره‌گیری از پروتکل‌های اختصاصی جهت حذف قطعی‌های ناگهانی.
-🔄 سیستم جایگزینی خودکار: پایش هوشمند سرورها و به‌روزرسانی آنی در صورت بروز اختلال در زیرساخت.
-🎮 امنیت در ترید و گیم: ارائه Static IP جهت حفظ امنیت حساب‌های ارزی و کاهش پینگ.
-📱 سازگاری کامل: اتصال یکپارچه در سیستم‌عامل‌های iOS، Android و Windows.
+    $banner_text = (!empty($affiliates['description']) && $affiliates['description'] !== 'none')
+        ? $affiliates['description']
+        : ($textbotlang['users']['affiliates']['defaultBanner'] ?? "🛡 سرویس‌های اختصاصی\nدسترسی به اینترنت آزاد، فراتر از یک اتصال ساده؛ ما پایداری بدون محدودیت را برای فعالیت‌های حساس شما تضمین می‌کنیم.\n\n🔗 آپتایم حداکثری: بهره‌گیری از پروتکل‌های اختصاصی جهت حذف قطعی‌های ناگهانی.\n🔄 سیستم جایگزینی خودکار: پایش هوشمند سرورها و به‌روزرسانی آنی در صورت بروز اختلال در زیرساخت.\n🎮 امنیت در ترید و گیم: ارائه Static IP جهت حفظ امنیت حساب‌های ارزی و کاهش پینگ.\n📱 سازگاری کامل: اتصال یکپارچه در سیستم‌عامل‌های iOS، Android و Windows.\n\n📍 سرورهای فعال: آلمان 🇩🇪 | فنلاند 🇫🇮 | آمریکا 🇺🇸\n⏱️ تحویل هوشمند: فعال‌سازی و دریافت اشتراک در کمتر از ۱۰ ثانیه.\n\n⚡️ همین حالا با دریافت اکانت تست، سرعت واقعی شبکه ما را بسنجید:\n🔗 {bot}");
 
-📍 سرورهای فعال: آلمان 🇩🇪 | فنلاند 🇫🇮 | آمریکا 🇺🇸
-⏱️ تحویل هوشمند: فعال‌سازی و دریافت اشتراک در کمتر از ۱۰ ثانیه.
+    $banner_text = str_replace(
+        ['{link}', '{url}', '{bot}', '{username}', '{usernamebot}', '{id}'],
+        [$bot_target_url, $bot_target_url, $bot_link_html, $bot_link_html, $bot_link_html, $from_id],
+        $banner_text
+    );
 
-⚡️ همین حالا با دریافت اکانت تست، سرعت واقعی شبکه ما را بسنجید:
-🔗 <a href=\"$bot_target_url\">$usernamebot</a>";
-    if (strlen($affiliates['id_media']) >= 5) {
+    if (!str_contains($banner_text, $bot_target_url)) {
+        $banner_text .= "\n\n🔗 " . $bot_link_html;
+    }
+
+    if (!empty($affiliates['id_media']) && strlen($affiliates['id_media']) >= 5 && $affiliates['id_media'] !== 'none') {
         telegram('sendphoto', [
             'chat_id' => $from_id,
             'photo' => $affiliates['id_media'],
-            'caption' => $textaffiliates,
+            'caption' => $banner_text,
             'parse_mode' => "HTML",
         ]);
+    } else {
+        sendmessage($from_id, $banner_text, null, 'HTML');
     }
     $affiliatescommission = select("affiliates", "*", null, null, "select");
     $sqlPanel = sprintf("SELECT COUNT(*) AS orders, SUM(price_product) AS total_price\n                 FROM invoice \n                 WHERE Status IN ('active', 'end_of_time', 'sendedwarn', 'send_on_hold') \n                 AND refral = '%s'\n                 AND name_product != '{$textbotlang['common']['labels']['testServiceName']}'", $from_id);
@@ -6214,7 +6221,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         'inline_keyboard' => [
             [
                 ['text' => "🎁 دریافت هدیه عضویت", 'callback_data' => "get_gift_start", 'style' => 'success'],
-                ['text' => "🔗 اشتراک گذاری لینک", 'url' => "https://t.me/share/url?url=https://t.me/$usernamebot?start=$from_id"],
+                ['text' => "🔗 اشتراک گذاری لینک", 'url' => "https://t.me/share/url?url=" . urlencode($bot_target_url)],
             ],
         ]
     ]);

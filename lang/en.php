@@ -498,8 +498,9 @@ Use the button below to pay👇🏻',
                         'balanceGift' => '🎁 An amount of {addbalancediscount} was added to your balance from your referral with user ID {from_id}.',
                         'pointsEarned2Alt' => '📌You earned 2 new points.',
                         'pointsEarned1Alt' => '📌You earned 1 new point.',
-                        'accountScore' => '🥅 Your account points : {score}',
-                        'notReferral' => '📛 You are not a referral of any user.',
+                        'accountScore' => '🥅 Your account score: {score}',
+                        'defaultBanner' => "🛡 Dedicated High-Speed Services\nFreedom to connect with maximum stability and uptime.\n\n⚡️ Check out our speed with a test account:\n🔗 {bot}",
+                        'notReferral' => '📛 You are not referred by any user.',
                         'joinedGift' => '🎉 Someone joined through your referral! The gift was credited to your account.',
                         'joinGiftActivated' => '🎉 The membership gift was activated for you!',
                         'commissionPaid' => '🎁  Commission payment 
@@ -1556,10 +1557,14 @@ Number of products sold: %s
                         'panelSelected' => '✅ Panel selected successfully',
                 ],
                 'affiliates' => [
-                        'askBanner' => '⭕️ Send your referral banner 
+                        'askBanner' => "⭕️ Please send the referral banner or text:
 
-❌ The banner must include an image',
-                        'invalidBanner' => '❌ The banner you sent is invalid (the banner must be sent with an image)',
+▫️ Photo with caption: Updates both image and text.
+▫️ Text only: Updates the text (keeps previous image).
+▫️ Photo only: Updates the image (keeps previous text).
+
+💡 You can use {link} or {bot} in the text for dynamic referral links.",
+                        'invalidBanner' => '❌ Invalid content. Please send a text or an image.',
                         'askJoinGift' => '📌 Enter the amount you want the user to receive for each new referral',
                         'settingsTitle' => "🎁 <b>Referral settings</b>\n\n• 🎁 Commission after purchase: %s\n• 🎉 Commission: %s\n• 🧮 Commission percent: %s\n• 🎁 Start gift: %s\n• 💎 Start gift amount: %s Toman\n\n📌 Tap the left button of an item to change it.",
                         'invalidNumber' => "❌ The value must be a number.",
