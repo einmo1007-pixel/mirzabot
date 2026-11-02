@@ -20,7 +20,7 @@ function mirza_cron_jobs(): array
         ['job' => 'uptime_node', 'schedule' => '*/15 * * * *', 'title' => 'پایش وضعیت نودها'],
         ['job' => 'uptime_panel', 'schedule' => '*/15 * * * *', 'title' => 'پایش وضعیت پنل‌ها'],
         ['job' => 'expireagent', 'schedule' => '*/30 * * * *', 'title' => 'انقضای اشتراک نمایندگان'],
-        ['job' => 'backupbot', 'schedule' => '0 */5 * * *', 'title' => 'پشتیبان‌گیری ربات‌ساز'],
+        ['job' => 'backupbot', 'schedule' => '0 */1 * * *', 'title' => 'پشتیبان‌گیری ربات‌ساز'],
         ['job' => 'lottery', 'schedule' => '*/1 * * * *', 'title' => 'قرعه‌کشی و امتیازات'],
     ];
 }
