@@ -2440,7 +2440,7 @@ f,n.n2',
                         'reportCron' => '📝 گزارش اطلاع رسانی ها',
                         'reportNight' => '🌙 گزارش شبانه',
                         'btnDontShowAgain' => 'دیگر نمایش نده ⛓️‍💥',
-                        'btnDonate' => '💖 حمایت مالی (دونیت)',
+                        'btnVento' => 'مجموعه ونتو وی‌توری',
                         'adminMenuHint' => '👇 منوی مدیریت',
                         'msgHidden' => '
 
@@ -2469,14 +2469,7 @@ f,n.n2',
 ',
                         'aboutBot' => '💎 | Version Bot: %s
 📌 | Version Mini App: 0.1.1
-
-<blockquote>🔹 | این ربات کاملاً رایگان است و توسط تیم میرزا توسعه داده شده است</blockquote>
-
-<blockquote>🔹 | هرگونه فروش یا دریافت وجه بابت این ربات تخلف محسوب می‌شود.</blockquote>
-
-<blockquote>🔹 | در صورت مشاهدهٔ فروش یا دریافت وجه، لطفاً وجه خود را پیگیری کرده و بازپس‌گیری نمایید.</blockquote>
-
-<blockquote>🐞 | برای گزارش مشکل، در <a href="https://t.me/mirzapanel?direct">دایرکت کانال میرزا</a> پیام بدهید.</blockquote>',
+',
                         'gatewayRow' => '
 📌 نام درگاه : <code>%s</code>
  - تعداد پرداخت موفق : <code>%s</code>

@@ -2377,7 +2377,7 @@ f,n.n2',
                         'reportCron' => '📝 Отчёты об уведомлениях',
                         'reportNight' => '🌙 Ночной отчёт',
                         'btnDontShowAgain' => 'Больше не показывать ⛓️‍💥',
-                        'btnDonate' => '💖 Поддержать (пожертвование)',
+                        'btnVento' => 'Группа VentoV2ray',
                         'adminMenuHint' => '👇 Меню администратора',
                         'msgHidden' => '
 
@@ -2405,14 +2405,7 @@ f,n.n2',
 9 - Таблицы базы данных будут оптимизированы',
                         'aboutBot' => '💎 | Version Bot: %s
 📌 | Version Mini App: 0.1.1
-
-<blockquote>🔹 | Этот бот полностью бесплатный и разработан командой Mirza</blockquote>
-
-<blockquote>🔹 | Любая продажа или взимание платы за этого бота считается нарушением.</blockquote>
-
-<blockquote>🔹 | Если вы заметили продажу или взимание платы, пожалуйста, отследите и верните свои деньги.</blockquote>
-
-<blockquote>🐞 | Чтобы сообщить о проблеме, напишите в <a href="https://t.me/mirzapanel?direct">директ канала Mirza</a>.</blockquote>',
+',
                         'gatewayRow' => '
 📌 Название шлюза: <code>%s</code>
  - Количество успешных платежей: <code>%s</code>
