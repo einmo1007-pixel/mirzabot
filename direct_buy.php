@@ -1,9 +1,5 @@
 <?php
-// فایل اختصاصی خرید و تست مستقیم (Direct Buy & Test) - نسخه نهایی با گزارش دقیق
 
-// =========================================================
-// [بخش حیاتی] بررسی و ثبت نام خودکار کاربر (اگر وجود نداشت)
-// =========================================================
 if (!isset($user) || empty($user['id'])) {
     $user = select("user", "*", "id", $from_id, "select");
     
@@ -28,7 +24,6 @@ if (!isset($user) || empty($user['id'])) {
     }
 }
 
-// اطمینان از مقداردهی متغیرهای ضروری
 global $ManagePanel;
 if (!isset($ManagePanel) || !($ManagePanel instanceof ManagePanel)) {
     if (class_exists('ManagePanel')) {
@@ -41,20 +36,11 @@ if (!isset($admin_ids) || !is_array($admin_ids)) {
     if (!is_array($admin_ids)) $admin_ids = [];
 }
 
-// دریافت آیدی تاپیک گزارش تست (اگر ست نشده باشد)
 if (!isset($reporttest)) {
     $topic_row = select("topicid", "idreport", "report", "reporttest", "select");
     $reporttest = ($topic_row) ? $topic_row['idreport'] : 0;
 }
 
-// =========================================================
-// بخش 1: دریافت تست مستقیم (Direct Test)
-// لینک: https://t.me/Bot?start=/usertest
-// =========================================================
-// =========================================================
-// بخش 1: دریافت تست مستقیم (Direct Test)
-// لینک: https://t.me/Bot?start=/usertest
-// =========================================================
 if (isset($text) && strpos($text, "/start usertest") === 0) {
     
     if (!check_active_btn($setting['keyboardmain'], "text_usertest")) {
@@ -83,40 +69,33 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
 
     $marzban_list_get = $panel;
     
-    // کسر محدودیت
     $limit_usertest = $user['limit_usertest'] - 1;
     update("user", "limit_usertest", $limit_usertest, "id", $from_id);
 
-    // ساخت نام کاربری - اصلاح شده برای دقت ۱۰۰ درصد طبق تنظیمات
     $username_base = (!empty($username) && $username != 'none') ? $username : $from_id;
-    // حذف رندوم اضافی از متد ساخت یوزرنیم برای خروجی تمیز
     $username_ac = generateUsername($from_id, $marzban_list_get['MethodUsername'], $username_base, "", "test", $marzban_list_get['namecustom'], $user['namecustom']);
     $username_ac = strtolower($username_ac);
 
-    // بررسی تکراری بودن در پنل و دیتابیس
     $DataUserOut = $ManagePanel->DataUser($marzban_list_get['name_panel'], $username_ac);
     
     if (!isset($usernameinvoice) || !is_array($usernameinvoice)) {
         $usernameinvoice = select("invoice", "username", null, null, "FETCH_COLUMN");
     }
 
-    // اگر تکراری بود فقط یک عدد کوچک به انتها اضافه کن (نه به ابتدا)
     if (isset($DataUserOut['username']) || in_array($username_ac, $usernameinvoice)) {
         $username_ac = $username_ac . rand(11, 99);
     }
 
-    // مقادیر دقیقاً طبق تنظیمات پنل تست
     $datac = array(
         'expire' => strtotime(date("Y-m-d H:i:s", strtotime("+" . $marzban_list_get['time_usertest'] . "hours"))),
-        'data_limit' => $marzban_list_get['val_usertest'] * 1048576, // تبدیل دقیق مگابایت به بایت
+        'data_limit' => $marzban_list_get['val_usertest'] * 1048576,
         'from_id' => $from_id,
         'username' => $username,
         'type' => 'usertest'
     );
 
-    // ثبت در دیتابیس
     $date = time();
-    $invoice_rand_id = bin2hex(random_bytes(4)); // کد پیگیری فاکتور
+    $invoice_rand_id = bin2hex(random_bytes(4));
     $notifctions = json_encode(['volume' => false, 'time' => false]);
     $stmt = $pdo->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username, time_sell, Service_location, name_product, price_product, Volume, Service_time, Status, notifctions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     
@@ -126,7 +105,6 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
     
     $stmt->execute([$from_id, $invoice_rand_id, $username_ac, $date, $marzban_list_get['name_panel'], $p_name, $p_price, $marzban_list_get['val_usertest'], $marzban_list_get['time_usertest'], $Status, $notifctions]);
 
-    // ارسال درخواست ساخت به پنل بدون هیچ تغییر اضافی
     $dataoutput = $ManagePanel->createUser($marzban_list_get['name_panel'], "usertest", $username_ac, $datac);
 
     if ($dataoutput['username'] == null) {
@@ -143,7 +121,6 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
         }
     }
 
-    // دریافت و جایگذاری متن نهایی
     $template_text = ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik")
         ? $textbotlang['textbot']['afterPayIbsng']
         : $textbotlang['textbot']['afterText'];
@@ -161,7 +138,6 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
     sendmessage($from_id, "✅ سرویس تست شما با موفقیت فعال شد.", $keyboard, 'HTML');
     step('home', $from_id);
     
-    // گزارش به ادمین (دقیق)
     if (strlen($setting['Channel_Report']) > 0 && !empty($reporttest)) {
         $timejalali = jdate('Y/m/d H:i:s');
         $text_report = "📣 جزئیات ساخت اکانت تست
@@ -185,9 +161,6 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
     return; 
 }
 
-// =========================================================
-// بخش 2: پردازش لینک خرید مستقیم
-// =========================================================
 if (isset($text) && strpos($text, "/start buy_") === 0) {
     $full_command = explode(" ", $text)[1]; 
     $parts = explode("_", $full_command);
@@ -275,9 +248,6 @@ if (isset($text) && strpos($text, "/start buy_") === 0) {
     }
 }
 
-// =========================================================
-// بخش 3: ثبت فاکتور و نمایش کارت (وقتی دکمه پرداخت زده شد)
-// =========================================================
 if (isset($datain) && $datain == "direct_pay_start") {
     
     $stmtRefresh = $pdo->prepare("SELECT Processing_value, Processing_value_one, Processing_value_tow, Balance, agent, pricediscount, affiliates FROM user WHERE id = :id LIMIT 1");
@@ -336,7 +306,6 @@ if (isset($datain) && $datain == "direct_pay_start") {
         $valueprice = number_format($payable_amount);
         $username_ac = $freshUser['Processing_value_tow'];
 
-        // ساخت فاکتور (Invoice) با وضعیت unpaid
         $date_now = time();
         $randomStringInvoice = bin2hex(random_bytes(4)); 
         $notifctions = json_encode(['volume' => false, 'time' => false]);
@@ -362,7 +331,6 @@ if (isset($datain) && $datain == "direct_pay_start") {
             $notifctions
         ]);
 
-        // ثبت گزارش پرداخت
         $invoice_ref = "getconfigafterpay|$username_ac";
         $dateacc = date('Y/m/d H:i:s');
         $randomStringOrder = bin2hex(random_bytes(5));

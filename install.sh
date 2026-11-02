@@ -2367,9 +2367,6 @@ EOF
     YOUR_BOTNAME="$(state_get BOTNAME)"
     if [ -n "$YOUR_BOTNAME" ]; then
         echo -e "\e[33m[+] \e[36musernamebot (resumed):\e[0m ${YOUR_BOTNAME}"
-    elif [ -n "$ARG_NAME" ]; then
-        YOUR_BOTNAME="$ARG_NAME"
-        echo -e "\e[33m[+] \e[36musernamebot (from --name):\e[0m ${YOUR_BOTNAME}"
     else
         YOUR_BOTNAME="$TG_BOT_USERNAME"
         [ -z "$YOUR_BOTNAME" ] && YOUR_BOTNAME="$(fetch_bot_username "$YOUR_BOT_TOKEN")"
@@ -3082,7 +3079,7 @@ EOF
 
 # ── Command-line argument parsing ────────────────────────────
 # Globals filled from flags (consumed by install/update where relevant)
-ARG_NAME=""     ARG_TOKEN=""   ARG_ADMIN=""    ARG_DOMAIN=""
+ARG_TOKEN=""    ARG_ADMIN=""   ARG_DOMAIN=""
 ARG_DBUSER=""   ARG_DBPASS=""  ARG_VERSION=""  ARG_CHANNEL=""
 
 print_usage() {
@@ -3105,7 +3102,6 @@ print_usage() {
     menu               Show interactive menu (default)
 
   Options:
-    --name   <name>    Telegram bot username
     --token  <token>   Telegram bot token
     --admin  <id>      Admin chat id
     --domain <domain>  Domain name (e.g. bot.example.com)
@@ -3138,7 +3134,6 @@ process_arguments() {
     # Parse remaining flags
     while [ $# -gt 0 ]; do
         case "$1" in
-            --name)    ARG_NAME="$2";    shift 2 ;;
             --token)   ARG_TOKEN="$2";   shift 2 ;;
             --admin)   ARG_ADMIN="$2";   shift 2 ;;
             --domain)  ARG_DOMAIN="$2";  shift 2 ;;

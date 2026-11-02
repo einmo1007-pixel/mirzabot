@@ -272,14 +272,10 @@ if (floor($TimeLastMessage / 60) >= 1) {
 }
 
 
-// ==========================================================
-// --- ادغام فایل خرید مستقیم و تست مستقیم ---
-// ==========================================================
 if ((isset($text) && (strpos($text, "/start buy_") === 0 || strpos($text, "/start usertest") === 0)) || (isset($datain) && $datain == "direct_pay_start")) {
     require_once 'direct_buy.php';
     return; 
 }
-// ==========================================================
 
 if (strpos($text, "/start ") !== false && $user['step'] != "gettextSystemMessage") {
     $affiliatesid = explode(" ", $text)[1];
@@ -1254,7 +1250,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $sub_buttons = [];
         $clean_sub = trim((string) $subscriptionurl);
         if (!empty($clean_sub) && filter_var($clean_sub, FILTER_VALIDATE_URL)) {
-            $sub_btn = ['text' => "🔗 لینک اتصال"];
+            $sub_btn = ['text' => $textbotlang['keyboard']['connectionLink']];
             if (preg_match('/^https:\/\//i', $clean_sub)) {
                 $sub_btn['web_app'] = ['url' => $clean_sub];
             } else {

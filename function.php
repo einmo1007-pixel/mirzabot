@@ -2524,7 +2524,7 @@ function sendMessageService($panel_info, $config, $sub_link, $username_service, 
         $hasFastConnect = false;
         foreach ($markup_arr['inline_keyboard'] as &$row) {
             foreach ($row as &$btn) {
-                if (isset($btn['text']) && (strpos($btn['text'], 'لینک اتصال') !== false || strpos($btn['text'], 'Fast Connect') !== false)) {
+                if (isset($btn['text']) && (strpos($btn['text'], 'لینک اتصال') !== false || strpos($btn['text'], 'Fast Connect') !== false || (isset($textbotlang['keyboard']['connectionLink']) && $btn['text'] === $textbotlang['keyboard']['connectionLink']))) {
                     $hasFastConnect = true;
                     if (preg_match('/^https:\/\//i', $sub_url)) {
                         unset($btn['url']);
@@ -2539,7 +2539,7 @@ function sendMessageService($panel_info, $config, $sub_link, $username_service, 
         }
         unset($row, $btn);
         if (!$hasFastConnect) {
-            $btn_connect = ['text' => "🔗 لینک اتصال"];
+            $btn_connect = ['text' => $textbotlang['keyboard']['connectionLink']];
             if (preg_match('/^https:\/\//i', $sub_url)) {
                 $btn_connect['web_app'] = ['url' => $sub_url];
             } else {

@@ -4022,6 +4022,7 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'educationTonOffline' => '📚 TON offline payment guide',
                 'removeBannerPhoto' => '🗑 Remove banner photo',
                 'resetBannerText' => '🔄 Reset text to default',
+                'connectionLink' => '🔗 Connection Link',
                 'minAmountIranPay1' => '⬇️ Minimum Rial currency amount',
                 'minAmountIranPay2' => '⬇️ Minimum CubePay amount',
                 'minAmountIranPay3' => '⬇️ Minimum third Rial currency amount',
