@@ -3486,6 +3486,23 @@ f,n.n2',
 用户组：%s
 
 ⭕️ 要管理面板，请选择下方的一个选项',
+                        'panelManualSale' => "📊 <b>手动销售面板统计</b>
+🗂 面板名称：%s
+
+━━━━━━━━━━━━━━━━
+📌 <b>总体摘要：</b>
+🗃 已保存配置总数：<b>%s</b>
+✅ 已售出：<b>%s</b>
+🟢 可用库存：<b>%s</b>
+━━━━━━━━━━━━━━━━
+📋 <b>按产品统计：</b>%s
+
+━━━━━━━━━━━━━━━━
+⭕️ 请选择以下选项以管理面板",
+                        'manualProductTotal' => '总配置数：%s',
+                        'manualProductSelled' => '已售出：%s',
+                        'manualProductActive' => '可用库存：%s',
+                        'manualProductEmpty' => '无记录',
                         'mikrotik' => '<b>📡 您的 MikroTik 系统信息：</b>
 
 <blockquote>

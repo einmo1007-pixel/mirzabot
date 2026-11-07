@@ -2628,7 +2628,54 @@ elseif ($datain == "systemsms") {
             }
         }
     } elseif ($marzban_list_get['type'] == "Manualsale") {
-        sendmessage($from_id, $textbotlang['Admin']['selectOption2'], $panelOptions['Manualsale'], 'HTML');
+        $panel_code = $marzban_list_get['code_panel'];
+
+        $stmt = $pdo->prepare("SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'selled' THEN 1 ELSE 0 END) as selled,
+            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active
+            FROM manualsell WHERE codepanel = :codepanel");
+        $stmt->execute([':codepanel' => $panel_code]);
+        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $total_configs = (int) ($stats['total'] ?? 0);
+        $selled_configs = (int) ($stats['selled'] ?? 0);
+        $active_configs = (int) ($stats['active'] ?? 0);
+
+        $stmt = $pdo->prepare("SELECT m.codeproduct, COUNT(*) as total,
+                    SUM(CASE WHEN m.status = 'selled' THEN 1 ELSE 0 END) as selled,
+                    SUM(CASE WHEN m.status = 'active' THEN 1 ELSE 0 END) as active
+             FROM manualsell m
+             WHERE m.codepanel = :codepanel
+             GROUP BY m.codeproduct
+             HAVING total > 0");
+        $stmt->execute([':codepanel' => $panel_code]);
+        $product_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $product_lines = "";
+        foreach ($product_rows as $row) {
+            $prod = select("product", "name_product", "code_product", $row['codeproduct'], "select");
+            $prod_name = $prod['name_product'] ?? ($textbotlang['common']['labels']['unknown'] ?? 'Unknown') . " ({$row['codeproduct']})";
+            $product_lines .= "\n\n📦 <b>" . $prod_name . "</b>";
+            $product_lines .= "\n   ├ " . sprintf($textbotlang['Admin']['stats']['manualProductTotal'], $row['total']);
+            $product_lines .= "\n   ├ " . sprintf($textbotlang['Admin']['stats']['manualProductSelled'], $row['selled']);
+            $product_lines .= "\n   └ " . sprintf($textbotlang['Admin']['stats']['manualProductActive'], $row['active']);
+        }
+
+        if (empty($product_lines)) {
+            $product_lines = "\n<i>" . $textbotlang['Admin']['stats']['manualProductEmpty'] . "</i>";
+        }
+
+        $text_manualsale = sprintf(
+            $textbotlang['Admin']['stats']['panelManualSale'],
+            $marzban_list_get['name_panel'],
+            $total_configs,
+            $selled_configs,
+            $active_configs,
+            $product_lines
+        );
+
+        sendmessage($from_id, $text_manualsale, $panelOptions['Manualsale'], 'HTML');
     } elseif ($marzban_list_get['type'] == "marzneshin") {
         $Check_token = token_panelm($marzban_list_get['code_panel']);
         if (isset($Check_token['access_token'])) {

@@ -3486,6 +3486,23 @@ Your panel statistics👇:
 User group:%s
 
 ⭕️ To manage the panel, select one of the options below',
+                        'panelManualSale' => "📊 <b>Manual Sale Panel Statistics</b>
+🗂 Panel Name: %s
+
+━━━━━━━━━━━━━━━━
+📌 <b>General Summary:</b>
+🗃 Total Stored Configs: <b>%s</b>
+✅ Sold: <b>%s</b>
+🟢 Available: <b>%s</b>
+━━━━━━━━━━━━━━━━
+📋 <b>Statistics by Product:</b>%s
+
+━━━━━━━━━━━━━━━━
+⭕️ Select an option below to manage the panel",
+                        'manualProductTotal' => 'Total configs: %s',
+                        'manualProductSelled' => 'Sold: %s',
+                        'manualProductActive' => 'Available: %s',
+                        'manualProductEmpty' => 'No records found',
                         'mikrotik' => '<b>📡 Your MikroTik system information:</b>
 
 <blockquote>
