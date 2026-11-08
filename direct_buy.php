@@ -68,6 +68,16 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
     }
 
     $marzban_list_get = $panel;
+
+    if ($marzban_list_get['type'] == "Manualsale") {
+        $stmt = $pdo->prepare("SELECT * FROM manualsell WHERE codepanel = :codepanel AND codeproduct = 'usertest' AND status = 'active'");
+        $stmt->bindParam(':codepanel', $marzban_list_get['code_panel']);
+        $stmt->execute();
+        if ($stmt->rowCount() == 0) {
+            sendmessage($from_id, $textbotlang['users']['sell']['stockFinished'], null, 'HTML');
+            return;
+        }
+    }
     
     $limit_usertest = $user['limit_usertest'] - 1;
     update("user", "limit_usertest", $limit_usertest, "id", $from_id);
@@ -183,6 +193,17 @@ if (isset($text) && strpos($text, "/start buy_") === 0) {
         if (!$info_product) {
             sendmessage($from_id, $textbotlang['users']['sell']['productNotFound'], null, 'HTML');
             return;
+        }
+
+        if ($marzban_panel['type'] == "Manualsale") {
+            $stmt = $pdo->prepare("SELECT * FROM manualsell WHERE codepanel = :codepanel AND codeproduct = :codeproduct AND status = 'active'");
+            $stmt->bindParam(':codepanel', $marzban_panel['code_panel']);
+            $stmt->bindParam(':codeproduct', $info_product['code_product']);
+            $stmt->execute();
+            if ($stmt->rowCount() == 0) {
+                sendmessage($from_id, $textbotlang['users']['sell']['stockFinishedBuyAnother'], null, 'HTML');
+                return;
+            }
         }
 
         $priceproduct = $info_product['price_product'];

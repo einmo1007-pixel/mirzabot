@@ -3922,7 +3922,7 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'deleteCardNumber' => '❌ Delete card number',
                 'deleteCategory' => '❌ Delete category',
                 'deleteChannel' => 'Delete channel',
-                'deleteConfig' => '❌ Delete config ',
+                'deleteConfig' => '❌ Delete config',
                 'deleteDepartment' => '🔽 Delete department',
                 'deleteEducation' => '❌ Delete tutorial',
                 'deleteNode' => '❌ Delete node',

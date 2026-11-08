@@ -3922,7 +3922,7 @@ ID пользователя : %s
                 'deleteCardNumber' => '❌ Удалить номер карты',
                 'deleteCategory' => '❌ Удалить категорию',
                 'deleteChannel' => 'Удалить канал',
-                'deleteConfig' => '❌ Удалить конфиг ',
+                'deleteConfig' => '❌ Удалить конфиг',
                 'deleteDepartment' => '🔽 Удалить отдел',
                 'deleteEducation' => '❌ Удалить инструкцию',
                 'deleteNode' => '❌ Удалить ноду',

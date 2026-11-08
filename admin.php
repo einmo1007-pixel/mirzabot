@@ -6009,7 +6009,7 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
         $stmt->execute();
     }
     update("user", "Processing_value", $panel['name_panel'], "id", $from_id);
-} elseif ($text == $textbotlang['Admin']['config']['btnDelete']) {
+} elseif ($text == $textbotlang['keyboard']['deleteConfig'] || $text == $textbotlang['Admin']['config']['btnDelete'] || trim($text) == trim($textbotlang['keyboard']['deleteConfig'])) {
     $panel = select("marzban_panel", "*", "name_panel", $user['Processing_value'], "select");
     $listconfig = [];
     $stmt = $pdo->prepare("SELECT * FROM manualsell WHERE codepanel = :mp14");
@@ -6237,7 +6237,7 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
     sendmessage($from_id, $textbotlang['Admin']['selectOption4'], $configedit, 'HTML');
     step("home", $from_id);
     update("user", "Processing_value_one", $text, "id", $from_id);
-} elseif ($text == $textbotlang['keyboard']['configDetails']) {
+} elseif ($text == $textbotlang['keyboard']['configDetails'] || $text == 'مشخصات کانفیگ' || $text == 'مخشصات کانفیگ') {
     sendmessage($from_id, $textbotlang['Admin']['config']['askNewContent'], $backadmin, 'HTML');
     step("getcontentedit", $from_id);
 } elseif ($user['step'] == "getcontentedit") {
