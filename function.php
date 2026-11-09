@@ -2551,14 +2551,29 @@ function sendMessageService($panel_info, $config, $sub_link, $username_service, 
         }
         $reply_markup = json_encode($markup_arr);
     }
-    $STATUS_SEND_MESSAGE_PHOTO = $panel_info['config'] == "onconfig" && (is_array($config) ? count($config) : 0) != 1 ? false : true;
+    $has_sub_link = (!empty($panel_info['sublink']) && $panel_info['sublink'] === "onsublink" && !empty($sub_url));
+
+    $config_list = [];
+    if (is_array($config)) {
+        foreach ($config as $c) {
+            if (is_string($c) && trim($c) !== '') {
+                $config_list[] = trim($c);
+            }
+        }
+    }
+    $config_count = count($config_list);
+
+    $STATUS_SEND_MESSAGE_PHOTO = false;
     $out_put_qrcode = "";
-    if ($panel_info['sublink'] == "onsublink" && $panel_info['config']) {
-        $out_put_qrcode = $sub_link;
-    } elseif ($panel_info['sublink'] == "onsublink") {
-        $out_put_qrcode = $sub_link;
-    } elseif ($panel_info['config'] == "onconfig") {
-        $out_put_qrcode = $config[0];
+
+    if ($has_sub_link) {
+        $STATUS_SEND_MESSAGE_PHOTO = true;
+        $out_put_qrcode = $sub_url;
+    } elseif ($config_count > 0 && $config_count <= 2) {
+        $STATUS_SEND_MESSAGE_PHOTO = true;
+        $out_put_qrcode = implode("\n", $config_list);
+    } else {
+        $STATUS_SEND_MESSAGE_PHOTO = false;
     }
     if ($STATUS_SEND_MESSAGE_PHOTO) {
         if ($panel_info['type'] == "WGDashboard") {
