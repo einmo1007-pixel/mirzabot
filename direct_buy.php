@@ -145,6 +145,14 @@ if (isset($text) && (strpos($text, "/start usertest") === 0 || strpos($text, "/s
         }
     }
 
+    $usertestinfo = json_encode([
+        'inline_keyboard' => [
+            [
+                ['text' => $textbotlang['users']['help']['btninlinebuy'], 'callback_data' => "helpbtn"],
+            ]
+        ]
+    ]);
+
     if ($marzban_list_get['type'] == "WGDashboard") {
         $textbotlang['textbot']['afterText'] = $textbotlang['users']['sell']['created'];
     }
@@ -163,7 +171,26 @@ if (isset($text) && (strpos($text, "/start usertest") === 0 || strpos($text, "/s
     }
     $sub_link_test = (!empty($dataoutput['subscription_url']) && filter_var($dataoutput['subscription_url'], FILTER_VALIDATE_URL)) ? $dataoutput['subscription_url'] : $output_config_link;
     sendMessageService($marzban_list_get, $dataoutput['configs'], $sub_link_test, $dataoutput['username'], $usertestinfo, $textcreatuser, $invoice_rand_id, wireguard: $dataoutput['wireguard'] ?? []);
-    sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
+    
+$discount_text = "🎉 <b>تبریک! هدیه‌ی ۳۰٪ تخفیف ویژه، برای شما فعال شد.</b>\n\n"
+        . "• کد تخفیف: <code>05d795fa</code>\n"
+        . "• مهلت استفاده: <b>۲ روز</b>\n\n"
+        . "این تخفیف منحصراً برای اکانت شما در نظر گرفته شده است.\n"
+        . "جهت تهیه اشتراک، از گزینه‌های زیر اقدام نمایید ⚡️";
+
+    $discount_keyboard = json_encode([
+        'inline_keyboard' => [
+            [              
+            ['text' => '📲  کپی کد تخفیف', 'copy_text' => ['text' => '05d795fa']],
+
+            ],
+            [
+            ['text' => '🛍 خرید اشتراک', 'callback_data' => 'buy', 'style' => 'primary'],
+            ]
+        ]
+    ]);
+
+    sendmessage($from_id, $discount_text, $discount_keyboard, 'HTML');
     step('home', $from_id);
     
     if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
@@ -387,7 +414,7 @@ if (isset($datain) && $datain == "direct_pay_start") {
         if (!is_array($dataoutput) || empty($dataoutput['username'])) {
             addBalance($from_id, $priceproduct);
             update("invoice", "Status", "Unsuccessful", "id_invoice", $randomStringInvoice);
-            sendmessage($from_id, $textbotlang['users']['sell']['createAccountError'], $keyboard, 'HTML');
+            sendmessage($from_id, $textbotlang['users']['sell']['errorConfig'], $keyboard, 'HTML');
             return;
         }
 
@@ -401,6 +428,14 @@ if (isset($datain) && $datain == "direct_pay_start") {
                 }
             }
         }
+
+        $Shoppinginfo = json_encode([
+            'inline_keyboard' => [
+                [
+                    ['text' => $textbotlang['users']['help']['btninlinebuy'], 'callback_data' => "helpbtn"],
+                ]
+            ]
+        ]);
 
         if ($marzban_list_get['type'] == "WGDashboard") {
             $textbotlang['textbot']['afterPay'] = $textbotlang['users']['sell']['created'];
@@ -423,7 +458,7 @@ if (isset($datain) && $datain == "direct_pay_start") {
         }
 
         $sub_link_buy = (!empty($dataoutput['subscription_url']) && filter_var($dataoutput['subscription_url'], FILTER_VALIDATE_URL)) ? $dataoutput['subscription_url'] : $output_config_link;
-        sendMessageService($marzban_list_get, $dataoutput['configs'], $sub_link_buy, $dataoutput['username'], null, $textcreatuser, $randomStringInvoice, wireguard: $dataoutput['wireguard'] ?? []);
+        sendMessageService($marzban_list_get, $dataoutput['configs'], $sub_link_buy, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $randomStringInvoice, wireguard: $dataoutput['wireguard'] ?? []);
         sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
         step('home', $from_id);
 
