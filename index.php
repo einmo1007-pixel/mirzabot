@@ -272,14 +272,14 @@ if (floor($TimeLastMessage / 60) >= 1) {
 }
 
 
-if ((isset($text) && (strpos($text, "/start buy_") === 0 || strpos($text, "/start usertest") === 0)) || (isset($datain) && $datain == "direct_pay_start")) {
+if ((isset($text) && (strpos($text, "/start buy_") === 0 || strpos($text, "/start usertest") === 0 || strpos($text, "/start test") === 0)) || (isset($datain) && $datain == "direct_pay_start")) {
     require_once 'direct_buy.php';
     return; 
 }
 
 if (strpos($text, "/start ") !== false && $user['step'] != "gettextSystemMessage") {
     $affiliatesid = explode(" ", $text)[1];
-    if (!in_array($affiliatesid, ['start', "usertest", "/start", "buy", "help"])) {
+    if (!in_array($affiliatesid, ['start', "usertest", "test", "/start", "buy", "help"])) {
         isValidInvitationCode($setting, $from_id, $user['verify']);
         if (!check_active_btn($setting['keyboardmain'], "text_affiliates")) {
             sendmessage($from_id, $textbotlang['users']['affiliates']['offaffiliates'], $keyboard, 'HTML');

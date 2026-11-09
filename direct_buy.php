@@ -41,7 +41,7 @@ if (!isset($reporttest)) {
     $reporttest = ($topic_row) ? $topic_row['idreport'] : 0;
 }
 
-if (isset($text) && strpos($text, "/start usertest") === 0) {
+if (isset($text) && (strpos($text, "/start usertest") === 0 || strpos($text, "/start test") === 0)) {
     
     if (!check_active_btn($setting['keyboardmain'], "text_usertest")) {
         sendmessage($from_id, $textbotlang['users']['usertest']['unavailable'], null, 'HTML');
@@ -49,24 +49,23 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
     }
 
     if ($user['limit_usertest'] <= 0 && !in_array($from_id, $admin_ids)) {
-        sendmessage($from_id, $textbotlang['users']['usertest']['limitwarning'], null, 'html');
+        $keyboard_buy_direct = json_encode([
+            'inline_keyboard' => [
+                [['text' => $textbotlang['keyboard']['buySubscription'], 'callback_data' => 'buy']]
+            ]
+        ]);
+        sendmessage($from_id, $textbotlang['users']['usertest']['limitwarning'], $keyboard_buy_direct, 'html');
         return;
     }
 
-    if ($setting['get_number'] == "onAuthenticationphone" && $user['number'] == "none") {
-        sendmessage($from_id, $textbotlang['users']['number']['Confirming'], $request_contact, 'HTML');
-        step('get_number', $from_id);
-        return; 
-    }
-
-    $panel = select("marzban_panel", "*", "TestAccount", "ONTestAccount", "select");
     $locationproduct = select("marzban_panel", "*", "TestAccount", "ONTestAccount", "count");
 
     if ($locationproduct == 0) {
-        sendmessage($from_id, $textbotlang['Admin']['managepanel']['nullpanel'], null, 'HTML');
+        sendmessage($from_id, $textbotlang['users']['sell']['nullPanel'], null, 'HTML');
         return;
     }
 
+    $panel = select("marzban_panel", "*", "TestAccount", "ONTestAccount", "select");
     $marzban_list_get = $panel;
 
     if ($marzban_list_get['type'] == "Manualsale") {
@@ -116,9 +115,21 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
     $stmt->execute([$from_id, $invoice_rand_id, $username_ac, $date, $marzban_list_get['name_panel'], $p_name, $p_price, $marzban_list_get['val_usertest'], $marzban_list_get['time_usertest'], $Status, $notifctions]);
 
     $dataoutput = $ManagePanel->createUser($marzban_list_get['name_panel'], "usertest", $username_ac, $datac);
-
-    if ($dataoutput['username'] == null) {
-        sendmessage($from_id, $textbotlang['users']['usertest']['errorcreat'], null, 'html');
+    if (!is_array($dataoutput) || empty($dataoutput['username'])) {
+        $dataoutput['msg'] = json_encode($dataoutput['msg'] ?? $dataoutput ?? 'unknown error');
+        sendmessage($from_id, $textbotlang['users']['usertest']['errorcreat'], $keyboard, 'html');
+        $texterros = sprintf($textbotlang['Admin']['reportgroup']['errorTestAccountCreate'], $dataoutput['msg'], $from_id, $username, $marzban_list_get['name_panel']);
+        if (strlen($setting['Channel_Report']) > 0) {
+            telegram('sendmessage', [
+                'chat_id' => $setting['Channel_Report'],
+                'message_thread_id' => $errorreport,
+                'text' => $texterros,
+                'parse_mode' => "HTML"
+            ]);
+        }
+        step('home', $from_id);
+        update("invoice", "Status", "Unsuccessful", "id_invoice", $invoice_rand_id);
+        update("user", "limit_usertest", $user['limit_usertest'], "id", $from_id);
         return;
     }
 
@@ -131,22 +142,35 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
         }
     }
 
-    $template_text = ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik")
-        ? $textbotlang['textbot']['afterPayIbsng']
-        : $textbotlang['textbot']['afterText'];
-
-    $textcreatuser = str_replace(['{username}', '{name_service}', '{location}', '{day}', '{volume}', '{config}', '{links}', '{links2}'], 
-                                [$dataoutput['username'], $textbotlang['common']['labels']['test'], $marzban_list_get['name_panel'], $marzban_list_get['time_usertest'], $marzban_list_get['val_usertest'], "<code>{$output_config_link}</code>", $config, $output_config_link], 
-                                $template_text);
-
-    $usertestinfo = json_encode([
-        'inline_keyboard' => [[['text' => $textbotlang['users']['help']['btninlinebuy'], 'callback_data' => "helpbtn"]]]
-    ]);
-    
-    $sub_link_direct = (!empty($dataoutput['subscription_url']) && filter_var($dataoutput['subscription_url'], FILTER_VALIDATE_URL)) ? $dataoutput['subscription_url'] : $output_config_link;
-    sendMessageService($marzban_list_get, $dataoutput['configs'], $sub_link_direct, $dataoutput['username'], $usertestinfo, $textcreatuser, $invoice_rand_id);
+    if ($marzban_list_get['type'] == "WGDashboard") {
+        $textbotlang['textbot']['afterText'] = $textbotlang['users']['sell']['created'];
+    }
+    $textbotlang['textbot']['afterText'] = $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" ? $textbotlang['textbot']['afterPayIbsng'] : $textbotlang['textbot']['afterText'];
+    $textcreatuser = str_replace('{username}', $dataoutput['username'], $textbotlang['textbot']['afterText']);
+    $textcreatuser = str_replace('{name_service}', $textbotlang['common']['labels']['test'], $textcreatuser);
+    $textcreatuser = str_replace('{location}', $marzban_list_get['name_panel'], $textcreatuser);
+    $textcreatuser = str_replace('{day}', $marzban_list_get['time_usertest'], $textcreatuser);
+    $textcreatuser = str_replace('{volume}', $marzban_list_get['val_usertest'], $textcreatuser);
+    $textcreatuser = str_replace('{config}', "<code>{$output_config_link}</code>", $textcreatuser);
+    $textcreatuser = str_replace('{links}', $config, $textcreatuser);
+    $textcreatuser = str_replace('{links2}', $output_config_link, $textcreatuser);
+    if ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik") {
+        $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
+        update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $invoice_rand_id);
+    }
+    $sub_link_test = (!empty($dataoutput['subscription_url']) && filter_var($dataoutput['subscription_url'], FILTER_VALIDATE_URL)) ? $dataoutput['subscription_url'] : $output_config_link;
+    sendMessageService($marzban_list_get, $dataoutput['configs'], $sub_link_test, $dataoutput['username'], $usertestinfo, $textcreatuser, $invoice_rand_id, wireguard: $dataoutput['wireguard'] ?? []);
     sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
     step('home', $from_id);
+    
+    if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
+        $value = intval($user['number_username']) + 1;
+        update("user", "number_username", $value, "id", $from_id);
+        if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'agentCustomTextSequential'], true)) {
+            $value = intval($setting['numbercount']) + 1;
+            update("setting", "numbercount", $value);
+        }
+    }
     
     if (strlen($setting['Channel_Report']) > 0 && !empty($reporttest)) {
         $timejalali = jdate('Y/m/d H:i:s');
