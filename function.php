@@ -1312,6 +1312,9 @@ function DirectPayment($order_id, $image = 'images.jpg')
             ]
         ]);
         $text_report = sprintf($textbotlang['Admin']['reportgroup']['accountCreatedAfterPay'], $textonebuy, $Balance_id['id'], $Balance_id['username'], $username_ac, $get_invoice['Service_location'], $get_invoice['Service_time'], $get_invoice['name_product'], $get_invoice['Volume'], $balancebefore, $balanceformatsell, $get_invoice['id_invoice'], $Balance_id['agent'], $Balance_id['number'], $get_invoice['price_product'], $Payment_report['price'], $timejalali);
+        if (($get_invoice['note'] ?? '') === 'DirectBuy') {
+            $text_report .= "\n\n🔗 <i>" . ($textbotlang['Admin']['reportgroup']['viaDirectLink'] ?? 'ثبت‌شده با لینک مستقیم') . "</i>";
+        }
         if (strlen($setting['Channel_Report']) > 0) {
             telegram('sendmessage', [
                 'chat_id' => $setting['Channel_Report'],

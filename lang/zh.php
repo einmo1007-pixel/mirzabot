@@ -3272,6 +3272,7 @@ f,n.n2',
 ▫️用户类型：%s
 ▫️用户电话号码：%s
 ▫️购买时间：%s',
+                        'viaDirectLink' => '通过直接链接注册',
                         'userBlockedByApi' => '数字 ID 为 %s 的用户已在机器人中被封禁 
 执行管理员：api site',
                         'userUnblockedByApi' => '数字 ID 为 %s 的用户已在机器人中被解封 

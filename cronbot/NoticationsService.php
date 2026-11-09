@@ -70,7 +70,12 @@ class ServiceMonitor
     private function getActiveInvoices()
     {
         $time_hours = time() - 3600;
-        $QUERY = "SELECT * FROM invoice WHERE (Status = 'active' OR Status = 'end_of_time' OR Status = 'end_of_volume' OR Status = 'sendedwarn' OR Status = 'send_on_hold') AND name_product != :testName AND (time_cron <= :timeHours OR time_cron IS NULL) ORDER BY time_cron  LIMIT 30";
+        $QUERY = "SELECT * FROM invoice 
+                  WHERE (Status = 'active' OR Status = 'end_of_time' OR Status = 'end_of_volume' OR Status = 'sendedwarn' OR Status = 'send_on_hold') 
+                  AND CAST(price_product AS UNSIGNED) > 0 
+                  AND name_product NOT IN ('سرویس تست', 'تست رایگان', 'Test service', 'Тестовый сервис', '测试服务', :testName) 
+                  AND (time_cron <= :timeHours OR time_cron IS NULL) 
+                  ORDER BY time_cron LIMIT 30";
         $stmt = $this->pdo->prepare($QUERY);
         $stmt->execute([':testName' => $this->textBotLang['common']['labels']['testServiceName'], ':timeHours' => $time_hours]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

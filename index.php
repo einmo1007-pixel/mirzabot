@@ -3137,7 +3137,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     ));
     $stmt = $pdo->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username,time_sell, Service_location, name_product, price_product, Volume, Service_time,Status,notifctions) VALUES (?, ?,  ?, ?, ?, ?, ?,?,?,?,?)");
     $Status = "active";
-    $info_product['name_product'] = $textbotlang['common']['labels']['testService5'];
+    $info_product['name_product'] = $textbotlang['common']['labels']['testServiceName'];
     $info_product['price_product'] = "0";
     $Status = "active";
     $stmt->execute([$from_id, $randomString, $username_ac, $date, $marzban_list_get['name_panel'], $info_product['name_product'], $info_product['price_product'], $marzban_list_get['val_usertest'], $marzban_list_get['time_usertest'], $Status, $notifctions]);

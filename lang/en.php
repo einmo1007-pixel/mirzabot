@@ -3272,6 +3272,7 @@ Panel name : %s',
 ▫️User type : %s
 ▫️User phone number : %s
 ▫️Purchase time : %s',
+                        'viaDirectLink' => 'Registered via direct link',
                         'userBlockedByApi' => 'User with numeric ID %s was blocked in the bot 
 Performing admin : api site',
                         'userUnblockedByApi' => 'User with numeric ID %s was unblocked in the bot 

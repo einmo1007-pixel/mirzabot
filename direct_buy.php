@@ -175,7 +175,7 @@ if (isset($text) && (strpos($text, "/start usertest") === 0 || strpos($text, "/s
         }
     }
     
-    if (strlen($setting['Channel_Report']) > 0 && !empty($reporttest)) {
+    if (strlen($setting['Channel_Report']) > 0) {
         $timejalali = jdate('Y/m/d H:i:s');
         $first_name_val = $first_name ?? ($user['first_name'] ?? '');
         $text_report = sprintf(
@@ -192,6 +192,7 @@ if (isset($text) && (strpos($text, "/start usertest") === 0 || strpos($text, "/s
             $user['number'],
             $timejalali
         );
+        $text_report .= "\n\n🔗 <i>" . ($textbotlang['Admin']['reportgroup']['viaDirectLink'] ?? 'ثبت‌شده با لینک مستقیم') . "</i>";
 
         telegram('sendmessage', [
             'chat_id' => $setting['Channel_Report'],
@@ -308,7 +309,7 @@ if (isset($text) && strpos($text, "/start buy_") === 0) {
 
 if (isset($datain) && $datain == "direct_pay_start") {
     
-    $stmtRefresh = $pdo->prepare("SELECT Processing_value, Processing_value_one, Processing_value_tow, Balance, agent, pricediscount, affiliates FROM user WHERE id = :id LIMIT 1");
+    $stmtRefresh = $pdo->prepare("SELECT Processing_value, Processing_value_one, Processing_value_tow, Balance, agent, pricediscount, affiliates, number, first_name, number_username FROM user WHERE id = :id LIMIT 1");
     $stmtRefresh->execute([':id' => $from_id]);
     $freshUser = $stmtRefresh->fetch(PDO::FETCH_ASSOC);
 
@@ -347,6 +348,118 @@ if (isset($datain) && $datain == "direct_pay_start") {
         $result = ($priceproduct * $user_discount) / 100;
         $priceproduct = $priceproduct - $result;
     }
+
+    $username_ac = $freshUser['Processing_value_tow'];
+    $marzban_list_get = select("marzban_panel", "*", "name_panel", $panel_name, "select");
+    
+    if ($freshUser['Balance'] >= $priceproduct && $priceproduct > 0) {
+        if (!deductBalance($freshUser, $priceproduct)) {
+            sendmessage($from_id, $textbotlang['users']['Balance']['notEnoughBalance'], null, 'HTML');
+            return;
+        }
+
+        $date = (intval($info_product['Service_time']) == 0) ? 0 : strtotime("+" . $info_product['Service_time'] . "days");
+        $timestamp = (intval($info_product['Service_time']) == 0) ? 0 : strtotime(date("Y-m-d H:i:s", $date));
+        
+        $datac = array(
+            'expire' => $timestamp,
+            'data_limit' => (intval($info_product['Volume_constraint']) == 0) ? 0 : $info_product['Volume_constraint'] * pow(1024, 3),
+            'from_id' => $from_id,
+            'username' => $username,
+            'type' => 'buy'
+        );
+        
+        $date_now = time();
+        $randomStringInvoice = bin2hex(random_bytes(4));
+        $notifctions = json_encode(['volume' => false, 'time' => false]);
+        
+        $stmtInv = $pdo->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username, time_sell, Service_location, name_product, price_product, Volume, Service_time, Status, note, refral, notifctions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $status_inv = "active";
+        $note_inv = "DirectBuy";
+        $refral_inv = $freshUser['affiliates'];
+        $stmtInv->execute([
+            $from_id, $randomStringInvoice, $username_ac, $date_now, $panel_name,
+            $info_product['name_product'], $priceproduct, $info_product['Volume_constraint'],
+            $info_product['Service_time'], $status_inv, $note_inv, $refral_inv, $notifctions
+        ]);
+
+        $dataoutput = $ManagePanel->createUser($panel_name, "buy", $username_ac, $datac);
+        if (!is_array($dataoutput) || empty($dataoutput['username'])) {
+            addBalance($from_id, $priceproduct);
+            update("invoice", "Status", "Unsuccessful", "id_invoice", $randomStringInvoice);
+            sendmessage($from_id, $textbotlang['users']['sell']['createAccountError'], $keyboard, 'HTML');
+            return;
+        }
+
+        $output_config_link = ($marzban_list_get['sublink'] == "onsublink" && !empty($dataoutput['subscription_url'])) ? $dataoutput['subscription_url'] : "";
+        $config = "";
+        if ($marzban_list_get['config'] == "onconfig" && !empty($dataoutput['configs']) && is_array($dataoutput['configs'])) {
+            foreach ($dataoutput['configs'] as $conf) {
+                $conf = trim($conf);
+                if ($conf !== '') {
+                    $config .= "\n" . $conf;
+                }
+            }
+        }
+
+        if ($marzban_list_get['type'] == "WGDashboard") {
+            $textbotlang['textbot']['afterPay'] = $textbotlang['users']['sell']['created'];
+        }
+        $textbotlang['textbot']['afterPay'] = ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik") ? $textbotlang['textbot']['afterPayIbsng'] : $textbotlang['textbot']['afterPay'];
+        
+        $textcreatuser = str_replace('{username}', $dataoutput['username'], $textbotlang['textbot']['afterPay']);
+        $textcreatuser = str_replace('{name_service}', $info_product['name_product'], $textcreatuser);
+        $textcreatuser = str_replace('{location}', $marzban_list_get['name_panel'], $textcreatuser);
+        $textcreatuser = str_replace('{day}', $info_product['Service_time'], $textcreatuser);
+        $textcreatuser = str_replace('{volume}', $info_product['Volume_constraint'], $textcreatuser);
+        $textcreatuser = str_replace('{price}', number_format($priceproduct), $textcreatuser);
+        $textcreatuser = str_replace('{config}', !empty($output_config_link) ? "<code>{$output_config_link}</code>" : "", $textcreatuser);
+        $textcreatuser = str_replace('{links}', $config, $textcreatuser);
+        $textcreatuser = str_replace('{links2}', $output_config_link, $textcreatuser);
+        
+        if ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik") {
+            $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
+            update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $randomStringInvoice);
+        }
+
+        $sub_link_buy = (!empty($dataoutput['subscription_url']) && filter_var($dataoutput['subscription_url'], FILTER_VALIDATE_URL)) ? $dataoutput['subscription_url'] : $output_config_link;
+        sendMessageService($marzban_list_get, $dataoutput['configs'], $sub_link_buy, $dataoutput['username'], null, $textcreatuser, $randomStringInvoice, wireguard: $dataoutput['wireguard'] ?? []);
+        sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
+        step('home', $from_id);
+
+        if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
+            $value = intval($freshUser['number_username']) + 1;
+            update("user", "number_username", $value, "id", $from_id);
+            if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'agentCustomTextSequential'], true)) {
+                $value = intval($setting['numbercount']) + 1;
+                update("setting", "numbercount", $value);
+            }
+        }
+
+        $stmtCount = $pdo->prepare("SELECT * FROM invoice WHERE name_product != :name_product AND id_user = :id_user");
+        $stmtCount->execute([':name_product' => $textbotlang['common']['labels']['testServiceName'], ':id_user' => $from_id]);
+        $textonebuy = ($stmtCount->rowCount() <= 1) ? $textbotlang['common']['labels']['firstPurchaseAlt'] : "";
+        $balanceformatsellbefore = number_format($freshUser['Balance'], 0);
+        $balanceformatsell = number_format($freshUser['Balance'] - $priceproduct, 0);
+        $timejalali = jdate('Y/m/d H:i:s');
+        $first_name_val = $first_name ?? ($freshUser['first_name'] ?? '');
+        
+        $text_report = sprintf($textbotlang['Admin']['reportgroup']['accountCreated'], $textonebuy, $from_id, $username, $username_ac, $first_name_val, $panel_name, $info_product['name_product'], $info_product['Service_time'], $info_product['Volume_constraint'], $balanceformatsellbefore, $balanceformatsell, $randomStringInvoice, $freshUser['agent'], $freshUser['number'] ?? '', $info_product['category'] ?? '', $info_product['price_product'], number_format($priceproduct), $timejalali);
+        $text_report .= "\n\n🔗 <i>" . ($textbotlang['Admin']['reportgroup']['viaDirectLink'] ?? 'ثبت‌شده با لینک مستقیم') . "</i>";
+        
+        if (strlen($setting['Channel_Report']) > 0) {
+            $topic_buy = select("topicid", "idreport", "report", "buyreport", "select");
+            $buyreport = ($topic_buy) ? $topic_buy['idreport'] : 0;
+            telegram('sendmessage', [
+                'chat_id' => $setting['Channel_Report'],
+                'message_thread_id' => $buyreport,
+                'text' => $text_report,
+                'parse_mode' => "HTML",
+                'reply_markup' => json_encode(['inline_keyboard' => [[['text' => $textbotlang['Admin']['manageUser']['manageUserBtn'], 'callback_data' => 'manageuser_' . $from_id]]]])
+            ]);
+        }
+        return;
+    }
     
     $payable_amount = $priceproduct - $freshUser['Balance'];
     if ($payable_amount < 0) $payable_amount = 0;
@@ -362,7 +475,6 @@ if (isset($datain) && $datain == "direct_pay_start") {
         $card_number = $card_info['cardnumber'];
         $PaySettingname = $card_info['namecard'];
         $valueprice = number_format($payable_amount);
-        $username_ac = $freshUser['Processing_value_tow'];
 
         $date_now = time();
         $randomStringInvoice = bin2hex(random_bytes(4)); 
