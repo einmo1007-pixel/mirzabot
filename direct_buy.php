@@ -150,15 +150,21 @@ if (isset($text) && strpos($text, "/start usertest") === 0) {
     
     if (strlen($setting['Channel_Report']) > 0 && !empty($reporttest)) {
         $timejalali = jdate('Y/m/d H:i:s');
-        $text_report = "📣 جزئیات ساخت اکانت تست
-▫️آیدی عددی: <code>$from_id</code>
-▫️نام کاربری: @$username
-▫️کانفیگ: $username_ac
-▫️موقعیت: {$marzban_list_get['name_panel']}
-▫️زمان: {$marzban_list_get['time_usertest']} ساعت
-▫️حجم: {$marzban_list_get['val_usertest']} MB
-▫️کد پیگیری: $invoice_rand_id
-▫️زمان ثبت: $timejalali";
+        $first_name_val = $first_name ?? ($user['first_name'] ?? '');
+        $text_report = sprintf(
+            $textbotlang['Admin']['reportgroup']['testAccountCreated'],
+            $from_id,
+            $username,
+            $username_ac,
+            $first_name_val,
+            $marzban_list_get['name_panel'],
+            $marzban_list_get['time_usertest'],
+            $marzban_list_get['val_usertest'],
+            $invoice_rand_id,
+            $user['agent'],
+            $user['number'],
+            $timejalali
+        );
 
         telegram('sendmessage', [
             'chat_id' => $setting['Channel_Report'],

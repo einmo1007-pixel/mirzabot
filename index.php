@@ -3349,7 +3349,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $time = date('Y/m/d H:i:s');
     $timejalali = jdate('Y/m/d H:i:s');
     $randomString = bin2hex(random_bytes(4));
-    $db_text = $text ?? ($caption ?? "پیام حاوی رسانه");
+    $db_text = $text ?? ($caption ?? ($textbotlang['common']['labels']['mediaMessage'] ?? 'Media'));
     $stmt = $pdo->prepare("INSERT IGNORE INTO support_message (Tracking,idsupport,iduser,name_departman,text,time,status) VALUES (:Tracking,:idsupport,:iduser,:name_departman,:text,:time,:status)");
     $status = "Unseen";
     $stmt->bindParam(':Tracking', $randomString);
@@ -3392,7 +3392,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $trakingdetail = select("support_message", "*", "Tracking", $user['Processing_value']);
     $time = date('Y/m/d H:i:s');
     update("support_message", "status", "Answered", "Tracking", $user['Processing_value']);
-    $db_text = $text ?? ($caption ?? "پاسخ مدیریت");
+    $db_text = $text ?? ($caption ?? ($textbotlang['common']['labels']['adminReply'] ?? 'Admin reply'));
     update("support_message", "result", $db_text, "Tracking", $user['Processing_value']);
     $textSendAdminToUser = sprintf($textbotlang['users']['support']['messageFromAdmin'], ($text ?? $caption));
     $Response = json_encode([
@@ -3423,7 +3423,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $timejalali = jdate('Y/m/d H:i:s');
     Editmessagetext($from_id, $message_id, $text_inline, json_encode(['inline_keyboard' => []]));
     $randomString = bin2hex(random_bytes(4));
-    $db_text = $text ?? ($caption ?? "پیام کاربر");
+    $db_text = $text ?? ($caption ?? ($textbotlang['common']['labels']['userMessage'] ?? 'User message'));
     $stmt = $pdo->prepare("INSERT IGNORE INTO support_message (Tracking,idsupport,iduser,name_departman,text,time,status) VALUES (:Tracking,:idsupport,:iduser,:name_departman,:text,:time,:status)");
     $status = "Customerresponse";
     $stmt->bindParam(':Tracking', $randomString);
