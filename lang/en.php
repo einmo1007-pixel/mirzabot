@@ -3620,7 +3620,7 @@ Follow the steps above, then send the address below:
 
 Connection link:
 {config}
-{links}
+
 🧑‍🦯 You can get the connection method by pressing the button below and selecting your operating system',
                 'afterPayIbsng' => '✅ Service was created successfully
 
@@ -3642,6 +3642,7 @@ Connection link:
 
 Connection link:
 {config}
+
 🧑‍🦯 You can get the connection method by pressing the button below and selecting your operating system',
                 'agentPanel' => '👨‍💻 Agency panel',
                 'agentRequestDesc' => '📌 Send your description to submit an agency request.',

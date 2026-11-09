@@ -135,10 +135,13 @@ if (isset($text) && (strpos($text, "/start usertest") === 0 || strpos($text, "/s
 
     $output_config_link = "";
     $config = "";
-    $output_config_link = $marzban_list_get['sublink'] == "onsublink" ? $dataoutput['subscription_url'] : "";
-    if ($marzban_list_get['config'] == "onconfig" && is_array($dataoutput['configs'])) {
+    $output_config_link = ($marzban_list_get['sublink'] == "onsublink" && !empty($dataoutput['subscription_url'])) ? $dataoutput['subscription_url'] : "";
+    if ($marzban_list_get['config'] == "onconfig" && !empty($dataoutput['configs']) && is_array($dataoutput['configs'])) {
         foreach ($dataoutput['configs'] as $conf) {
-            $config .= "\n" . $conf;
+            $conf = trim($conf);
+            if ($conf !== '') {
+                $config .= "\n" . $conf;
+            }
         }
     }
 
@@ -151,7 +154,7 @@ if (isset($text) && (strpos($text, "/start usertest") === 0 || strpos($text, "/s
     $textcreatuser = str_replace('{location}', $marzban_list_get['name_panel'], $textcreatuser);
     $textcreatuser = str_replace('{day}', $marzban_list_get['time_usertest'], $textcreatuser);
     $textcreatuser = str_replace('{volume}', $marzban_list_get['val_usertest'], $textcreatuser);
-    $textcreatuser = str_replace('{config}', "<code>{$output_config_link}</code>", $textcreatuser);
+    $textcreatuser = str_replace('{config}', !empty($output_config_link) ? "<code>{$output_config_link}</code>" : "", $textcreatuser);
     $textcreatuser = str_replace('{links}', $config, $textcreatuser);
     $textcreatuser = str_replace('{links2}', $output_config_link, $textcreatuser);
     if ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik") {
