@@ -920,6 +920,7 @@ https://t.me/%s?start=%s',
                         'serviceSelectFirst' => '🛍️ 请选择您想购买的服务！',
                         'productSoldOut' => '❌ 该产品目前已售罄。',
                         'service_not_available' => '⛔️ 您没有任何有效服务',
+                        'noActiveServicesBuy' => "<b>❌ 您没有任何有效服务可供查看。</b>\n\n🛍 请点击下方按钮购买新服务：",
                         'service_sell' => '🛍 您购买的订阅
 
 ⚠️ 如需查看详情并管理，请点击用户名
@@ -3848,6 +3849,7 @@ f,n.n2',
                 'bulkPurchase' => '🗂 批量购买',
                 'bulkPurchaseStatus' => '🛍 批量购买状态',
                 'buyService' => '🛍 购买服务',
+                'buyNewService' => '🛍 购买新服务',
                 'buySubscription' => '🛍购买订阅',
                 'cancelGiftSend' => '❌ 取消发送礼品',
                 'cancelOperation' => '取消操作',

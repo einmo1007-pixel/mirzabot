@@ -480,8 +480,19 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $stmt->bindParam(':id_user', $from_id);
     $stmt->execute();
     $invoices = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (is_null($invoices) && $setting['NotUser'] == "offnotuser") {
-        sendmessage($from_id, $textbotlang['users']['sell']['service_not_available'], null, 'html');
+    if (!$invoices && $setting['NotUser'] == "offnotuser") {
+        $noServiceKeyboard = json_encode([
+            'inline_keyboard' => [
+                [
+                    ['text' => $textbotlang['keyboard']['buyNewService'], 'callback_data' => "buyback"]
+                ]
+            ]
+        ]);
+        if ($datain == "backorder") {
+            Editmessagetext($from_id, $message_id, $textbotlang['users']['sell']['noActiveServicesBuy'], $noServiceKeyboard);
+        } else {
+            sendmessage($from_id, $textbotlang['users']['sell']['noActiveServicesBuy'], $noServiceKeyboard, 'html');
+        }
         return;
     }
 

@@ -920,6 +920,7 @@ Support account : @%s',
                         'serviceSelectFirst' => '🛍️ Please select the service you want to purchase!',
                         'productSoldOut' => '❌ This product is currently sold out.',
                         'service_not_available' => '⛔️ You have no active service',
+                        'noActiveServicesBuy' => "<b>❌ You have no active services to display.</b>\n\n🛍 Tap the button below to purchase a new service:",
                         'service_sell' => '🛍 Subscriptions purchased by you
 
 ⚠️ To view details and manage, click on the username
@@ -3848,7 +3849,8 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'bulkPurchase' => '🗂 Bulk purchase',
                 'bulkPurchaseStatus' => '🛍 Bulk purchase status',
                 'buyService' => '🛍 Buy service',
-                'buySubscription' => '🛍Buy subscription',
+                'buyNewService' => '🛍 Buy new service',
+                'buySubscription' => '🛍 Buy subscription',
                 'cancelGiftSend' => '❌ Cancel gift sending',
                 'cancelOperation' => 'Cancel operation',
                 'cancelPinnedMessages' => 'Cancel pinned messages',
